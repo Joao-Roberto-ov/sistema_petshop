@@ -6,7 +6,7 @@ from pydantic import BaseModel, EmailStr, validator
 from passlib.context import CryptContext
 from bancoDeDados import conectar, encerra_conexao
 
-# inicializa o hashing de senhas usando o algoritmo bcrypt
+#hashing de senhas
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 class ClienteCadastro(BaseModel):
@@ -23,17 +23,13 @@ class ClienteCadastro(BaseModel):
 
         if validador is None:
             return None
-
         cpf_numeros = "".join(filter(str.isdigit, validador))
 
         if len(cpf_numeros) != 11:
             raise ValueError('O CPF deve conter 11 dígitos numéricos.')
-
         return cpf_numeros
 app = FastAPI()
-
 # ---------------------------------------------------------------------------------------------------------------------
-
 @app.get("/", response_class = RedirectResponse, include_in_schema = False)
 async def raiz():
     return "/docs"
@@ -43,22 +39,21 @@ async def raiz():
 async def signup(cliente: ClienteCadastro):
 
     senha_hashed = pwd_context.hash(cliente.senha)
-
     conn = None
 
     try:
         conn = conectar()
         if not conn:
-            raise HTTPException(status_code=500, detail="Não foi possível conectar ao banco de dados.")
+            raise HTTPException(status_code=500, detail = "Não foi possível conectar ao banco de dados.")
 
         cursor = conn.cursor()
 
-        nome_pet_final = cliente.nome_pet if cliente.nome_pet else 'Não informado'
-        endereco_final = cliente.endereco if cliente.endereco else 'Não informado'
-        cpf_final = cliente.cpf if cliente.cpf else None
+        nome_pet_corrigido = cliente.nome_pet if cliente.nome_pet else 'Não informado'
+        endereco_corrigido = cliente.endereco if cliente.endereco else 'Não informado'
+        cpf_verificado = cliente.cpf if cliente.cpf else None
 
         sql = "INSERT INTO clientes(nome, email, senha, telefone, nome_pet, endereco, cpf) VALUES(%s, %s, %s, %s, %s, %s, %s)"
-        cursor.execute(sql,(cliente.nome,cliente.email, senha_hashed, cliente.telefone,nome_pet_final,endereco_final,cpf_final))
+        cursor.execute(sql,(cliente.nome,cliente.email, senha_hashed, cliente.telefone,nome_pet_corrigido,endereco_corrigido,cpf_verificado))
 
         conn.commit()
         cursor.close()
@@ -76,7 +71,7 @@ async def signup(cliente: ClienteCadastro):
         raise HTTPException(status_code = 500, detail="Ocorreu um erro interno ao processar o cadastro.")
 
     finally:
-        #garante que a conexao seja sempre encerrada, mesmo se der problema
+        #garante que a conexao seja encerrada, mesmo se der problema
         if conn:
             encerra_conexao(conn)
 
