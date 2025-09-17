@@ -32,21 +32,39 @@ def encerra_conexao(connected):
         connected.close()
         print("Conexão encerrada com o banco de dados")
 
-def criar_tabela_clientes():
+def criar_tabelas():
     conectado = conectar()
-    curs = conectado.cursor()
+    if not conectado:
+        print("Falha ao conectar ao banco de dados")
+        return
 
-    curs.execute("""CREATE TABLE IF NOT EXISTS Clientes (
-    Id SERIAL PRIMARY KEY,
-    Nome VARCHAR(150) NOT NULL,
-    Email VARCHAR(150) UNIQUE NOT NULL,
-    Senha TEXT NOT NULL,
-    Telefone VARCHAR(20)NOT NULL,
-    Nome_pet VARCHAR(80) DEFAULT 'Não informado',
-    Endereco VARCHAR(400) DEFAULT 'Não informado',
-    CPF VARCHAR(14) UNIQUE
-);""")
+    try:
+        curs = conectado.cursor()
 
-    conectado.commit()
-    curs.close()
-    conectado.close()
+        curs.execute("""CREATE TABLE IF NOT EXISTS Clientes (
+        Id SERIAL PRIMARY KEY,
+        Nome VARCHAR(150) NOT NULL,
+        Email VARCHAR(150) UNIQUE NOT NULL,
+        Senha TEXT NOT NULL,
+        Telefone VARCHAR(20)NOT NULL,
+        Nome_pet VARCHAR(80) DEFAULT 'Não informado',
+        Endereco VARCHAR(400) DEFAULT 'Não informado',
+        CPF VARCHAR(14) UNIQUE
+    );""")
+
+        curs.execute("""CREATE TABLE IF NOT EXISTS Pets (
+        Id SERIAL PRIMARY KEY,
+        Nome  VARCHAR(80) NOT NULL,
+        Tipo  VARCHAR(80) NOT NULL,
+        Raça  VARCHAR(50) NOT NULL,
+        Idade SMALLINT NOT NULL,
+        Peso  FLOAT,
+        Cliente_id INTEGER REFERENCES Clientes(Id)
+        );""")
+
+        conectado.commit()
+        curs.close()
+
+    finally:
+        encerra_conexao(conectado)
+

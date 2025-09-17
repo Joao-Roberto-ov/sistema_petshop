@@ -118,7 +118,7 @@
 
     <div class="container">
         <div class="header">
-            <h2>BEM-VINDO DE VOLTA</h2>
+            <h2>BOAS VINDAS AO PETLIFE</h2>
             <p>Faça login para continuar.</p>
         </div>
         
@@ -143,9 +143,8 @@
             const form = event.target;
             const data = Object.fromEntries(new FormData(form).entries());
             const mensagemDiv = document.getElementById('mensagem');
-            
-            // alterar a url para a da amazon
-            const apiUrl = 'http://petshop.us-east-2.elasticbeanstalk.com/login';
+
+            const apiUrl = '/login';
 
             try {
                 const response = await fetch(apiUrl, {
@@ -155,9 +154,16 @@
                 });
                 const responseData = await response.json();
                 if (response.ok) {
-                    mensagemDiv.textContent = responseData.message;
-                    mensagemDiv.className = 'mensagem sucesso';
 
+                    localStorage.setItem('access_token', responseData.access_token);
+
+                    mensagemDiv.textContent = responseData.Aviso + "\nRedirecionando para a tela inicial, aguarde...";
+                    mensagemDiv.className = 'mensagem sucesso';
+                    form.reset();
+
+                    setTimeout(() => {
+                        window.location.href = '/home.html';
+                    }, 2000)
                 } else {
                     mensagemDiv.textContent = 'Erro: ' + responseData.detail;
                     mensagemDiv.className = 'mensagem erro';
