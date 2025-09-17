@@ -7,11 +7,11 @@ load_dotenv()
 
 def conectar():
     try:
-        pwd = os.getenv('RDB_PASSWORD')
-        hosting = os.getenv('RDS_HOSTNAME')
-        database = os.getenv('RDS_DB_NAME')
-        usuario = os.getenv('RDS_USERNAME')
-        porta = os.getenv('RDS_PORT')
+        pwd = os.getenv('AWS_DB_PASSWORD')
+        hosting = os.getenv('AWS_DB_HOST')
+        database = os.getenv('AWS_DB_NAME')
+        usuario = os.getenv('AWS_DB_USER')
+        porta = os.getenv('AWS_DB_PORT')
 
         connected = pg.connect(
             dbname = database,
@@ -50,5 +50,3 @@ def criar_tabela_clientes():
     conectado.commit()
     curs.close()
     conectado.close()
-
-criar_tabela_clientes()

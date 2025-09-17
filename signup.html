@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Crie sua conta | Petshop Platform</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito+Sans:opsz,wght@6..12,400;6..12,700;6..12,800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --dio-green: #04d361;
+            --dark-background: #1e192c;
+            --dark-card: #2c2541;
+            --text-color: #ffffff;
+            --input-background: #3a3252;
+            --error-red: #d93025;
+        }
+
+        body {
+            font-family: 'Nunito Sans', sans-serif;
+            background-color: var(--dark-background);
+            color: var(--text-color);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .container {
+            background-color: var(--dark-card);
+            padding: 40px;
+            border-radius: 10px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+            max-width: 450px;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            font-size: 24px;
+            font-weight: 800;
+            margin: 0 0 10px 0;
+        }
+
+        .header h2 {
+            font-size: 28px;
+            font-weight: 800;
+            margin: 0 0 10px 0;
+            color: var(--dio-green);
+        }
+
+        .header p {
+            font-size: 16px;
+            color: #b0aabd;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 700;
+            font-size: 14px;
+        }
+
+        input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid var(--input-background);
+            background-color: var(--input-background);
+            border-radius: 5px;
+            color: var(--text-color);
+            font-size: 16px;
+            box-sizing: border-box;
+            transition: border-color 0.3s;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: var(--dio-green);
+        }
+
+        button[type="submit"] {
+            width: 100%;
+            padding: 15px;
+            background-color: var(--dio-green);
+            border: none;
+            border-radius: 5px;
+            color: var(--text-color);
+            font-size: 16px;
+            font-weight: 800;
+            text-transform: uppercase;
+            cursor: pointer;
+            transition: filter 0.2s;
+        }
+
+        button[type="submit"]:hover {
+            filter: brightness(0.9);
+        }
+
+        .login-link {
+            text-align: center;
+            margin-top: 25px;
+            font-size: 14px;
+        }
+
+        .login-link a {
+            color: var(--dio-green);
+            font-weight: 700;
+            text-decoration: none;
+        }
+
+        .mensagem {
+            margin-top: 20px;
+            padding: 12px;
+            border-radius: 4px;
+            text-align: center;
+            font-weight: 500;
+            display: none;
+        }
+        .mensagem.sucesso {
+            background-color: rgba(4, 211, 97, 0.2);
+            color: var(--dio-green);
+            display: block;
+        }
+        .mensagem.erro {
+            background-color: rgba(217, 48, 37, 0.2);
+            color: var(--error-red);
+            display: block;
+        }
+
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <div class="header">
+            <h2>PETSHOP</h2>
+            <h1>Crie sua conta</h1>
+            <p>É rápido e fácil, vamos começar.</p>
+        </div>
+
+        <form id="cadastro-form">
+            <div class="form-group">
+                <input type="text" id="nome" name="nome" placeholder="Nome Completo" required>
+            </div>
+            <div class="form-group">
+                <input type="email" id="email" name="email" placeholder="E-mail" required>
+            </div>
+            <div class="form-group">
+                <input type="password" id="senha" name="senha" placeholder="Senha" required>
+            </div>
+            <div class="form-group">
+                <input type="tel" id="telefone" name="telefone" placeholder="Telefone" required>
+            </div>
+            <div class="form-group">
+                <input type="text" id="nome_pet" name="nome_pet" placeholder="Nome do Pet (Opcional)">
+            </div>
+            <div class="form-group">
+                <input type="text" id="cpf" name="cpf" placeholder="CPF (Opcional)">
+            </div>
+            <div class="form-group">
+                <input type="text" id="endereco" name="endereco" placeholder="Endereço (Opcional)">
+            </div>
+            <button type="submit">Cadastrar</button>
+        </form>
+
+        <div id="mensagem" class="mensagem"></div>
+
+        <p class="login-link">Já tem uma conta? <a href="/login">Faça Login</a></p>
+    </div>
+
+    <script>
+        document.getElementById('cadastro-form').addEventListener('submit', async function(event) {
+            event.preventDefault();
+            const form = event.target;
+            const formData = new FormData(form);
+            const data = Object.fromEntries(formData.entries());
+
+            for (const key in data) {
+                if (data[key] === '') {
+                    delete data[key];
+                }
+            }
+
+            const mensagemDiv = document.getElementById('mensagem');
+
+            // alterar essa url para a da amazon tbm
+            const apiUrl = 'http://127.0.0.1:8000/signup';
+
+            try {
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data),
+                });
+
+                const responseData = await response.json();
+
+                if (response.ok) {
+                    mensagemDiv.textContent = responseData.Aviso;
+                    mensagemDiv.className = 'mensagem sucesso';
+                    form.reset();
+                } else {
+                    mensagemDiv.textContent = 'Erro: ' + responseData.detail;
+                    mensagemDiv.className = 'mensagem erro';
+                }
+            } catch (error) {
+                mensagemDiv.textContent = 'Não foi possível conectar à API.';
+                mensagemDiv.className = 'mensagem erro';
+                console.error('Erro de rede:', error);
+            }
+        });
+    </script>
+
+</body>
+</html>

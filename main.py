@@ -1,10 +1,18 @@
 from typing import Optional
 import psycopg2
 from fastapi import FastAPI, HTTPException
-from fastapi.responses import RedirectResponse
+from fastapi.responses import RedirectResponse, FileResponse
 from pydantic import BaseModel, EmailStr, validator
 from passlib.context import CryptContext
-from bancoDeDados import conectar, encerra_conexao
+
+from bancoDeDados import conectar, encerra_conexao, criar_tabela_clientes
+from contextlib import asynccontextmanager
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+
+    criar_tabela_clientes()
+    yield
 
 #hashing de senhas
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -28,13 +36,16 @@ class ClienteCadastro(BaseModel):
         if len(cpf_numeros) != 11:
             raise ValueError('O CPF deve conter 11 dígitos numéricos.')
         return cpf_numeros
-app = FastAPI()
+app = FastAPI(lifespan=lifespan)
 # ---------------------------------------------------------------------------------------------------------------------
 @app.get("/", response_class = RedirectResponse, include_in_schema = False)
 async def raiz():
     return "/docs"
 
 # ---------------------------------------------------------------------------------------------------------------------
+@app.get("/signup", response_class = FileResponse, include_in_schema = False)
+async def signup():
+    return "signup.html"
 @app.post("/signup", status_code = 201) #se der certo, aparece 201 galera
 async def signup(cliente: ClienteCadastro):
 
@@ -71,12 +82,15 @@ async def signup(cliente: ClienteCadastro):
         raise HTTPException(status_code = 500, detail="Ocorreu um erro interno ao processar o cadastro.")
 
     finally:
-        #garante que a conexao seja encerrada, mesmo se der problema
+        #faz com que a conexao seja encerrada, mesmo se der problema
         if conn:
             encerra_conexao(conn)
 
 # ---------------------------------------------------------------------------------------------------------------------
+@app.get("/login", response_class = FileResponse, include_in_schema = False)
+async def login():
+    return "login.html"
 @app.post("/login")
-async def signin():
+async def login():
     #a logica de login é basicamente comparar a senha enviada com o hash salvo no banco e redirecionar o user para a tela inicial ou de perfil familia
-    return {"message": "Login (a ser implementado)"}
+    return {"message": "Login (em desenvolvimento)"}
