@@ -942,16 +942,14 @@ body {
     border: none;
 }
 
-/* Estado de hover */
 .btn-outline:hover {
-    background-color: #ef4444; /* Fundo vermelho quando passa o mouse */
-    color: white; /* Texto branco */
-    border: none; /* Garante que a borda não apareça no hover */
+    background-color: #ef4444;
+    color: white;
+    border: none;
     transform: translateY(-2px);
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
 
-/* Adicione estilos para o nome do usuário */
 .user-welcome {
     color: #4a9b8e;
     font-weight: 600;
