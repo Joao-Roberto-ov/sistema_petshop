@@ -38,6 +38,3 @@ class PetCadastro(BaseModel):
 class Pet(PetCadastro):
     id: int
     cliente_id: int
-# ?
-class GestorCadastro(BaseModel):
-    nome: str

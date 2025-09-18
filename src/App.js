@@ -5,39 +5,51 @@ import HomePage from './components/HomePage';
 import LoginScreen from './components/LoginScreen';
 import SignupScreen from './components/SignupScreen';
 import Dashboard from './components/Dashboard';
+import HomePageFuncionario from './components/HomePageFuncionario';
 
 function App() {
     const [currentScreen, setCurrentScreen] = useState('home');
     const [isLoggedIn, setIsLoggedIn] = useState(false);
     const [userData, setUserData] = useState(null);
 
-    //verifica se já existe um login salvo no navegador
+    // Verifica se já existe um login salvo no navegador
     useEffect(() => {
         const token = localStorage.getItem('token');
         const savedUserData = localStorage.getItem('userData');
         if (token && savedUserData) {
+            const parsedUser = JSON.parse(savedUserData);
             setIsLoggedIn(true);
-            setUserData(JSON.parse(savedUserData));
-            setCurrentScreen('home');
+            setUserData(parsedUser);
+            navigateToHome(parsedUser);
         }
     }, []);
+
+    const navigateToHome = (user = userData) => {
+        if (user?.cargo) {
+            // Se for funcionário (ou gestor)
+            setCurrentScreen('homeFuncionario');
+        } else {
+            // Se for cliente ou visitante
+            setCurrentScreen('home');
+        }
+    };
 
     const handleLogin = (data) => {
         setIsLoggedIn(true);
         setUserData(data);
-        setCurrentScreen('home');
+        navigateToHome(data);
     };
 
-    //logout
+    // Logout
     const handleLogout = () => {
         localStorage.removeItem('token');
         localStorage.removeItem('userData');
         setIsLoggedIn(false);
         setUserData(null);
-        setCurrentScreen('home');
+        navigateToHome();
     };
 
-    //decide qual componente de tela renderizar
+    // Decide qual componente de tela renderizar
     const renderScreen = () => {
         switch (currentScreen) {
             case 'login':
@@ -54,8 +66,15 @@ function App() {
                 return <Dashboard
                             userData={userData}
                             onLogout={handleLogout}
-                            onNavigateToHome={() => setCurrentScreen('home')}
+                            onNavigateToHome={navigateToHome}
                         />;
+            case 'homeFuncionario':
+                return <HomePageFuncionario
+                    userData={userData}
+                    onNavigateToVisualizarClientes={() => setCurrentScreen('visualizarClientes')}
+                    onNavigateToCadastrarCliente={() => setCurrentScreen('cadastrarCliente')}
+                    onLogout={handleLogout}
+                />;
             case 'home':
             default:
                 return <HomePage
@@ -78,7 +97,7 @@ function App() {
                 onNavigateToLogin={() => setCurrentScreen('login')}
                 onNavigateToSignup={() => setCurrentScreen('signup')}
                 onNavigateToDashboard={() => setCurrentScreen('dashboard')}
-                onNavigateToHome={() => setCurrentScreen('home')}
+                onNavigateToHome={navigateToHome}
             />
 
             <main>
