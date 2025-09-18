@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from fastapi.security import OAuth2PasswordBearer
 from seguranca import verifica_token
 from services.cliente_service import ServicosCliente
-from modelos import ClienteCadastro, ClienteLogin
+from modelos import ClienteCadastro
 
 router = APIRouter(prefix="/api", tags=["Clientes"])
 dupla_autenticacao = OAuth2PasswordBearer(tokenUrl = "/login")
@@ -24,17 +24,6 @@ async def rota_signup(dados_cliente: ClienteCadastro, service: ServicosCliente =
     try:
         service.signup(dados_cliente)
         return {"Aviso": f"Cliente '{dados_cliente.nome}' cadastrado com sucesso!"}
-    except HTTPException as e:
-        raise e
-    except Exception as e:
-        raise HTTPException(status_code=500, detail = "Ocorreu um erro interno.")
-
-
-@router.post("/login")
-async def rota_login(cliente_login_data: ClienteLogin, service: ServicosCliente = Depends(pegar_servicos_cliente)):
-
-    try:
-        return service.login(cliente_login_data)
     except HTTPException as e:
         raise e
     except Exception as e:

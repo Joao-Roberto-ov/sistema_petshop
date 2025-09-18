@@ -1,7 +1,7 @@
 from pydantic import BaseModel, EmailStr, validator
 from typing import Optional
 
-class ClienteLogin(BaseModel):
+class UsuarioLogin(BaseModel):
     email: EmailStr
     senha: str
 
@@ -38,3 +38,6 @@ class PetCadastro(BaseModel):
 class Pet(PetCadastro):
     id: int
     cliente_id: int
+# ?
+class GestorCadastro(BaseModel):
+    nome: str
