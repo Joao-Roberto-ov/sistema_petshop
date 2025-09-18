@@ -24,7 +24,7 @@ class RepositorioCliente:
         try:
             conn = conectar()
             cursor = conn.cursor()
-            sql = "SELECT id, nome, email, telefone, endereco FROM Clientes WHERE Id = %s"
+            sql = "SELECT id, nome, email, telefone, endereco, cpf FROM Clientes WHERE Id = %s"
             cursor.execute(sql, (user_id,))
             return cursor.fetchone()
 
