@@ -621,7 +621,6 @@ body {
     padding: 0 1rem;
 }
 
-/* Imagem background */
 .hero {
     background: linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.5)), url('imagens/background-pets.png');
     background-size: cover;
@@ -817,7 +816,6 @@ body {
     }
 }
 
-/* Responsividade */
 @media (max-width: 768px) {
     .grid-lg-4 {
         grid-template-columns: repeat(2, 1fr);
@@ -859,7 +857,6 @@ body {
     font-size: 0.9rem;
 }
 
-/* Ajuste responsivo para o header */
 @media (max-width: 768px) {
     .nav-buttons {
         flex-direction: column;
@@ -892,7 +889,6 @@ body {
     font-size: 0.9rem;
 }
 
-/* Ajuste responsivo */
 @media (max-width: 1024px) {
     .nav-menu {
         gap: 0.5rem;
@@ -1037,7 +1033,6 @@ body {
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
 
-/* Botão Sair - estilo minimalista */
 .btn-sair {
     background: transparent;
     color: #6b46c1;
