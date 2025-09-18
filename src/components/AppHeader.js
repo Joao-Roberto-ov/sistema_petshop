@@ -1,13 +1,15 @@
-import React from 'react';
+import React, { useState } from 'react'; // <-- IMPORTANTE: Adicionei o useState
 
 function getFirstName(fullName) {
     if (!fullName) return 'Usuário';
     return fullName.trim().split(' ')[0];
 }
 
-function AppHeader({ onNavigateToLogin, onNavigateToSignup, isLoggedIn, userData, onLogout, onNavigateToDashboard, onNavigateToHome }) {
+function AppHeader({ onNavigateToLogin, onNavigateToSignup, isLoggedIn, userData, onLogout, onNavigateToDashboard, onNavigateToHome, onNavigateToPetCadastro }) {
+    const [isDropdownOpen, setIsDropdownOpen] = useState(false);
     const handlePlaceholderClick = (feature) => {
         alert(`A funcionalidade "${feature}" será implementada em breve!`);
+        setIsDropdownOpen(false);
     };
 
     return (
@@ -22,25 +24,27 @@ function AppHeader({ onNavigateToLogin, onNavigateToSignup, isLoggedIn, userData
                     <li><a href="#" className="nav-link" onClick={(e) => { e.preventDefault(); onNavigateToHome(); }}>Início</a></li>
                     <li><a href="#" className="nav-link" onClick={(e) => { e.preventDefault(); handlePlaceholderClick('Agendamento'); }}>Agendamento</a></li>
                     <li><a href="#" className="nav-link" onClick={(e) => { e.preventDefault(); handlePlaceholderClick('Produtos'); }}>Produtos</a></li>
-
-                    {isLoggedIn && (
-                        <>
-                            <li><a href="#" className="nav-link" onClick={(e) => { e.preventDefault(); onNavigateToDashboard(); }}>Dashboard</a></li>
-                            <li><a href="#" className="nav-link" onClick={(e) => { e.preventDefault(); handlePlaceholderClick('Agendamentos'); }}>Agendamentos</a></li>
-                        </>
-                    )}
                 </ul>
 
                 <div className="nav-buttons">
                     {isLoggedIn ? (
-                        <>
-                            <span className="user-welcome">{`Olá, ${getFirstName(userData?.nome)}`}</span>
-                            <button className="btn-sair" onClick={onLogout}>Sair</button>
-                        </>
+                        <div className="user-menu">
+                            <button className="user-menu-button" onClick={() => setIsDropdownOpen(!isDropdownOpen)}>
+                                {`Olá, ${getFirstName(userData?.nome)}`}
+                            </button>
+
+                            {isDropdownOpen && (
+                                <ul className="dropdown-menu">
+                                    <li><a href="#" onClick={(e) => { e.preventDefault(); onNavigateToDashboard(); setIsDropdownOpen(false); }}>Meu Dashboard</a></li>
+                                    <li><a href="#" onClick={(e) => { e.preventDefault(); onNavigateToPetCadastro(); setIsDropdownOpen(false); }}>Cadastrar Pet</a></li>
+                                    <li><a href="#" onClick={(e) => handlePlaceholderClick("Meus Pets")}>Meus Pets</a></li>
+                                    <li><a href="#" onClick={(e) => handlePlaceholderClick("Meu Perfil")}>Meu Perfil</a></li>
+                                    <li><a href="#" onClick={(e) => { e.preventDefault(); onLogout(); setIsDropdownOpen(false); }}>Sair</a></li>
+                                </ul>
+                            )}
+                        </div>
                     ) : (
                         <>
-                            {}
-                            {}
                             <a href="#" className="btn-entrar" onClick={(e) => { e.preventDefault(); onNavigateToLogin(); }}>Entrar</a>
                             <a href="#" className="btn-cadastrar" onClick={(e) => { e.preventDefault(); onNavigateToSignup(); }}>Cadastrar</a>
                         </>

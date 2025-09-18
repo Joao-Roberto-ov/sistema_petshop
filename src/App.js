@@ -5,13 +5,13 @@ import HomePage from './components/HomePage';
 import LoginScreen from './components/LoginScreen';
 import SignupScreen from './components/SignupScreen';
 import Dashboard from './components/Dashboard';
+import PetCadastroScreen from './components/PetCadastroScreen';
 
 function App() {
     const [currentScreen, setCurrentScreen] = useState('home');
     const [isLoggedIn, setIsLoggedIn] = useState(false);
     const [userData, setUserData] = useState(null);
 
-    //verifica se já existe um login salvo no navegador
     useEffect(() => {
         const token = localStorage.getItem('token');
         const savedUserData = localStorage.getItem('userData');
@@ -28,7 +28,6 @@ function App() {
         setCurrentScreen('home');
     };
 
-    //logout
     const handleLogout = () => {
         localStorage.removeItem('token');
         localStorage.removeItem('userData');
@@ -37,7 +36,6 @@ function App() {
         setCurrentScreen('home');
     };
 
-    //decide qual componente de tela renderizar
     const renderScreen = () => {
         switch (currentScreen) {
             case 'login':
@@ -54,6 +52,10 @@ function App() {
                 return <Dashboard
                             userData={userData}
                             onLogout={handleLogout}
+                            onNavigateToHome={() => setCurrentScreen('home')}
+                        />;
+            case 'pet-cadastro':
+                return <PetCadastroScreen
                             onNavigateToHome={() => setCurrentScreen('home')}
                         />;
             case 'home':
@@ -79,8 +81,8 @@ function App() {
                 onNavigateToSignup={() => setCurrentScreen('signup')}
                 onNavigateToDashboard={() => setCurrentScreen('dashboard')}
                 onNavigateToHome={() => setCurrentScreen('home')}
+                onNavigateToPetCadastro={() => setCurrentScreen('pet-cadastro')}
             />
-
             <main>
                 {renderScreen()}
             </main>
