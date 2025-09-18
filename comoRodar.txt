@@ -1,0 +1,18 @@
+--- Rodar Backend ---
+cd (diretorio da pasta do projeto)
+pip install -r requirements.txt (so faz isso uma vez)
+python -u bancoDeDados.py
+uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+
+Com outro CMD
+
+--- Rodar FrontEnd ---
+
+cd (diretorio da pasta do projeto)
+cd front_end
+npm istall axios react-dom (so faz isso uma vez)
+npm install (so faz isso uma vez)
+pnpm dev
+
+
+Apos isso, entra no site http://localhost:3000

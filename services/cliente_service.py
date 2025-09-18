@@ -39,8 +39,18 @@ class ServicosCliente:
         if not verifica_senha(dados_login_clientes.senha, senha_hashed_do_banco):
             raise HTTPException(status_code=401, detail="E-mail ou senha inválidos.")
 
+        dados_usuario = self.buscar_pelo_id(user_id)
+
+        if not dados_usuario:
+            raise HTTPException(status_code=404, detail="Usuário não encontrado após verificação.")
+
         token = cria_token_de_acesso(data={"sub": str(user_id)})
-        return {"access_token": token, "token_type": "bearer"}
+
+        return {
+            "access_token": token,
+            "token_type": "bearer",
+            "user": dados_usuario
+        }
 
     def buscar_pelo_id(self, user_id: int):
         user_data = self.repo.procurar_pelo_id(user_id)
@@ -52,6 +62,5 @@ class ServicosCliente:
             "nome": user_data[1],
             "email": user_data[2],
             "telefone": user_data[3],
-            "endereco": user_data[4],
-            "cpf": user_data[5]
+            "endereco": user_data[4] if user_data[4] else "Não informado"
         }

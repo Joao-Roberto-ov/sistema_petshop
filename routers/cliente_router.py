@@ -4,7 +4,7 @@ from seguranca import verifica_token
 from services.cliente_service import ServicosCliente
 from modelos import ClienteCadastro, ClienteLogin
 
-router = APIRouter(tags=["Clientes"])
+router = APIRouter(prefix="/api", tags=["Clientes"])
 dupla_autenticacao = OAuth2PasswordBearer(tokenUrl = "/login")
 
 async def pegar_id_do_usuario(token: str = Depends(dupla_autenticacao)) -> int:
