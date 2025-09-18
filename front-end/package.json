@@ -1,0 +1,18 @@
+{
+  "name": "front-end",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "npx serve -s -l 3000",
+    "build": "echo 'No build step needed'"
+  },
+  "dependencies": {
+    "axios": "^1.12.2",
+    "lucide-react": "^0.544.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "serve": "^14.0.0"
+  }
+}

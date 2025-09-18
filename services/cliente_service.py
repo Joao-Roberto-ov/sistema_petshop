@@ -52,6 +52,5 @@ class ServicosCliente:
             "nome": user_data[1],
             "email": user_data[2],
             "telefone": user_data[3],
-            "endereco": user_data[4],
-            "cpf": user_data[5]
+            "endereco": user_data[4] if user_data[4] else "Não informado"
         }
