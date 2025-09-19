@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
-from seguranca import pegar_id_do_usuario_logado 
+from seguranca import pegar_id_do_usuario_logado
 from services.cliente_service import ServicosCliente
-from modelos import ClienteCadastro, ClienteLogin
+from modelos import ClienteCadastro
 
 router = APIRouter(prefix="/api", tags=["Clientes"])
 def pegar_servicos_cliente():
@@ -38,3 +38,13 @@ async def rota_para_usuario(
         return user
     except HTTPException as e:
         raise e
+@router.get("/users", status_code=200)
+async def rota_buscar_todos(service: ServicosCliente = Depends(pegar_servicos_cliente)):
+    """
+    Retorna a lista de todos os clientes cadastrados.
+    """
+    try:
+        clientes = service.buscar_todos()
+        return clientes
+    except Exception as e:
+        raise HTTPException(status_code=500, detail="Erro ao buscar clientes.")

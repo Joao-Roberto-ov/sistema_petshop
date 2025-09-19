@@ -1,12 +1,9 @@
 from pydantic import BaseModel, EmailStr, validator
 from typing import Optional
-from datetime import datetime
 
-
-class ClienteLogin(BaseModel):
+class UsuarioLogin(BaseModel):
     email: EmailStr
     senha: str
-
 
 class ClienteCadastro(BaseModel):
     nome: str
@@ -15,6 +12,24 @@ class ClienteCadastro(BaseModel):
     telefone: str
     cpf: Optional[str] = None
     endereco: Optional[str] = None
+
+class ClienteCadastroPorFuncionario(BaseModel):
+    nome: str
+    email: EmailStr
+    telefone: str
+    cpf: Optional[str] = None
+    endereco: Optional[str] = None
+
+class FuncionarioModel(BaseModel):
+    nome: str
+    telefone: str
+    cargo_id: int
+    cpf: str
+    endereco: str
+    email: EmailStr
+    isAtivo: bool
+
+
 
     @validator('cpf', pre=True, always=True)
     def validar_e_limpar_cpf(cls, validador: str) -> Optional[str]:

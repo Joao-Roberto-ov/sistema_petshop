@@ -1,3 +1,6 @@
+import secrets
+import string
+
 from fastapi import HTTPException
 from psycopg2 import IntegrityError
 from seguranca import cria_hash_senha, verifica_senha, cria_token_de_acesso
@@ -6,6 +9,41 @@ from repositories.cliente_repository import RepositorioCliente
 class ServicosCliente:
     def __init__(self):
         self.repo = RepositorioCliente()
+
+    def gerar_senha_temporaria(self):
+        chars = string.ascii_letters + string.digits + "!@#$%"
+        return ''.join(secrets.choice(chars) for _ in range(8))
+
+    def cadastrar_por_funcionario(self, dados_cliente):
+        try:
+            # Gerar senha temporária e hash
+            senha_temp = self.gerar_senha_temporaria()
+            senha_hash = cria_hash_senha(senha_temp)
+
+            endereco = dados_cliente.endereco if dados_cliente.endereco else 'Não informado'
+            cpf = dados_cliente.cpf if dados_cliente.cpf else None
+
+            self.repo.cadastrar_cliente(
+                dados_cliente.nome,
+                dados_cliente.email,
+                senha_hash,
+                dados_cliente.telefone,
+                endereco,
+                cpf
+            )
+
+            # Retornar senha temporária para o gestor exibir
+            return {"senha_temporaria": senha_temp}
+
+        except IntegrityError as e:
+            error_message = str(e).lower()
+
+            if "email" in error_message:
+                raise HTTPException(status_code=400, detail="O e-mail fornecido já está cadastrado.")
+            elif "cpf" in error_message:
+                raise HTTPException(status_code=400, detail="O CPF fornecido já está cadastrado.")
+            else:
+                raise HTTPException(status_code=400, detail="Erro de integridade dos dados.")
 
     def signup(self, cliente_dados):
         try:
@@ -51,6 +89,9 @@ class ServicosCliente:
             "token_type": "bearer",
             "user": dados_usuario
         }
+
+    def buscar_todos(self):
+        return self.repo.buscar_todos()
 
     def buscar_pelo_id(self, user_id: int):
         user_data = self.repo.procurar_pelo_id(user_id)

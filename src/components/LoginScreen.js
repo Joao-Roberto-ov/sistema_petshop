@@ -6,31 +6,43 @@ function LoginScreen({ onLogin, onNavigateToSignup, setUserData }) {
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
 
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-        setLoading(true);
-        setError('');
+const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setError('');
 
-        try {
-            const response = await axios.post('/login', formData);
-            localStorage.setItem('token', response.data.access_token);
+    try {
+        const response = await axios.post('/login', formData);
+        const user = response.data.user;
 
-            const userData = {
-                nome: response.data.user?.nome || formData.email.split('@')[0],
-                email: formData.email,
-                telefone: response.data.user?.telefone || ''
-            };
+        // salva token
+        localStorage.setItem('token', response.data.access_token);
 
-            localStorage.setItem('userData', JSON.stringify(userData));
-            setUserData(userData);
-            onLogin(userData);
+        // monta userData completo
+        const userData = {
+            id: user.id,
+            nome: user.nome,
+            email: user.email,
+            telefone: user.telefone || '',
+            endereco: user.endereco || '',
+            cpf: user.cpf || '',
+            cargo: user.cargo || null,
+            is_ativo: user.is_ativo || null
+        };
 
-        } catch (err) {
-            setError(err.response?.data?.detail || 'Erro ao fazer login. Verifique suas credenciais.');
-        } finally {
-            setLoading(false);
-        }
-    };
+        // salva no localStorage e atualiza estado
+        localStorage.setItem('userData', JSON.stringify(userData));
+        setUserData(userData);
+
+        // chama callback do App.js
+        onLogin(userData);
+
+    } catch (err) {
+        setError(err.response?.data?.detail || 'Erro ao fazer login. Verifique suas credenciais.');
+    } finally {
+        setLoading(false);
+    }
+};
 
     return (
         <div className="login-container">

@@ -5,6 +5,8 @@ import HomePage from './components/HomePage';
 import LoginScreen from './components/LoginScreen';
 import SignupScreen from './components/SignupScreen';
 import Dashboard from './components/Dashboard';
+import HomePageFuncionario from './components/HomePageFuncionario';
+import VisualizarClientes from "./components/VisualizarClientes";
 import PetCadastroScreen from './components/PetCadastroScreen';
 import MeusPetsScreen from './components/MeusPetsScreen';
 
@@ -17,24 +19,37 @@ function App() {
         const token = localStorage.getItem('token');
         const savedUserData = localStorage.getItem('userData');
         if (token && savedUserData) {
+            const parsedUser = JSON.parse(savedUserData);
             setIsLoggedIn(true);
-            setUserData(JSON.parse(savedUserData));
-            setCurrentScreen('home');
+            setUserData(parsedUser);
+            navigateToHome(parsedUser);
         }
     }, []);
+
+    const navigateToHome = (user = userData, forced = false) => {
+        if (!forced && user?.cargo) {
+            // Se for funcionário (ou gestor) e não estiver forçando visitante
+            setCurrentScreen('homeFuncionario');
+        } else {
+            // Se for cliente, visitante ou se estiver forçando
+            setCurrentScreen('home');
+        }
+    };
+
 
     const handleLogin = (data) => {
         setIsLoggedIn(true);
         setUserData(data);
-        setCurrentScreen('home');
+        navigateToHome(data);
     };
 
+    //logout
     const handleLogout = () => {
         localStorage.removeItem('token');
         localStorage.removeItem('userData');
         setIsLoggedIn(false);
         setUserData(null);
-        setCurrentScreen('home');
+        navigateToHome(null,true);
     };
     const renderScreen = () => {
         if (isLoggedIn && (currentScreen === 'login' || currentScreen === 'signup')) {
@@ -62,7 +77,7 @@ function App() {
                 return <Dashboard
                             userData={userData}
                             onLogout={handleLogout}
-                            onNavigateToHome={() => setCurrentScreen('home')}
+                            onNavigateToHome={navigateToHome}
                         />;
             case 'pet-cadastro':
                 return <PetCadastroScreen
@@ -72,6 +87,14 @@ function App() {
                 return <MeusPetsScreen
                             onNavigateToHome={() => setCurrentScreen('home')}
                         />;
+            case 'homeFuncionario':
+                return <HomePageFuncionario
+                    userData={userData}
+                    onNavigateToVisualizarClientes={() => setCurrentScreen('visualizarClientes')}
+                    onLogout={handleLogout}
+                />;
+            case 'visualizarClientes':
+                return <VisualizarClientes onBack={() => navigateToHome()} />;
             case 'home':
             default:
                 return <HomePage
@@ -96,6 +119,7 @@ function App() {
                 onNavigateToHome={() => setCurrentScreen('home')}
                 onNavigateToPetCadastro={() => setCurrentScreen('pet-cadastro')}
                 onNavigateToMeusPets={() => setCurrentScreen('meus-pets')}
+                onNavigateToHome={navigateToHome}
             />
             <main>
                 {renderScreen()}
