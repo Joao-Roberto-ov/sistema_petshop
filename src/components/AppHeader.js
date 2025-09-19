@@ -1,11 +1,11 @@
-import React, { useState } from 'react'; // <-- IMPORTANTE: Adicionei o useState
+import React, { useState } from 'react';
 
 function getFirstName(fullName) {
     if (!fullName) return 'Usuário';
     return fullName.trim().split(' ')[0];
 }
 
-function AppHeader({ onNavigateToLogin, onNavigateToSignup, isLoggedIn, userData, onLogout, onNavigateToDashboard, onNavigateToHome, onNavigateToPetCadastro }) {
+function AppHeader({ onNavigateToLogin, onNavigateToSignup, isLoggedIn, userData, onLogout, onNavigateToDashboard, onNavigateToHome, onNavigateToPetCadastro, onNavigateToMeusPets }) {
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
     const handlePlaceholderClick = (feature) => {
         alert(`A funcionalidade "${feature}" será implementada em breve!`);
@@ -37,7 +37,7 @@ function AppHeader({ onNavigateToLogin, onNavigateToSignup, isLoggedIn, userData
                                 <ul className="dropdown-menu">
                                     <li><a href="#" onClick={(e) => { e.preventDefault(); onNavigateToDashboard(); setIsDropdownOpen(false); }}>Meu Dashboard</a></li>
                                     <li><a href="#" onClick={(e) => { e.preventDefault(); onNavigateToPetCadastro(); setIsDropdownOpen(false); }}>Cadastrar Pet</a></li>
-                                    <li><a href="#" onClick={(e) => handlePlaceholderClick("Meus Pets")}>Meus Pets</a></li>
+                                    <li><a href="#" onClick={(e) => { e.preventDefault(); onNavigateToMeusPets(); setIsDropdownOpen(false); }}>Meus Pets</a></li>
                                     <li><a href="#" onClick={(e) => handlePlaceholderClick("Meu Perfil")}>Meu Perfil</a></li>
                                     <li><a href="#" onClick={(e) => { e.preventDefault(); onLogout(); setIsDropdownOpen(false); }}>Sair</a></li>
                                 </ul>

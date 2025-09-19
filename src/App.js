@@ -6,6 +6,7 @@ import LoginScreen from './components/LoginScreen';
 import SignupScreen from './components/SignupScreen';
 import Dashboard from './components/Dashboard';
 import PetCadastroScreen from './components/PetCadastroScreen';
+import MeusPetsScreen from './components/MeusPetsScreen';
 
 function App() {
     const [currentScreen, setCurrentScreen] = useState('home');
@@ -35,8 +36,20 @@ function App() {
         setUserData(null);
         setCurrentScreen('home');
     };
-
     const renderScreen = () => {
+        // LÓGICA DE PROTEÇÃO ADICIONADA
+        // Se o usuário está logado e tenta acessar a tela de login ou cadastro,
+        // ele é "redirecionado" para a HomePage.
+        if (isLoggedIn && (currentScreen === 'login' || currentScreen === 'signup')) {
+            return <HomePage
+                        onNavigateToLogin={() => setCurrentScreen('login')}
+                        onNavigateToSignup={() => setCurrentScreen('signup')}
+                        onNavigateToDashboard={() => setCurrentScreen('dashboard')}
+                        isLoggedIn={isLoggedIn}
+                        userData={userData}
+                        onLogout={handleLogout}
+                    />;
+        }
         switch (currentScreen) {
             case 'login':
                 return <LoginScreen
@@ -58,6 +71,10 @@ function App() {
                 return <PetCadastroScreen
                             onNavigateToHome={() => setCurrentScreen('home')}
                         />;
+            case 'meus-pets':
+                return <MeusPetsScreen
+                            onNavigateToHome={() => setCurrentScreen('home')}
+                        />;
             case 'home':
             default:
                 return <HomePage
@@ -70,7 +87,6 @@ function App() {
                         />;
         }
     };
-
     return (
         <div className="App">
             <AppHeader
@@ -82,6 +98,7 @@ function App() {
                 onNavigateToDashboard={() => setCurrentScreen('dashboard')}
                 onNavigateToHome={() => setCurrentScreen('home')}
                 onNavigateToPetCadastro={() => setCurrentScreen('pet-cadastro')}
+                onNavigateToMeusPets={() => setCurrentScreen('meus-pets')}
             />
             <main>
                 {renderScreen()}
@@ -89,5 +106,4 @@ function App() {
         </div>
     );
 }
-
 export default App;

@@ -1,0 +1,115 @@
+.pet-card {
+    background-image: linear-gradient(to right top, #8e2de2, #4a00e0);
+    color: white;
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+    padding: 1.5rem;
+    position: relative;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.pet-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 30px rgba(0,0,0,0.12);
+}
+
+.pet-info {
+    cursor: pointer;
+}
+
+.pet-card h3 {
+    margin-top: 0;
+    color: white;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.2);
+}
+
+.pet-card p {
+    margin: 0.5rem 0;
+    font-size: 0.9rem;
+    color: #f0f0f0;
+}
+
+.pet-card p strong {
+    color: white;
+    font-weight: 600;
+}
+
+.edit-button {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: #e0e0e0;
+    padding: 0.5rem;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background-color 0.2s, color 0.2s;
+}
+
+.edit-button:hover {
+    color: white;
+    background-color: rgba(255, 255, 255, 0.2);
+}
+
+.pet-edit-form {
+    color: #333;
+}
+
+.form-group-edit {
+    margin-bottom: 0.75rem;
+}
+
+.form-group-edit label {
+    display: block;
+    margin-bottom: 0.25rem;
+    font-weight: 500;
+    font-size: 0.8rem;
+    color: white;
+}
+
+.pet-edit-form input {
+    width: 100%;
+    padding: 0.5rem;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 0.9rem;
+    background: #f9f9f9;
+}
+
+.pet-edit-form input:focus {
+    outline: none;
+    border-color: #8e2de2;
+    background: white;
+}
+
+.edit-buttons {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 1rem;
+}
+
+.edit-buttons button {
+    padding: 0.5rem 1rem;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: 500;
+    background-color: #f5f5f5;
+    color: #333;
+}
+
+.edit-buttons button[type="submit"] {
+    background-color: #34D399;
+    color: white;
+    border-color: #34D399;
+}
+
+.error-text {
+    color: #FBBF24;
+    font-size: 0.8rem;
+    font-weight: 500;
+}
