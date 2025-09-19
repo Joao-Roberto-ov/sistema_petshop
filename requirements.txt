@@ -5,3 +5,4 @@ pydantic
 python-dotenv
 passlib[bcrypt]
 pydantic[email]
+python-jose[cryptography]
