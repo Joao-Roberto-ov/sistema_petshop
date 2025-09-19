@@ -8,7 +8,6 @@ from routers import cliente_router, pet_router
 
 basedir = os.path.abspath(os.path.dirname(__file__))
 frontend_dir = os.path.join(basedir, "build")
-# --------------------------------------------------------------------
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -29,4 +28,4 @@ app.add_middleware(
 
 app.include_router(cliente_router.router)
 app.include_router(pet_router.router)
-app.mount("/", StaticFiles(directory=frontend_dir, html=True), name="static")
+# app.mount("/", StaticFiles(directory=frontend_dir, html=True), name="static")

@@ -35,6 +35,8 @@ def criar_tabelas():
         return
     try:
         curs = conectado.cursor()
+        
+        # Tabela de Clientes (sem alterações)
         curs.execute("""CREATE TABLE IF NOT EXISTS Clientes (
             id SERIAL PRIMARY KEY,
             nome VARCHAR(150) NOT NULL,
@@ -46,6 +48,7 @@ def criar_tabelas():
             cpf VARCHAR(14) UNIQUE
         );""")
 
+        # Tabela de Pets (sem alterações)
         curs.execute("""CREATE TABLE IF NOT EXISTS Pets (
             id SERIAL PRIMARY KEY,
             nome VARCHAR(80) NOT NULL,
@@ -56,6 +59,7 @@ def criar_tabelas():
             cliente_id INTEGER REFERENCES Clientes(id) ON DELETE CASCADE
         );""")
 
+        # Tabela de Histórico de Consultas (sem alterações)
         curs.execute("""CREATE TABLE IF NOT EXISTS HistoricoConsultas (
             id SERIAL PRIMARY KEY,
             servico_realizado VARCHAR(200) NOT NULL,
@@ -65,6 +69,7 @@ def criar_tabelas():
             pet_id INTEGER REFERENCES Pets(id) ON DELETE CASCADE
         );""")
 
+        # Tabela de Histórico de Serviços (sem alterações)
         curs.execute("""CREATE TABLE IF NOT EXISTS HistoricoServicos (
             id SERIAL PRIMARY KEY,
             servico_realizado VARCHAR(200) NOT NULL,
@@ -74,7 +79,22 @@ def criar_tabelas():
             pet_id INTEGER REFERENCES Pets(id) ON DELETE CASCADE
         );""")
 
+        # Tabela para armazenar códigos de verificação temporários
+        curs.execute("""CREATE TABLE IF NOT EXISTS CodigosVerificacao (
+            id SERIAL PRIMARY KEY,
+            cliente_id INTEGER NOT NULL REFERENCES Clientes(id) ON DELETE CASCADE,
+            codigo VARCHAR(6) NOT NULL,
+            expiracao TIMESTAMP WITH TIME ZONE NOT NULL,
+            criado_em TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+        );""")
+
+
         conectado.commit()
+        print("Verificação e criação de tabelas concluída com sucesso.")
         curs.close()
     finally:
         encerra_conexao(conectado)
+
+if __name__ == '__main__':
+    print("Iniciando a criação das tabelas no banco de dados...")
+    criar_tabelas()

@@ -20,14 +20,17 @@ body {
     padding: 0.5rem 0;
 }
 
+/* Bloco de CSS corrigido e pronto para uso */
+
 .nav {
     display: flex;
-    justify-content: space-between;
+    /* justify-content: space-between;  <-- REMOVIDO: Não precisamos mais disso */
     align-items: center;
     padding: 1rem 2rem;
     max-width: 1200px;
     margin: 0 auto;
     min-height: 60px;
+    width: 100%; /* Garante que o nav ocupe toda a largura do container */
 }
 
 .nav-brand {
@@ -38,15 +41,19 @@ body {
     color: #4a9b8e;
     text-decoration: none;
     height: 100%;
+    flex-shrink: 0; /* Impede que o logo encolha */
 }
 
 .nav-brand .icon {
     font-size: 2rem;
-    margin-right: var(--spacing-sm);
+    /* A variável --spacing-sm não foi definida, então substituí por um valor fixo */
+    margin-right: 0.5rem; 
 }
 
-/*ajustes do menu*/
+/* --- AJUSTES DO MENU (CORREÇÃO PRINCIPAL) --- */
 .nav-menu {
+    flex-grow: 1; /* FAZ O MENU OCUPAR O ESPAÇO CENTRAL */
+    justify-content: center; /* CENTRALIZA OS LINKS DENTRO DO MENU */
     display: flex;
     list-style: none;
     gap: 1.5rem;
@@ -55,6 +62,13 @@ body {
     align-items: center;
     height: 100%;
 }
+
+/* Adicione esta regra para os botões de usuário para garantir o alinhamento correto */
+.nav-buttons {
+    flex-shrink: 0; /* Impede que os botões encolham */
+    margin-left: auto; /* Empurra os botões para a direita (alternativa ao space-between) */
+}
+
 
 .nav-link {
     text-decoration: none;
@@ -77,6 +91,8 @@ body {
     display: flex;
     gap: 1rem;
     align-items: center;
+    flex-shrink: 0; /* Impede que os botões encolham */
+    margin-left: auto; /* Empurra os botões para a direita (alternativa ao space-between) */
 }
 
 .btn-login {
@@ -1118,3 +1134,89 @@ body {
 .dropdown-menu li a:hover {
     background-color: #f5f5f5;
 }
+
+/* ==========================================================================
+   ESTILOS ADICIONAIS PARA A HOMEPAGE (Diferenciais e Depoimentos)
+   ========================================================================== */
+
+/* Fundo claro para seções alternadas */
+.bg-light {
+    background-color: #f8f9fa;
+}
+
+/* Grid genérico de 3 colunas para Diferenciais e Depoimentos */
+.grid-3 {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 2rem;
+    margin-top: 3rem;
+}
+
+/* Card de Diferenciais */
+.feature-card {
+    background: white;
+    padding: 2rem;
+    border-radius: 12px;
+    text-align: center;
+    border: 1px solid #eee;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+.feature-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 30px rgba(0,0,0,0.08);
+}
+.feature-card .feature-icon {
+    font-size: 2.5rem;
+    margin-bottom: 1rem;
+}
+.feature-card h3 {
+    font-size: 1.3rem;
+    margin-bottom: 0.5rem;
+    color: #333;
+}
+.feature-card p {
+    color: #666;
+}
+
+/* Grid de Depoimentos */
+.testimonials-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 2rem;
+    margin-top: 3rem;
+}
+
+/* Card de Depoimento */
+.testimonial-card {
+    background: white;
+    padding: 2rem;
+    border-radius: 12px;
+    border: 1px solid #eee;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    text-align: left;
+}
+.testimonial-text {
+    font-style: italic;
+    color: #555;
+    margin-bottom: 1.5rem;
+    flex-grow: 1; /* Garante que o texto ocupe o espaço */
+}
+.testimonial-author {
+    font-size: 0.9rem;
+    color: #333;
+    border-top: 1px solid #f0f0f0;
+    padding-top: 1rem;
+}
+.testimonial-author span {
+    color: #777;
+}
+
+/* Ajustes de Responsividade para as novas seções */
+@media (max-width: 992px) {
+    .grid-3, .testimonials-grid {
+        grid-template-columns: 1fr; /* Uma coluna em tablets */
+    }
+}
+
