@@ -1,5 +1,6 @@
 from pydantic import BaseModel, EmailStr, validator
 from typing import Optional
+from datetime import datetime
 
 class UsuarioLogin(BaseModel):
     email: EmailStr

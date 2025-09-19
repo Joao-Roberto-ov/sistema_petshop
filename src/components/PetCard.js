@@ -9,7 +9,6 @@ function PencilIcon() {
         </svg>
     );
 }
-
 function PetCard({ pet, onViewHistory, onPetUpdated }) {
     const [isEditing, setIsEditing] = useState(false);
     const [formData, setFormData] = useState({
@@ -43,11 +42,19 @@ function PetCard({ pet, onViewHistory, onPetUpdated }) {
 
         try {
             const token = localStorage.getItem('token');
-            const dataToUpdate = {
-                ...formData,
-                idade: parseInt(formData.idade),
-                peso: formData.peso ? parseFloat(formData.peso) : null,
-            };
+            //pega apenas os campos que foram realmente alterados para enviar
+            const dataToUpdate = {};
+            if (formData.nome !== pet.nome) dataToUpdate.nome = formData.nome;
+            if (formData.tipo !== pet.tipo) dataToUpdate.tipo = formData.tipo;
+            if (formData.raca !== pet.raca) dataToUpdate.raca = formData.raca;
+            if (parseInt(formData.idade) !== pet.idade) dataToUpdate.idade = parseInt(formData.idade);
+            if (parseFloat(formData.peso) !== pet.peso) dataToUpdate.peso = formData.peso ? parseFloat(formData.peso) : null;
+
+            // Se nenhum campo mudou, não faz a chamada de API
+            if (Object.keys(dataToUpdate).length === 0) {
+                setIsEditing(false);
+                return;
+            }
 
             const response = await axios.put(`/pets/${pet.id}`, dataToUpdate, {
                  headers: { 'Authorization': `Bearer ${token}` }
@@ -59,7 +66,6 @@ function PetCard({ pet, onViewHistory, onPetUpdated }) {
             setError('Erro ao salvar. Verifique os dados.');
         }
     };
-
     return (
         <div className="pet-card">
             {isEditing ? (
