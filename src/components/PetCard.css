@@ -1,0 +1,149 @@
+/* Arquivo completo e redesenhado para: src/components/PetCard.css */
+
+/* Estilo principal do card do pet */
+.pet-card {
+    background-color: white; /* Fundo branco e limpo */
+    color: #333; /* Cor de texto padrão */
+    border-radius: 12px;
+    border: 1px solid #e5e7eb; /* Borda sutil */
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+    padding: 1.5rem;
+    position: relative;
+    transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
+}
+
+.pet-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
+    border-color: #4a9b8e; /* Destaca a borda com a cor do tema no hover */
+}
+
+/* Informações visíveis do pet */
+.pet-info {
+    cursor: pointer; /* Mantém o cursor para indicar que é clicável */
+}
+
+.pet-card h3 {
+    margin-top: 0;
+    margin-bottom: 1rem;
+    color: #4a9b8e; /* Nome do pet com a cor principal */
+    font-size: 1.4rem;
+    border-bottom: 1px solid #f0f0f0;
+    padding-bottom: 0.5rem;
+}
+
+.pet-card p {
+    margin: 0.5rem 0;
+    font-size: 0.95rem; /* Aumenta um pouco a legibilidade */
+    color: #555;
+}
+
+.pet-card p strong {
+    color: #333;
+    font-weight: 600;
+}
+
+/* Botão de editar (lápis) */
+.edit-button {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    background: #f5f5f5;
+    border: 1px solid #ddd;
+    cursor: pointer;
+    color: #555;
+    padding: 0.5rem;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+}
+
+.edit-button:hover {
+    color: #4a9b8e;
+    background-color: #eef7f5; /* Fundo verde bem claro */
+    border-color: #4a9b8e;
+    transform: scale(1.1);
+}
+
+/* Formulário de edição que aparece ao clicar no lápis */
+.pet-edit-form {
+    color: #333;
+}
+
+.form-group-edit {
+    margin-bottom: 0.75rem;
+}
+
+.form-group-edit label {
+    display: block;
+    margin-bottom: 0.25rem;
+    font-weight: 500;
+    font-size: 0.85rem;
+    color: #555; /* Cor do label mais suave */
+}
+
+.pet-edit-form input {
+    width: 100%;
+    padding: 0.6rem;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    background: #f9f9f9;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.pet-edit-form input:focus {
+    outline: none;
+    border-color: #4a9b8e;
+    box-shadow: 0 0 0 2px rgba(74, 155, 142, 0.2);
+}
+
+/* Botões de Salvar e Cancelar no modo de edição */
+.edit-buttons {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 1rem;
+}
+
+.edit-buttons button {
+    flex-grow: 1; /* Faz os botões ocuparem o espaço igualmente */
+    padding: 0.6rem 1rem;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 0.9rem;
+    transition: all 0.2s ease;
+}
+
+/* Botão de Cancelar (ou genérico) */
+.btn-secondary {
+    background-color: #f5f5f5;
+    color: #333;
+    border-color: #ddd;
+}
+
+.btn-secondary:hover {
+    background-color: #e5e5e5;
+}
+
+/* Botão de Salvar (Submit) */
+.btn-save {
+    background-color: #4a9b8e; /* Cor principal do sistema */
+    color: white;
+    border-color: #4a9b8e;
+}
+
+.btn-save:hover {
+    background-color: #3d8b7e;
+}
+
+/* Texto de erro no formulário de edição */
+.error-text {
+    color: #e53e3e; /* Vermelho mais forte para erros */
+    font-size: 0.85rem;
+    font-weight: 500;
+    margin-top: 0.5rem;
+}

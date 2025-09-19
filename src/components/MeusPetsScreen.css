@@ -1,0 +1,116 @@
+/* Arquivo completo e corrigido para: src/components/MeusPetsScreen.css */
+
+.meus-pets-container {
+    min-height: calc(100vh - 120px);
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding: 2rem;
+    background-color: #f5f5f5;
+}
+
+.content-wrapper {
+    width: 100%;
+    max-width: 1200px;
+    background-color: white;
+    padding: 2.5rem; 
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+}
+
+/* --- CORREÇÃO PRINCIPAL DO LAYOUT DO CABEÇALHO --- */
+
+/* 1. O header agora é um container Flexbox */
+.header {
+    display: flex;
+    justify-content: space-between; /* Empurra o texto para a esquerda e o botão para a direita */
+    align-items: center; /* Alinha verticalmente */
+    flex-wrap: wrap; /* Permite que quebre a linha em telas pequenas */
+    gap: 1rem; /* Espaçamento se o layout quebrar a linha */
+    
+    border-bottom: 1px solid #eee;
+    padding-bottom: 1.5rem; /* Aumenta um pouco o padding inferior */
+}
+
+/* 2. O texto do cabeçalho (título e subtítulo) */
+.header-text {
+    text-align: left; /* Garante o alinhamento à esquerda */
+}
+
+.header-text h1 {
+    color: #333;
+    margin: 0;
+    font-size: 2rem;
+}
+
+.header-text p {
+    color: #666;
+    margin-top: 0.5rem;
+    font-size: 1.1rem;
+    margin-bottom: 0;
+}
+
+/* 3. O botão de adicionar pet */
+.btn-add-pet {
+    /* O estilo visual do botão já está ótimo, só garantimos que ele não encolha */
+    flex-shrink: 0;
+    background-color: #4a9b8e;
+    color: white;
+    border: none;
+    padding: 0.75rem 1.5rem;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.3s ease, transform 0.2s ease;
+    text-decoration: none;
+    white-space: nowrap;
+}
+
+.btn-add-pet:hover {
+    background-color: #3d8b7e;
+    transform: scale(1.05); /* Efeito de hover mais simples */
+}
+
+/* --- FIM DA CORREÇÃO DO LAYOUT --- */
+
+.pets-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 1.5rem;
+    margin-top: 2rem;
+}
+
+.message, .no-pets-container {
+    text-align: center;
+    padding: 3rem 1rem;
+    font-size: 1.2rem;
+    color: #555;
+}
+
+.error-message {
+    color: #dc3545;
+}
+
+.no-pets-text {
+    font-size: 1.1rem;
+    color: #666;
+    margin-bottom: 1.5rem;
+}
+
+/* Media Query para telas menores */
+@media (max-width: 768px) {
+    .content-wrapper {
+        padding: 1.5rem;
+    }
+
+    .header {
+        /* Em telas pequenas, centraliza tudo para um layout mais simples */
+        justify-content: center;
+        text-align: center;
+    }
+
+    .header-text {
+        text-align: center; /* Garante que o texto também centralize */
+    }
+}
