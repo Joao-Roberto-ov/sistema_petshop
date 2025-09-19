@@ -1,6 +1,6 @@
 import React from 'react';
 
-function HomePage({ onNavigateToLogin, onNavigateToSignup, isLoggedIn, userData, onLogout, onNavigateToDashboard }) {
+function HomePage({ onNavigateToLogin, isLoggedIn, userData, onLogout, onNavigateToDashboard }) {
     const handlePlaceholderClick = (feature) => {
         alert(`A funcionalidade "${feature}" será implementada em breve!`);
     };
@@ -79,9 +79,9 @@ function HomePage({ onNavigateToLogin, onNavigateToSignup, isLoggedIn, userData,
             <section className="cta">
                 <div className="container">
                     <h2>Pronto para cuidar do seu pet?</h2>
-                    <p>Cadastre-se agora e tenha acesso a todos os nossos serviços e produtos.</p>
+                    {/* O texto foi ajustado para refletir a ausência do botão de cadastro */}
+                    <p>Explore nossos serviços e descubra como podemos ajudar seu companheiro.</p>
                     <div className="cta-buttons">
-                        <button className="btn btn-secondary btn-lg hover-lift" onClick={onNavigateToSignup}>Cadastrar-se</button>
                         <button className="btn btn-outline-white btn-lg hover-lift" onClick={() => handlePlaceholderClick('Conhecer Serviços')}>Conhecer Serviços</button>
                     </div>
                 </div>
@@ -89,5 +89,4 @@ function HomePage({ onNavigateToLogin, onNavigateToSignup, isLoggedIn, userData,
         </>
     );
 }
-
 export default HomePage;

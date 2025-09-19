@@ -1,5 +1,6 @@
 from pydantic import BaseModel, EmailStr, validator
 from typing import Optional
+from datetime import datetime
 
 class UsuarioLogin(BaseModel):
     email: EmailStr
@@ -33,26 +34,41 @@ class FuncionarioModel(BaseModel):
 
     @validator('cpf', pre=True, always=True)
     def validar_e_limpar_cpf(cls, validador: str) -> Optional[str]:
-        if validador is None or validador == "":
-            return None
+        if not validador: return None
         cpf_numeros = "".join(filter(str.isdigit, validador))
         if len(cpf_numeros) != 11:
             raise ValueError('O CPF deve conter 11 dígitos numéricos.')
         return cpf_numeros
 
-    @validator('endereco', pre=True, always=True)
-    def validar_endereco(cls, endereco: str) -> Optional[str]:
-        if endereco is None or endereco == "":
-            return None
-        return endereco
 
 class PetCadastro(BaseModel):
     nome: str
     tipo: str
     raca: str
     idade: int
-    peso: float
+    peso: Optional[float] = None
+
 
 class Pet(PetCadastro):
     id: int
     cliente_id: int
+
+
+class PetUpdate(BaseModel):
+    nome: Optional[str] = None
+    tipo: Optional[str] = None
+    raca: Optional[str] = None
+    idade: Optional[int] = None
+    peso: Optional[float] = None
+
+
+class HistoricoItem(BaseModel):
+    servico_realizado: str
+    funcionario: str
+    data_hora: datetime
+    valor: float
+
+
+class PetHistoryResponse(BaseModel):
+    consultas: list[HistoricoItem]
+    servicos: list[HistoricoItem]
