@@ -72,3 +72,9 @@ class HistoricoItem(BaseModel):
 class PetHistoryResponse(BaseModel):
     consultas: list[HistoricoItem]
     servicos: list[HistoricoItem]
+
+class ClienteEdicaoPorFuncionario(BaseModel):
+    nome: Optional[str] = None
+    email: Optional[EmailStr] = None
+    telefone: Optional[str] = None
+    endereco: Optional[str] = None

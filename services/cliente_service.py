@@ -5,6 +5,7 @@ from fastapi import HTTPException
 from psycopg2 import IntegrityError
 from seguranca import cria_hash_senha, verifica_senha, cria_token_de_acesso
 from repositories.cliente_repository import RepositorioCliente
+from datetime import datetime
 
 class ServicosCliente:
     def __init__(self):
@@ -105,3 +106,57 @@ class ServicosCliente:
             "telefone": user_data[3],
             "endereco": user_data[4] if user_data[4] else "Não informado"
         }
+
+    def editar_cliente(
+            self,
+            id: int,
+            nome: str,
+            email: str,
+            telefone: str,
+            endereco: str,
+            cpf: str | None = None,
+            funcionario_id: int | None = None
+    ):
+        # Buscar dados atuais para histórico
+        cliente_atual = self.repo.procurar_pelo_id(id)
+        if not cliente_atual:
+            raise HTTPException(status_code=404, detail="Cliente não encontrado.")
+
+        # Verificar email duplicado
+        cliente_email = self.repo.buscar_pelo_email(email)
+        if cliente_email and cliente_email[0] != id:
+            raise HTTPException(status_code=400, detail="Já existe um cliente com este email.")
+
+        # Verificar CPF duplicado
+        if cpf:
+            cliente_cpf = self.repo.procurar_por_cpf(cpf)
+            if cliente_cpf and cliente_cpf[0] != id:
+                raise HTTPException(status_code=400, detail="Já existe um cliente com este CPF.")
+
+        campos_modificados = []
+
+        if cliente_atual[1] != nome:
+            campos_modificados.append(("nome", cliente_atual[1], nome))
+        if cliente_atual[2] != email:
+            campos_modificados.append(("email", cliente_atual[2], email))
+        if cliente_atual[3] != telefone:
+            campos_modificados.append(("telefone", cliente_atual[3], telefone))
+        if cliente_atual[4] != endereco:
+            campos_modificados.append(("endereco", cliente_atual[4], endereco))
+        if (len(cliente_atual) > 5 and cliente_atual[5] != cpf):
+            campos_modificados.append(("cpf", cliente_atual[5], cpf))
+
+        # Atualizar cliente
+        self.repo.editar_cliente(id, nome, email, telefone, endereco, cpf)
+
+        # Registrar histórico
+        for campo, antigo, novo in campos_modificados:
+            self.repo.registrar_historico(
+                cliente_id=id,
+                funcionario_id=funcionario_id,
+                campo=campo,
+                valor_antigo=antigo,
+                valor_novo=novo
+            )
+
+        return {"mensagem": f"Cliente '{nome}' atualizado com sucesso."}
