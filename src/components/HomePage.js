@@ -1,6 +1,5 @@
 import React from 'react';
 
-// A propriedade 'onNavigateToSignup' foi removida, pois o botão que a usava foi excluído.
 function HomePage({ onNavigateToLogin, isLoggedIn, userData, onLogout, onNavigateToDashboard }) {
     const handlePlaceholderClick = (feature) => {
         alert(`A funcionalidade "${feature}" será implementada em breve!`);
@@ -77,14 +76,12 @@ function HomePage({ onNavigateToLogin, isLoggedIn, userData, onLogout, onNavigat
                 </div>
             </section>
 
-            {/* A SEÇÃO roxa foi restaurada abaixo */}
             <section className="cta">
                 <div className="container">
                     <h2>Pronto para cuidar do seu pet?</h2>
                     {/* O texto foi ajustado para refletir a ausência do botão de cadastro */}
                     <p>Explore nossos serviços e descubra como podemos ajudar seu companheiro.</p>
                     <div className="cta-buttons">
-                        {/* O botão "Cadastrar-se" foi REMOVIDO daqui */}
                         <button className="btn btn-outline-white btn-lg hover-lift" onClick={() => handlePlaceholderClick('Conhecer Serviços')}>Conhecer Serviços</button>
                     </div>
                 </div>

@@ -1118,3 +1118,47 @@ body {
 .dropdown-menu li a:hover {
     background-color: #f5f5f5;
 }
+
+/*balaozin da senha*/
+.password-tooltip {
+    position: absolute;
+    top: 105%;
+    left: 0;
+    width: 100%;
+    background-color: #333;
+    color: white;
+    padding: 1rem;
+    border-radius: 8px;
+    z-index: 10;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    font-size: 0.85rem;
+}
+
+.password-tooltip::before {
+    content: '';
+    position: absolute;
+    bottom: 100%;
+    left: 20px;
+    border-width: 8px;
+    border-style: solid;
+    border-color: transparent transparent #333 transparent;
+}
+
+.password-tooltip ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.password-tooltip li {
+    transition: color 0.3s ease;
+    margin-bottom: 0.25rem;
+}
+
+.password-tooltip li.valid {
+    color: #4ade80;
+}
+
+.password-tooltip li.invalid {
+    color: #f87171;
+}

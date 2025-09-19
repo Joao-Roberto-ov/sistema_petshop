@@ -37,9 +37,6 @@ function App() {
         setCurrentScreen('home');
     };
     const renderScreen = () => {
-        // LÓGICA DE PROTEÇÃO ADICIONADA
-        // Se o usuário está logado e tenta acessar a tela de login ou cadastro,
-        // ele é "redirecionado" para a HomePage.
         if (isLoggedIn && (currentScreen === 'login' || currentScreen === 'signup')) {
             return <HomePage
                         onNavigateToLogin={() => setCurrentScreen('login')}
