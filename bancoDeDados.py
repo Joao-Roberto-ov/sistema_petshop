@@ -96,6 +96,16 @@ def criar_tabelas():
             pet_id INTEGER REFERENCES Pets(id) ON DELETE CASCADE
         );""")
 
+        curs.execute("""CREATE TABLE IF NOT EXISTS Cliente_historico (
+            id SERIAL PRIMARY KEY,
+            cliente_id INT NOT NULL,
+            funcionario_id INT REFERENCES funcionarios(id),
+            campo TEXT NOT NULL,
+            valor_antigo TEXT,
+            valor_novo TEXT,
+            data_hora TIMESTAMP NOT NULL DEFAULT NOW()
+        );""")
+
         conectado.commit()
         curs.close()
     finally:

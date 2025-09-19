@@ -6,6 +6,7 @@ function VisualizarClientes({ onBack }) {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [showForm, setShowForm] = useState(false);
+    const [editingId, setEditingId] = useState(null); // ID do cliente sendo editado
 
     // Formulário
     const [formData, setFormData] = useState({
@@ -30,13 +31,18 @@ function VisualizarClientes({ onBack }) {
             const response = await axios.get('/users', {
                 headers: { Authorization: `Bearer ${token}` }
             });
-            setClientes(response.data);
+
+            // Ordena por id
+            const clientesOrdenados = response.data.sort((a, b) => a.id - b.id);
+
+            setClientes(clientesOrdenados);
         } catch (err) {
             setError(err.response?.data?.detail || 'Erro ao buscar clientes.');
         } finally {
             setLoading(false);
         }
     };
+
 
     const handleFormSubmit = async (e) => {
         e.preventDefault();
@@ -46,19 +52,36 @@ function VisualizarClientes({ onBack }) {
 
         try {
             const dadosParaEnviar = {
-                ...formData,
-                cpf: formData.cpf.replace(/\D/g, '') || null,
+                nome: formData.nome || undefined,
+                email: formData.email || undefined,
+                telefone: formData.telefone || undefined,
+                endereco: formData.endereco || undefined
             };
             const token = localStorage.getItem('token');
-            const response = await axios.post('/funcionario/cadastrar-cliente', dadosParaEnviar, {
-                headers: { Authorization: `Bearer ${token}` }
-            });
 
-            setFormSuccess(`Cliente '${formData.nome}' cadastrado com sucesso! Senha temporária: ${response.data.senha_temporaria}`);
+            if (editingId) {
+                // Edição de cliente existente
+                await axios.put(`/funcionario/editar-cliente/${editingId}`, dadosParaEnviar, {
+                    headers: { Authorization: `Bearer ${token}` }
+                });
+                setFormSuccess(`Cliente '${formData.nome}' atualizado com sucesso!`);
+            } else {
+                // Cadastro de novo cliente
+                const response = await axios.post('/funcionario/cadastrar-cliente', {
+                    ...dadosParaEnviar,
+                    cpf: formData.cpf.replace(/\D/g, '') || null
+                }, {
+                    headers: { Authorization: `Bearer ${token}` }
+                });
+                setFormSuccess(`Cliente '${formData.nome}' cadastrado com sucesso! Senha temporária: ${response.data.senha_temporaria}`);
+            }
+
             setFormData({ nome: '', email: '', telefone: '', cpf: '', endereco: '' });
+            setEditingId(null);
+            setShowForm(false);
             fetchClientes(); // Atualiza lista de clientes
         } catch (err) {
-            let mensagemErro = 'Erro ao cadastrar cliente.';
+            let mensagemErro = 'Erro ao processar formulário.';
             if (err.response?.data) {
                 const data = err.response.data;
                 if (typeof data.detail === 'string') mensagemErro = data.detail;
@@ -71,6 +94,20 @@ function VisualizarClientes({ onBack }) {
         }
     };
 
+    const handleEditClick = (cliente) => {
+        setFormData({
+            nome: cliente.nome,
+            email: cliente.email,
+            telefone: cliente.telefone || '',
+            endereco: cliente.endereco || '',
+            cpf: cliente.cpf || ''
+        });
+        setEditingId(cliente.id);
+        setShowForm(true);
+        setFormSuccess('');
+        setFormError('');
+    };
+
     if (loading) return <p className="container">Carregando clientes...</p>;
     if (error) return <p className="container">{error}</p>;
 
@@ -80,8 +117,11 @@ function VisualizarClientes({ onBack }) {
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem' }}>
                     <h2>Clientes Cadastrados</h2>
                     <div>
-                        <button className="btn btn-secondary hover-lift" onClick={() => setShowForm(!showForm)}>
-                            {showForm ? 'Cancelar Cadastro' : 'Cadastrar Novo Cliente'}
+                        <button className="btn btn-secondary hover-lift" onClick={() => {
+                            setShowForm(!showForm);
+                            if (!showForm) setEditingId(null);
+                        }}>
+                            {showForm ? 'Cancelar' : 'Cadastrar Novo Cliente'}
                         </button>
                         <button className="btn btn-secondary hover-lift" onClick={onBack} style={{ marginLeft: '0.5rem' }}>
                             Voltar
@@ -126,15 +166,6 @@ function VisualizarClientes({ onBack }) {
                             <div style={{ marginBottom: '0.5rem' }}>
                                 <input
                                     type="text"
-                                    placeholder="CPF (opcional)"
-                                    value={formData.cpf}
-                                    onChange={e => setFormData({ ...formData, cpf: e.target.value })}
-                                    style={{ width: '100%', padding: '0.5rem', borderRadius: '5px', border: '1px solid #ccc' }}
-                                />
-                            </div>
-                            <div style={{ marginBottom: '0.5rem' }}>
-                                <input
-                                    type="text"
                                     placeholder="Endereço (opcional)"
                                     value={formData.endereco}
                                     onChange={e => setFormData({ ...formData, endereco: e.target.value })}
@@ -154,7 +185,7 @@ function VisualizarClientes({ onBack }) {
                                     fontWeight: 'bold'
                                 }}
                             >
-                                {formLoading ? 'Cadastrando...' : 'Cadastrar Cliente'}
+                                {formLoading ? (editingId ? 'Atualizando...' : 'Cadastrando...') : (editingId ? 'Atualizar Cliente' : 'Cadastrar Cliente')}
                             </button>
                         </form>
                     </div>
@@ -168,6 +199,7 @@ function VisualizarClientes({ onBack }) {
                             <th style={{ padding: '10px', textAlign: 'left' }}>Telefone</th>
                             <th style={{ padding: '10px', textAlign: 'left' }}>Endereço</th>
                             <th style={{ padding: '10px', textAlign: 'left' }}>CPF</th>
+                            <th style={{ padding: '10px', textAlign: 'left' }}>Ações</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -178,6 +210,9 @@ function VisualizarClientes({ onBack }) {
                                 <td style={{ padding: '10px' }}>{cliente.telefone || '-'}</td>
                                 <td style={{ padding: '10px' }}>{cliente.endereco || '-'}</td>
                                 <td style={{ padding: '10px' }}>{cliente.cpf || '-'}</td>
+                                <td style={{ padding: '10px' }}>
+                                    <button className="btn btn-primary" onClick={() => handleEditClick(cliente)}>Editar</button>
+                                </td>
                             </tr>
                         ))}
                     </tbody>
