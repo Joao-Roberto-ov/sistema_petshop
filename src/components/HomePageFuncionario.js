@@ -16,9 +16,6 @@ function HomePageFuncionario({ userData, onNavigateToVisualizarClientes, onNavig
                         <button className="btn btn-outline-white hover-lift" onClick={onNavigateToVisualizarClientes}>
                             👥 Visualizar Clientes
                         </button>
-                        <button className="btn btn-outline-white hover-lift" onClick={onNavigateToCadastrarCliente}>
-                            ✏️ Cadastrar Cliente
-                        </button>
                         <button className="btn btn-outline-white hover-lift" onClick={onLogout}>
                             🚪 Sair
                         </button>

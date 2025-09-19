@@ -17,6 +17,28 @@ class RepositorioCliente:
             if cursor: cursor.close()
             if conn: encerra_conexao(conn)
 
+    def buscar_todos(self):
+        conn = None
+        cursor = None
+        try:
+            conn = conectar()
+            cursor = conn.cursor()
+            cursor.execute("SELECT id, nome, email, telefone, endereco, cpf FROM clientes")
+            clientes = cursor.fetchall()
+            return [
+                {
+                    "id": c[0],
+                    "nome": c[1],
+                    "email": c[2],
+                    "telefone": c[3],
+                    "endereco": c[4],
+                    "cpf": c[5]
+                } for c in clientes
+            ]
+        finally:
+            cursor.close()
+            conn.close()
+
     def procurar_pelo_id(self, user_id: int):
         conn = None
         cursor = None

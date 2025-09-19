@@ -31,11 +31,19 @@ class RepositorioFuncionario:
             conn = conectar()
             cursor = conn.cursor()
             sql = """
-                SELECT f.id, f.nome, f.email, f.telefone, f.endereco, f.cpf, c.nome as cargo, f.is_ativo
-                FROM Funcionarios f
-                JOIN Cargos c ON f.Cargo_id = c.id
-                WHERE f.id = %s
-            """
+                  SELECT f.id, \
+                         f.nome, \
+                         f.email, \
+                         f.telefone, \
+                         f.endereco, \
+                         f.cpf,
+                         c.id   as cargo_id, \
+                         c.nome as cargo, \
+                         f.is_ativo
+                  FROM Funcionarios f
+                           JOIN Cargos c ON f.Cargo_id = c.id
+                  WHERE f.id = %s \
+                  """
             cursor.execute(sql, (user_id,))
             row = cursor.fetchone()
             if row:
@@ -46,11 +54,11 @@ class RepositorioFuncionario:
                     "telefone": row[3],
                     "endereco": row[4],
                     "cpf": row[5],
-                    "cargo": row[6],
-                    "is_ativo": row[7]
+                    "cargo_id": row[6],  # <- ID do cargo
+                    "cargo": row[7],  # <- Nome do cargo
+                    "is_ativo": row[8]
                 }
             return None
-
         finally:
             if cursor: cursor.close()
             if conn: encerra_conexao(conn)
@@ -67,7 +75,7 @@ class RepositorioFuncionario:
             cursor = conn.cursor()
             sql = """
                 INSERT INTO Funcionarios
-                (nome, email, senha, telefone, endereco, cpf, Cargo_id, Is_ativo)
+                (nome, email, senha, telefone, endereco, cpf, cargo_id, Is_ativo)
                 VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
                 RETURNING id
             """

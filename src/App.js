@@ -6,6 +6,7 @@ import LoginScreen from './components/LoginScreen';
 import SignupScreen from './components/SignupScreen';
 import Dashboard from './components/Dashboard';
 import HomePageFuncionario from './components/HomePageFuncionario';
+import VisualizarClientes from "./components/VisualizarClientes";
 
 function App() {
     const [currentScreen, setCurrentScreen] = useState('home');
@@ -24,15 +25,16 @@ function App() {
         }
     }, []);
 
-    const navigateToHome = (user = userData) => {
-        if (user?.cargo) {
-            // Se for funcionário (ou gestor)
+    const navigateToHome = (user = userData, forced = false) => {
+        if (!forced && user?.cargo) {
+            // Se for funcionário (ou gestor) e não estiver forçando visitante
             setCurrentScreen('homeFuncionario');
         } else {
-            // Se for cliente ou visitante
+            // Se for cliente, visitante ou se estiver forçando
             setCurrentScreen('home');
         }
     };
+
 
     const handleLogin = (data) => {
         setIsLoggedIn(true);
@@ -46,7 +48,7 @@ function App() {
         localStorage.removeItem('userData');
         setIsLoggedIn(false);
         setUserData(null);
-        navigateToHome();
+        navigateToHome(null,true);
     };
 
     // Decide qual componente de tela renderizar
@@ -72,9 +74,10 @@ function App() {
                 return <HomePageFuncionario
                     userData={userData}
                     onNavigateToVisualizarClientes={() => setCurrentScreen('visualizarClientes')}
-                    onNavigateToCadastrarCliente={() => setCurrentScreen('cadastrarCliente')}
                     onLogout={handleLogout}
                 />;
+            case 'visualizarClientes':
+                return <VisualizarClientes onBack={() => navigateToHome()} />;
             case 'home':
             default:
                 return <HomePage

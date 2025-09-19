@@ -43,3 +43,13 @@ async def rota_para_usuario(
 
     except HTTPException as e:
         raise e
+@router.get("/users", status_code=200)
+async def rota_buscar_todos(service: ServicosCliente = Depends(pegar_servicos_cliente)):
+    """
+    Retorna a lista de todos os clientes cadastrados.
+    """
+    try:
+        clientes = service.buscar_todos()
+        return clientes
+    except Exception as e:
+        raise HTTPException(status_code=500, detail="Erro ao buscar clientes.")

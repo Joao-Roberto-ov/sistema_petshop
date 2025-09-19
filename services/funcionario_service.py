@@ -23,9 +23,6 @@ class ServicosFuncionario:
 
         dados_usuario = self.buscar_pelo_id(user_id)
 
-        if not dados_usuario:
-            raise HTTPException(status_code=404, detail="Funcionário não encontrado após verificação.")
-
         if not dados_usuario["is_ativo"]:
             raise HTTPException(status_code=403, detail="Funcionário inativo")
 
@@ -55,6 +52,7 @@ class ServicosFuncionario:
             "telefone": user_data["telefone"],
             "endereco": user_data["endereco"] if user_data["endereco"] else "Nao informado",
             "cpf": user_data["cpf"],
+            "cargo_id": user_data["cargo_id"],
             "cargo": user_data["cargo"],
             "is_ativo": user_data["is_ativo"]
         }

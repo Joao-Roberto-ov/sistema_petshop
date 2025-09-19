@@ -13,6 +13,24 @@ class ClienteCadastro(BaseModel):
     cpf: Optional[str] = None
     endereco: Optional[str] = None
 
+class ClienteCadastroPorFuncionario(BaseModel):
+    nome: str
+    email: EmailStr
+    telefone: str
+    cpf: Optional[str] = None
+    endereco: Optional[str] = None
+
+class FuncionarioModel(BaseModel):
+    nome: str
+    telefone: str
+    cargo_id: int
+    cpf: str
+    endereco: str
+    email: EmailStr
+    isAtivo: bool
+
+
+
     @validator('cpf', pre=True, always=True)
     def validar_e_limpar_cpf(cls, validador: str) -> Optional[str]:
         if validador is None or validador == "":

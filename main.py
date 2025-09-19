@@ -4,7 +4,7 @@ from contextlib import asynccontextmanager
 from fastapi.staticfiles import StaticFiles
 import os
 from bancoDeDados import criar_tabelas
-from routers import cliente_router, login_router
+from routers import cliente_router, login_router, funcionario_router
 
 basedir = os.path.abspath(os.path.dirname(__file__))
 frontend_dir = os.path.join(basedir, "front-end")
@@ -26,5 +26,6 @@ app.add_middleware(
 )
 
 app.include_router(cliente_router.router)
+app.include_router(funcionario_router.router)
 app.include_router(login_router.router)
 # app.mount("/", StaticFiles(directory=frontend_dir, html=True), name="static")
