@@ -1,5 +1,3 @@
-// Arquivo completo e atualizado para: src/components/AppHeader.js
-
 import React, { useState, useEffect, useRef } from 'react';
 
 function getFirstName(fullName) {
@@ -9,31 +7,24 @@ function getFirstName(fullName) {
 
 function AppHeader({ onNavigateToLogin, onNavigateToSignup, isLoggedIn, userData, onLogout, onNavigateToDashboard, onNavigateToHome, onNavigateToPetCadastro, onNavigateToMeusPets, onNavigateToMeuPerfil }) {
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-    const dropdownRef = useRef(null); // Cria a referência para o menu
+    const dropdownRef = useRef(null);
 
     const handlePlaceholderClick = (feature) => {
         alert(`A funcionalidade "${feature}" será implementada em breve!`);
         setIsDropdownOpen(false);
     };
 
-    // --- LÓGICA PARA FECHAR O MENU AO CLICAR FORA ---
     useEffect(() => {
-        // Função que será chamada em qualquer clique na página
         function handleClickOutside(event) {
-            // Se o menu estiver aberto e o clique foi fora do elemento do menu...
             if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
-                setIsDropdownOpen(false); // ...fecha o menu.
+                setIsDropdownOpen(false);
             }
         }
-
-        // Adiciona o ouvinte de eventos quando o componente é montado
         document.addEventListener("mousedown", handleClickOutside);
-        
-        // Função de limpeza: remove o ouvinte quando o componente é desmontado
         return () => {
             document.removeEventListener("mousedown", handleClickOutside);
         };
-    }, [dropdownRef]); // O efeito depende da referência do dropdown
+    }, [dropdownRef]);
 
     return (
         <header className="header">
@@ -57,12 +48,9 @@ function AppHeader({ onNavigateToLogin, onNavigateToSignup, isLoggedIn, userData
 
                 <div className="nav-buttons">
                     {isLoggedIn ? (
-                        // Associa a referência ao container do menu
                         <div className="user-menu" ref={dropdownRef}>
                             <button className="user-menu-button" onClick={() => setIsDropdownOpen(!isDropdownOpen)}>
                                 {`Olá, ${getFirstName(userData?.nome)}`}
-                                {/* Ícone de seta para indicar que é um dropdown */}
-                                <span style={{ fontSize: '0.8rem' }}> </span>
                             </button>
 
                             {isDropdownOpen && (
@@ -72,7 +60,7 @@ function AppHeader({ onNavigateToLogin, onNavigateToSignup, isLoggedIn, userData
                                             <span className="icon">👤</span> Meu Perfil
                                         </a>
                                     </li>
-                                    <li className="dropdown-divider"></li> {/* Linha divisória */}
+                                    <li className="dropdown-divider"></li>
                                     <li>
                                         <a href="#" onClick={(e) => { e.preventDefault(); onLogout(); setIsDropdownOpen(false); }}>
                                             <span className="icon">↪</span> Sair

@@ -13,16 +13,24 @@ function LoginScreen({ onLogin, onNavigateToSignup, setUserData }) {
 
         try {
             const response = await axios.post('/login', formData);
+            const user = response.data.user;
+
             localStorage.setItem('token', response.data.access_token);
 
             const userData = {
-                nome: response.data.user?.nome || formData.email.split('@')[0],
-                email: formData.email,
-                telefone: response.data.user?.telefone || ''
+                id: user.id,
+                nome: user.nome,
+                email: user.email,
+                telefone: user.telefone || '',
+                endereco: user.endereco || '',
+                cpf: user.cpf || '',
+                cargo: user.cargo || null,
+                is_ativo: user.is_ativo || null
             };
 
             localStorage.setItem('userData', JSON.stringify(userData));
             setUserData(userData);
+
             onLogin(userData);
 
         } catch (err) {
@@ -60,5 +68,4 @@ function LoginScreen({ onLogin, onNavigateToSignup, setUserData }) {
         </div>
     );
 }
-
 export default LoginScreen;

@@ -47,7 +47,7 @@ body {
 .nav-brand .icon {
     font-size: 2rem;
     /* A variável --spacing-sm não foi definida, então substituí por um valor fixo */
-    margin-right: 0.5rem; 
+    margin-right: 0.5rem;
 }
 
 /* --- AJUSTES DO MENU (CORREÇÃO PRINCIPAL) --- */
@@ -1135,16 +1135,13 @@ body {
     background-color: #f5f5f5;
 }
 
-/* ==========================================================================
-   ESTILOS ADICIONAIS PARA A HOMEPAGE (Diferenciais e Depoimentos)
-   ========================================================================== */
 
-/* Fundo claro para seções alternadas */
+
 .bg-light {
     background-color: #f8f9fa;
 }
 
-/* Grid genérico de 3 colunas para Diferenciais e Depoimentos */
+
 .grid-3 {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
@@ -1152,7 +1149,7 @@ body {
     margin-top: 3rem;
 }
 
-/* Card de Diferenciais */
+
 .feature-card {
     background: white;
     padding: 2rem;
@@ -1178,7 +1175,7 @@ body {
     color: #666;
 }
 
-/* Grid de Depoimentos */
+
 .testimonials-grid {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
@@ -1186,7 +1183,7 @@ body {
     margin-top: 3rem;
 }
 
-/* Card de Depoimento */
+
 .testimonial-card {
     background: white;
     padding: 2rem;
@@ -1201,7 +1198,7 @@ body {
     font-style: italic;
     color: #555;
     margin-bottom: 1.5rem;
-    flex-grow: 1; /* Garante que o texto ocupe o espaço */
+    flex-grow: 1;
 }
 .testimonial-author {
     font-size: 0.9rem;
@@ -1213,10 +1210,66 @@ body {
     color: #777;
 }
 
-/* Ajustes de Responsividade para as novas seções */
 @media (max-width: 992px) {
     .grid-3, .testimonials-grid {
-        grid-template-columns: 1fr; /* Uma coluna em tablets */
+        grid-template-columns: 1fr;
     }
 }
 
+.password-tooltip {
+    position: absolute;
+    /* Posiciona o balão abaixo do campo da senha */
+    top: 105%;
+    left: 0;
+    width: 100%;
+
+    /* Visual do balão */
+    background-color: #2d3748; /* Fundo escuro */
+    color: white;
+    padding: 1rem;
+    border-radius: 8px;
+    z-index: 10;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+    font-size: 0.875rem;
+
+    /* Animação suave de entrada */
+    animation: fadeIn 0.3s ease-out;
+}
+
+/* A "setinha" do balão, apontando para cima */
+.password-tooltip::before {
+    content: '';
+    position: absolute;
+    bottom: 100%; /* Posiciona a seta no topo do balão */
+    left: 30px; /* Alinha a seta com o início do campo */
+    border-width: 8px;
+    border-style: solid;
+    border-color: transparent transparent #2d3748 transparent; /* Cria o triângulo */
+}
+
+.password-tooltip ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.password-tooltip li {
+    transition: color 0.3s ease;
+    margin-bottom: 0.3rem;
+}
+
+/* Estilo para requisito VÁLIDO (verde) */
+.password-tooltip li.valid {
+    color: #4ade80;
+}
+
+/* Estilo para requisito INVÁLIDO (vermelho) */
+.password-tooltip li.invalid {
+    color: #f87171;
+}
+
+/* Animação simples de Fade In */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+}

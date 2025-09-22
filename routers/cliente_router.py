@@ -1,15 +1,16 @@
 from fastapi import APIRouter, Depends, HTTPException
-from seguranca import pegar_id_do_usuario_logado 
+from seguranca import pegar_id_do_usuario_logado
 from services.cliente_service import ServicosCliente
-
-from modelos import (ClienteCadastro, ClienteLogin, ClienteUpdate, 
-                     PasswordResetRequest, PasswordResetConfirm, ForgotPasswordRequest)
+from modelos import (ClienteCadastro, UsuarioLogin, ClienteUpdate, PasswordResetRequest, PasswordResetConfirm, ForgotPasswordRequest)
 
 router = APIRouter(prefix="/api", tags=["Clientes"])
+
+
 def pegar_servicos_cliente():
     return ServicosCliente()
 
-@router.post("/signup", status_code = 201)
+
+@router.post("/signup", status_code=201)
 async def rota_signup(dados_cliente: ClienteCadastro, service: ServicosCliente = Depends(pegar_servicos_cliente)):
     try:
         service.signup(dados_cliente)
@@ -20,7 +21,7 @@ async def rota_signup(dados_cliente: ClienteCadastro, service: ServicosCliente =
         raise HTTPException(status_code=500, detail="Ocorreu um erro interno.")
 
 @router.post("/login")
-async def rota_login(cliente_login_data: ClienteLogin, service: ServicosCliente = Depends(pegar_servicos_cliente)):
+async def rota_login(cliente_login_data: UsuarioLogin, service: ServicosCliente = Depends(pegar_servicos_cliente)):
     try:
         return service.login(cliente_login_data)
     except HTTPException as e:
@@ -71,3 +72,14 @@ async def rota_esqueci_senha(
     service: ServicosCliente = Depends(pegar_servicos_cliente)
 ):
     return service.esqueci_minha_senha(request_data)
+
+@router.get("/users", status_code=200)
+async def rota_buscar_todos(service: ServicosCliente = Depends(pegar_servicos_cliente)):
+    """
+    Retorna a lista de todos os clientes cadastrados.
+    """
+    try:
+        clientes = service.buscar_todos()
+        return clientes
+    except Exception as e:
+        raise HTTPException(status_code=500, detail="Erro ao buscar clientes.")

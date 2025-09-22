@@ -1,5 +1,3 @@
-// Arquivo completo e atualizado para: src/components/HomePage.js
-
 import React from 'react';
 
 function HomePage({ onNavigateToLogin, onNavigateToSignup, isLoggedIn, userData, onLogout, onNavigateToDashboard }) {
@@ -14,14 +12,12 @@ function HomePage({ onNavigateToLogin, onNavigateToSignup, isLoggedIn, userData,
         { icon: '🛍️', title: "Pet Shop & Farmácia", description: "Produtos de qualidade: ração, brinquedos, acessórios e medicamentos." }
     ];
 
-    // Dados para a nova seção "Por que escolher a PetLife?"
     const differentials = [
         { icon: '🏆', title: "Qualidade Superior", description: "Equipamentos de ponta e profissionais qualificados para garantir o melhor para seu pet." },
         { icon: '❤️', title: "Cuidado com Amor", description: "Tratamos cada pet com o carinho e a dedicação que ele merece, como se fosse nosso." },
         { icon: '📅', title: "Conveniência Total", description: "Agende serviços, acompanhe históricos e gerencie tudo online, de forma fácil e rápida." }
     ];
 
-    // Dados para a nova seção "O que nossos clientes dizem"
     const testimonials = [
         { name: "Ana P.", pet: "Toby, Golden Retriever", text: "O atendimento na PetLife é incrível! O Dr. Ricardo foi super atencioso com o Toby e o banho ficou impecável. Recomendo de olhos fechados!" },
         { name: "Carlos S.", pet: "Mimi, Gata SRD", text: "Levei a Mimi para vacinar e a equipe foi muito paciente e carinhosa. O sistema de agendamento online facilitou muito minha vida." },
@@ -30,7 +26,6 @@ function HomePage({ onNavigateToLogin, onNavigateToSignup, isLoggedIn, userData,
 
     return (
         <>
-            {/* --- SUA SEÇÃO DE HERÓI ORIGINAL (MANTIDA) --- */}
             <section className="hero">
                 <div className="container">
                     <h1 className="animate-fade-in-up">
@@ -49,7 +44,6 @@ function HomePage({ onNavigateToLogin, onNavigateToSignup, isLoggedIn, userData,
                 </div>
             </section>
 
-            {/* --- SUA SEÇÃO DE SERVIÇOS ORIGINAL (MANTIDA) --- */}
             <section className="section">
                 <div className="container">
                     <div className="text-center" style={{marginBottom: '3rem'}}>
@@ -68,7 +62,6 @@ function HomePage({ onNavigateToLogin, onNavigateToSignup, isLoggedIn, userData,
                 </div>
             </section>
 
-            {/* --- NOVA SEÇÃO: POR QUE ESCOLHER A PETLIFE? --- */}
             <section className="section bg-light">
                 <div className="container text-center">
                     <h2 className="section-title">Por que escolher a PetLife?</h2>
@@ -85,7 +78,6 @@ function HomePage({ onNavigateToLogin, onNavigateToSignup, isLoggedIn, userData,
                 </div>
             </section>
 
-            {/* --- NOVA SEÇÃO: DEPOIMENTOS --- */}
             <section className="section">
                 <div className="container text-center">
                     <h2 className="section-title">O que nossos clientes dizem</h2>
@@ -104,7 +96,6 @@ function HomePage({ onNavigateToLogin, onNavigateToSignup, isLoggedIn, userData,
                 </div>
             </section>
 
-            {/* --- SUA SEÇÃO CTA ORIGINAL (MANTIDA) --- */}
             <section className="cta">
                 <div className="container">
                     <h2>Pronto para cuidar do seu pet?</h2>

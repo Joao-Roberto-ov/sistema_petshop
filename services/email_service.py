@@ -59,6 +59,25 @@ class EmailService:
         """
         self._enviar_email(destinatario_email, assunto, corpo_html)
 
+    def enviar_link_redefinicao(self, destinatario_email: str, codigo: str):
+        """
+        Método para enviar link de redefinição de senha (fluxo esqueci senha)
+        """
+        assunto = "Redefinição de Senha PetLife"
+        corpo_html = f"""
+        <!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"></head><body>
+            <p>Olá,</p>
+            <p>Você solicitou a redefinição de sua senha na plataforma PetLife.</p>
+            <p>Use o código a seguir para redefinir sua senha:</p>
+            <h2 style="text-align:center; color:#4a9b8e; font-size: 24px; letter-spacing: 2px;">{codigo}</h2>
+            <p>Este código é válido por 15 minutos.</p>
+            <p>Se você não solicitou esta redefinição, ignore este e-mail.</p>
+
+            <p>Atenciosamente,</p><p><strong>{self.sender_name}</strong></p>
+        </body></html>
+        """
+        self._enviar_email(destinatario_email, assunto, corpo_html)
+
     # --- MÉTODO ATUALIZADO ---
     def notificar_alteracao_perfil(self, destinatario_email: str, campos_modificados: list):
         """

@@ -3,19 +3,67 @@
 import React, { useState, useEffect } from 'react';
 import axios from '../api/axios';
 
+// --- NOVO: Componente do medidor de força da senha (integrado) ---
+const PasswordStrengthMeter = ({ checks }) => {
+    const checkItems = [
+        { key: 'length', text: 'Pelo menos 8 caracteres' },
+        { key: 'case', text: 'Letras maiúsculas e minúsculas' },
+        { key: 'number', text: 'Pelo menos um número' },
+        { key: 'special', text: 'Pelo menos um caractere especial' },
+    ];
+
+    return (
+        <div className="password-tooltip">
+            <p>A nova senha deve atender aos critérios:</p>
+            <ul>
+                {checkItems.map(item => (
+                    <li key={item.key} className={checks[item.key] ? 'valid' : 'invalid'}>
+                        {checks[item.key] ? '✓' : '✗'} {item.text}
+                    </li>
+                ))}
+            </ul>
+        </div>
+    );
+};
+
 const PWD_FLOW = { IDLE: 'IDLE', ENTERING_PASSWORDS: 'ENTERING_PASSWORDS', CODE_SENT: 'CODE_SENT', LOCKED: 'LOCKED' };
 
 function MeuPerfilScreen({ onNavigateToHome }) {
     const [profileData, setProfileData] = useState({ telefone: '', endereco: '', cpf: '' });
     const [passwordData, setPasswordData] = useState({ senha_atual: '', nova_senha: '', codigo_verificacao: '' });
     const [passwordFlowState, setPasswordFlowState] = useState(PWD_FLOW.IDLE);
-    const [passwordAttempts, setPasswordAttempts] = useState(0); // Contador de tentativas
+    const [passwordAttempts, setPasswordAttempts] = useState(0);
     
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
 
-    useEffect(() => { /* ... (código para buscar dados do perfil, sem alterações) ... */ 
+    // --- NOVO: Estados para o medidor de senha ---
+    const [isPasswordFocused, setIsPasswordFocused] = useState(false);
+    const [passwordChecks, setPasswordChecks] = useState({
+        length: false,
+        case: false,
+        number: false,
+        special: false,
+    });
+
+    // --- NOVO: Efeito para validar a nova senha em tempo real ---
+    useEffect(() => {
+        const validatePassword = (password) => {
+            const checks = {
+                length: password.length >= 8,
+                case: /(?=.*[a-z])(?=.*[A-Z])/.test(password),
+                number: /(?=.*\d)/.test(password),
+                special: /[!@#$%^&*(),.?":{}|<>]/.test(password),
+            };
+            setPasswordChecks(checks);
+        };
+        validatePassword(passwordData.nova_senha);
+    }, [passwordData.nova_senha]);
+
+    const isNewPasswordValid = Object.values(passwordChecks).every(Boolean);
+
+    useEffect(() => {
         const fetchUserData = async () => {
             setLoading(true);
             try {
@@ -53,6 +101,11 @@ function MeuPerfilScreen({ onNavigateToHome }) {
     };
 
     const handleRequestCode = async () => {
+        // --- ATUALIZADO: Validação antes de enviar ---
+        if (!isNewPasswordValid) {
+            setError('A nova senha não atende a todos os requisitos de segurança.');
+            return;
+        }
         setLoading(true); setError(''); setSuccess('');
         try {
             const token = localStorage.getItem('token');
@@ -62,11 +115,16 @@ function MeuPerfilScreen({ onNavigateToHome }) {
             }, { headers: { 'Authorization': `Bearer ${token}` } });
             setSuccess('Código enviado para seu e-mail! Verifique sua caixa de entrada.');
             setPasswordFlowState(PWD_FLOW.CODE_SENT);
-            setPasswordAttempts(0); // Reseta as tentativas em caso de sucesso
+            setPasswordAttempts(0);
         } catch (err) {
-            const errorDetail = err.response?.data?.detail || 'Erro ao solicitar o código.';
-            setError(errorDetail);
-            // Se o erro for de senha incorreta, incrementa o contador
+            const errorDetail = err.response?.data?.detail;
+            // --- ATUALIZADO: Tratamento de erro de validação do Pydantic ---
+            if (Array.isArray(errorDetail)) {
+                setError(errorDetail[0].msg);
+            } else {
+                setError(errorDetail || 'Erro ao solicitar o código.');
+            }
+            
             if (err.response && err.response.status === 401) {
                 const newAttempts = passwordAttempts + 1;
                 setPasswordAttempts(newAttempts);
@@ -80,7 +138,7 @@ function MeuPerfilScreen({ onNavigateToHome }) {
         }
     };
 
-    const handleConfirmPasswordChange = async () => { /* ... (sem alterações) ... */ 
+    const handleConfirmPasswordChange = async () => {
         setLoading(true); setError(''); setSuccess('');
         try {
             const token = localStorage.getItem('token');
@@ -98,14 +156,8 @@ function MeuPerfilScreen({ onNavigateToHome }) {
         }
     };
 
-    // NOVO: Função para o fluxo de "Esqueci a Senha"
     const handleForgotPassword = () => {
-        alert('Funcionalidade "Esqueci minha senha" em desenvolvimento. ');
-        // Lógica real:
-        // const userEmail = JSON.parse(localStorage.getItem('userData')).email;
-        // axios.post('/forgot-password', { email: userEmail });
-        // setSuccess('Um link de redefinição foi enviado para seu e-mail.');
-        // setPasswordFlowState(PWD_FLOW.IDLE);
+        alert('Funcionalidade "Esqueci minha senha" em desenvolvimento.');
     };
 
     const renderPasswordSection = () => {
@@ -129,11 +181,27 @@ function MeuPerfilScreen({ onNavigateToHome }) {
                             <label className="form-label">Senha Atual</label>
                             <input type="password" name="senha_atual" className="form-input" value={passwordData.senha_atual} onChange={handlePasswordChange} required />
                         </div>
-                        <div className="form-group">
-                            <label className="form-label">Nova Senha (mínimo 6 caracteres)</label>
-                            <input type="password" name="nova_senha" className="form-input" value={passwordData.nova_senha} onChange={handlePasswordChange} required minLength="6" />
+                        {/* --- ATUALIZADO: Campo de nova senha com medidor --- */}
+                        <div className="form-group" style={{ position: 'relative' }}>
+                            <label className="form-label">Nova Senha</label>
+                            <input 
+                                type="password" 
+                                name="nova_senha" 
+                                className="form-input" 
+                                value={passwordData.nova_senha} 
+                                onChange={handlePasswordChange}
+                                onFocus={() => setIsPasswordFocused(true)}
+                                onBlur={() => setIsPasswordFocused(false)}
+                                required 
+                            />
+                            {isPasswordFocused && passwordData.nova_senha && <PasswordStrengthMeter checks={passwordChecks} />}
                         </div>
-                        <button type="button" className="btn-submit" onClick={handleRequestCode} disabled={loading}>
+                        <button 
+                            type="button" 
+                            className="btn-submit" 
+                            onClick={handleRequestCode} 
+                            disabled={loading || !isNewPasswordValid || !passwordData.senha_atual}
+                        >
                             {loading ? 'Enviando...' : 'Enviar Código de Verificação'}
                         </button>
                         <button type="button" className="btn-submit" style={{backgroundColor: '#aaa', marginTop: '0.5rem'}} onClick={() => setPasswordFlowState(PWD_FLOW.IDLE)}>Cancelar</button>
