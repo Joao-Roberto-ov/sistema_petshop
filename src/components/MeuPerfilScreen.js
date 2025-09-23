@@ -28,7 +28,8 @@ const PasswordStrengthMeter = ({ checks }) => {
 
 const PWD_FLOW = { IDLE: 'IDLE', ENTERING_PASSWORDS: 'ENTERING_PASSWORDS', CODE_SENT: 'CODE_SENT', LOCKED: 'LOCKED' };
 
-function MeuPerfilScreen({ onNavigateToHome }) {
+// --- CORREÇÃO: Adicionar a prop onNavigateToForgotPassword ---
+function MeuPerfilScreen({ onNavigateToHome, onNavigateToForgotPassword }) {
     const [profileData, setProfileData] = useState({ telefone: '', endereco: '', cpf: '' });
     const [passwordData, setPasswordData] = useState({ senha_atual: '', nova_senha: '', codigo_verificacao: '' });
     const [passwordFlowState, setPasswordFlowState] = useState(PWD_FLOW.IDLE);
@@ -156,8 +157,9 @@ function MeuPerfilScreen({ onNavigateToHome }) {
         }
     };
 
+    // --- CORREÇÃO: Usar a prop onNavigateToForgotPassword ---
     const handleForgotPassword = () => {
-        alert('Funcionalidade "Esqueci minha senha" em desenvolvimento.');
+        onNavigateToForgotPassword(); // Agora usa a prop correta
     };
 
     const renderPasswordSection = () => {
@@ -169,7 +171,10 @@ function MeuPerfilScreen({ onNavigateToHome }) {
                 return (
                     <>
                         <p>Por segurança, a alteração de senha por aqui foi bloqueada.</p>
-                        <button type="button" className="btn-submit" onClick={handleForgotPassword}>Esqueci Minha Senha</button>
+                        {/* CORREÇÃO: Usar handleForgotPassword em vez de onNavigateToForgotPassword direto */}
+                        <button type="button" className="btn-submit" onClick={handleForgotPassword}>
+                            Esqueci Minha Senha
+                        </button>
                         <button type="button" className="btn-submit" style={{backgroundColor: '#aaa', marginTop: '0.5rem'}} onClick={() => setPasswordFlowState(PWD_FLOW.IDLE)}>Voltar</button>
                     </>
                 );

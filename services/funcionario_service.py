@@ -1,11 +1,19 @@
+
 from fastapi import HTTPException
 from psycopg2 import IntegrityError
 from seguranca import cria_hash_senha, verifica_senha, cria_token_de_acesso
 from repositories.funcionario_repository import RepositorioFuncionario
+from services.email_service import EmailService
+from modelos import ForgotPasswordRequest, RedefinirSenhaRequest
+import secrets
+from datetime import datetime, timedelta, timezone
+from passlib.context import CryptContext
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 class ServicosFuncionario:
     def __init__(self):
         self.repo = RepositorioFuncionario()
+        self.email_service = EmailService()
 
     def login(self, dados_login):
         """
@@ -105,4 +113,58 @@ class ServicosFuncionario:
                 raise HTTPException(status_code=400, detail="Erro de integridade dos dados.")
         except Exception as e:
             raise HTTPException(status_code=500, detail=f"Erro ao cadastrar funcionário: {str(e)}")
+
+    def esqueci_minha_senha(self, request_data: ForgotPasswordRequest):
+        """
+        Inicia o fluxo de recuperação de senha para um funcionário que não está logado.
+        """
+        try:
+            user_db = self.repo.buscar_funcionario_pelo_email(request_data.email)
+            if not user_db:
+                # AC3: Mensagem genérica para evitar enumeração de usuários
+                print(f"Tentativa de redefinição de senha para e-mail de funcionário não cadastrado: {request_data.email}")
+                return {"message": "Se um usuário com este e-mail existir, um link de redefinição será enviado."}
+
+            user_id, user_email = user_db
+            token = secrets.token_urlsafe(32) # Gera um token seguro
+            expiracao = datetime.now(timezone.utc) + timedelta(minutes=15) # AC4: Token expira em 15 minutos
+            
+            # Armazena o token no banco de dados associado ao funcionário
+            self.repo.salvar_token_redefinicao(user_id, token, expiracao)
+
+            # AC1: Envia o e-mail com o link de redefinição
+            # AC2: O e-mail não revela a senha atual
+            # AC4: O link deve ser de uso único e com prazo de expiração
+            # AC5: O link deve direcionar para a página de redefinição de senha
+            # (A URL base do frontend precisará ser configurada)
+            link_redefinicao = f"http://localhost:3000/reset-password-funcionario?token={token}&email={user_email}" # Exemplo de URL
+            self.email_service.enviar_link_redefinicao(user_email, link_redefinicao)
+            return {"message": "Se um usuário com este e-mail existir, um link de redefinição será enviado."}
+        except HTTPException:
+            raise
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Erro interno do servidor: {str(e)}")
+
+    def redefinir_senha_publica(self, request_data: RedefinirSenhaRequest):
+        """
+        Redefine a senha de um funcionário usando um token de redefinição.
+        """
+        # Busca o token e o email associado no banco de dados
+        token_info = self.repo.buscar_token_redefinicao(request_data.token)
+        
+        if not token_info:
+            raise HTTPException(status_code=400, detail="Token inválido ou expirado.")
+        
+        funcionario_id, email_associado, expiracao_token = token_info
+
+        if datetime.now(timezone.utc) > expiracao_token:
+            self.repo.invalidar_token_redefinicao(request_data.token) # Invalida o token expirado
+            raise HTTPException(status_code=400, detail="Token inválido ou expirado.")
+        
+        # Hash da nova senha antes de salvar
+        senha_hashed = pwd_context.hash(request_data.nova_senha)
+        self.repo.atualizar_senha_funcionario(funcionario_id, senha_hashed)
+        self.repo.invalidar_token_redefinicao(request_data.token) # Invalida o token após o uso
+        
+        return {"message": "Senha redefinida com sucesso!"}
 

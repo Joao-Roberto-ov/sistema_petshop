@@ -112,6 +112,19 @@ def criar_tabelas():
             criado_em TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
         );""")
 
+        curs.execute("""CREATE TABLE IF NOT EXISTS PasswordResetTokens (
+            id SERIAL PRIMARY KEY,
+            cliente_id INTEGER REFERENCES Clientes(id) ON DELETE CASCADE,
+            funcionario_id INTEGER REFERENCES Funcionarios(id) ON DELETE CASCADE,
+            token VARCHAR(64) UNIQUE NOT NULL,
+            expiracao TIMESTAMP WITH TIME ZONE NOT NULL,
+            criado_em TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+            CONSTRAINT check_user_type CHECK (
+                (cliente_id IS NOT NULL AND funcionario_id IS NULL) OR
+                (cliente_id IS NULL AND funcionario_id IS NOT NULL)
+            )
+        );""")
+
         conectado.commit()
         print("Verificação e criação de tabelas concluída com sucesso.")
         curs.close()

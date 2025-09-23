@@ -4,6 +4,8 @@ import AppHeader from './components/AppHeader';
 import HomePage from './components/HomePage';
 import LoginScreen from './components/LoginScreen';
 import SignupScreen from './components/SignupScreen';
+import ForgotPasswordScreen from './components/ForgotPasswordScreen';
+import ResetPasswordScreen from './components/ResetPasswordScreen';
 import Dashboard from './components/Dashboard';
 import HomePageFuncionario from './components/HomePageFuncionario';
 import VisualizarClientes from "./components/VisualizarClientes";
@@ -17,9 +19,17 @@ function App() {
     const [userData, setUserData] = useState(null);
 
     useEffect(() => {
-        const token = localStorage.getItem('token');
+        // Verificar se é uma página de redefinição de senha
+        const urlParams = new URLSearchParams(window.location.search);
+        const token = urlParams.get('token');
+        if (token) {
+            setCurrentScreen('reset-password');
+            return;
+        }
+
+        const authToken = localStorage.getItem('token');
         const savedUserData = localStorage.getItem('userData');
-        if (token && savedUserData) {
+        if (authToken && savedUserData) {
             const parsedUser = JSON.parse(savedUserData);
             setIsLoggedIn(true);
             setUserData(parsedUser);
@@ -65,10 +75,19 @@ function App() {
                 return <LoginScreen
                             onLogin={handleLogin}
                             onNavigateToSignup={() => setCurrentScreen('signup')}
+                            onNavigateToForgotPassword={() => setCurrentScreen('forgot-password')}
                             setUserData={setUserData}
                         />;
             case 'signup':
                 return <SignupScreen
+                            onNavigateToLogin={() => setCurrentScreen('login')}
+                        />;
+            case 'forgot-password':
+                return <ForgotPasswordScreen
+                            onNavigateToLogin={() => setCurrentScreen('login')}
+                        />;
+            case 'reset-password':
+                return <ResetPasswordScreen
                             onNavigateToLogin={() => setCurrentScreen('login')}
                         />;
             case 'dashboard':
@@ -89,6 +108,7 @@ function App() {
             case 'meu-perfil':
                 return <MeuPerfilScreen
                             onNavigateToHome={() => setCurrentScreen('home')}
+                            onNavigateToForgotPassword={() => setCurrentScreen('forgot-password')} // CORREÇÃO: Adicionei esta linha
                         />;
             case 'homeFuncionario':
                 return <HomePageFuncionario

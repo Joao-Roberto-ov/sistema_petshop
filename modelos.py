@@ -113,3 +113,14 @@ class ClienteEdicaoPorFuncionario(BaseModel):
     email: Optional[EmailStr] = None
     telefone: Optional[str] = None
     endereco: Optional[str] = None
+
+
+class TokenRedefinicaoSenha(BaseModel):
+    email: EmailStr
+    token: str
+    expiracao: datetime
+
+class RedefinirSenhaRequest(BaseModel):
+    token: str
+    nova_senha: str
+

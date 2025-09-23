@@ -181,3 +181,4 @@ class RepositorioFuncionario:
             if cursor: cursor.close()
             if conn: encerra_conexao(conn)
 
+

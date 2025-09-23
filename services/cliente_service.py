@@ -1,24 +1,27 @@
+
 import secrets
-from modelos import UsuarioLogin # <--- CORRIGIDO AQUI
+from modelos import UsuarioLogin, RedefinirSenhaRequest
 from fastapi import HTTPException
 from psycopg2 import IntegrityError
 from seguranca import cria_hash_senha, verifica_senha, cria_token_de_acesso
 from repositories.cliente_repository import RepositorioCliente
-from modelos import (ClienteCadastro, UsuarioLogin, ClienteUpdate,
+from modelos import (ClienteCadastro, ClienteUpdate,
                      PasswordResetRequest, PasswordResetConfirm, ForgotPasswordRequest)
 from services.email_service import EmailService
 import random
 import string
 from datetime import datetime, timedelta, timezone
+from passlib.context import CryptContext
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 class ServicosCliente:
     def __init__(self):
         self.repo = RepositorioCliente()
-        self.email_service = EmailService()  # CORREÇÃO: Inicializar o EmailService
+        self.email_service = EmailService()
 
     def gerar_senha_temporaria(self):
         chars = string.ascii_letters + string.digits + "!@#$%"
-        return ''.join(secrets.choice(chars) for _ in range(8))
+        return "".join(secrets.choice(chars) for _ in range(8))
 
     def cadastrar_por_funcionario(self, dados_cliente):
         try:
@@ -106,13 +109,13 @@ class ServicosCliente:
             "nome": user_data[1],
             "email": user_data[2],
             "telefone": user_data[3],
-            "endereco": user_data[4] if user_data[4] else "Não informado",
+            "endereco": user_data[4] if user_data[4] else 'Não informado',
             "cpf": user_data[5] if len(user_data) > 5 else None  # CORREÇÃO: Verificar se CPF existe
         }
 
     def solicitar_alteracao_senha(self, user_id: int, request_data: PasswordResetRequest):
         user_db = self.repo.buscar_pelo_id_com_senha(user_id)
-        if not user_db: 
+        if not user_db:
             raise HTTPException(status_code=404, detail="Usuário não encontrado.")
 
         user_email = user_db[2]
@@ -136,7 +139,7 @@ class ServicosCliente:
 
     def confirmar_alteracao_senha(self, user_id: int, confirm_data: PasswordResetConfirm):
         resultado_busca = self.repo.buscar_codigo_reset(user_id, confirm_data.codigo_verificacao)
-        if not resultado_busca: 
+        if not resultado_busca:
             raise HTTPException(status_code=400, detail="Código de verificação inválido.")
 
         _, expiracao_salva = resultado_busca
@@ -156,7 +159,7 @@ class ServicosCliente:
     def atualizar_perfil(self, user_id: int, dados_update: ClienteUpdate):
         try:
             dados_atuais_dict = self.buscar_pelo_id(user_id)
-            if not dados_atuais_dict: 
+            if not dados_atuais_dict:
                 raise HTTPException(status_code=404, detail="Usuário não encontrado.")
 
             campos_para_atualizar = {}
@@ -206,21 +209,50 @@ class ServicosCliente:
         try:
             user_db = self.repo.buscar_cliente_pelo_email(request_data.email)
             if not user_db:
-                raise HTTPException(status_code=200,
-                                    detail="Se um usuário com este e-mail existir, um link de redefinição será enviado.")
+                # AC3: Mensagem genérica para evitar enumeração de usuários
+                print(f"Tentativa de redefinição de senha para e-mail não cadastrado: {request_data.email}")
+                return {"message": "Se um usuário com este e-mail existir, um link de redefinição será enviado."}
 
             user_id, _, user_email = user_db
-            # Usa o mesmo mecanismo de código, mas poderia usar um token JWT mais longo
-            codigo = ''.join(random.choices(string.digits, k=6))
-            expiracao = datetime.now(timezone.utc) + timedelta(minutes=15)  # Duração maior
+            token = secrets.token_urlsafe(32) # Gera um token seguro
+            expiracao = datetime.now(timezone.utc) + timedelta(minutes=15) # AC4: Token expira em 15 minutos
+            
+            # Armazena o token no banco de dados associado ao cliente
+            self.repo.salvar_token_redefinicao(user_id, token, expiracao)
 
-            self.repo.salvar_codigo_reset(user_id, codigo, expiracao)
-            # Um e-mail diferente seria enviado aqui, com um link
-            self.email_service.enviar_link_redefinicao(user_email, codigo)  # Supondo que o email_service tenha este método
-
+            # AC1: Envia o e-mail com o link de redefinição
+            # AC2: O e-mail não revela a senha atual
+            # AC4: O link deve ser de uso único e com prazo de expiração
+            # AC5: O link deve direcionar para a página de redefinição de senha
+            # (A URL base do frontend precisará ser configurada)
+            link_redefinicao = f"http://localhost:3000/reset-password?token={token}&email={user_email}"
+            self.email_service.enviar_link_redefinicao(user_email, link_redefinicao)
             return {"message": "Se um usuário com este e-mail existir, um link de redefinição será enviado."}
         except HTTPException:
             raise
         except Exception as e:
             raise HTTPException(status_code=500, detail=f"Erro interno do servidor: {str(e)}")
+
+    def redefinir_senha_publica(self, request_data: RedefinirSenhaRequest):
+        """
+        Redefine a senha de um usuário usando um token de redefinição.
+        """
+        # Busca o token e o email associado no banco de dados
+        token_info = self.repo.buscar_token_redefinicao(request_data.token)
+        
+        if not token_info:
+            raise HTTPException(status_code=400, detail="Token inválido ou expirado.")
+        
+        user_id, email_associado, expiracao_token = token_info
+
+        if datetime.now(timezone.utc) > expiracao_token:
+            self.repo.invalidar_token_redefinicao(request_data.token) # Invalida o token expirado
+            raise HTTPException(status_code=400, detail="Token inválido ou expirado.")
+        
+        # Hash da nova senha antes de salvar
+        senha_hashed = cria_hash_senha(request_data.nova_senha)
+        self.repo.atualizar_senha_cliente(user_id, senha_hashed)
+        self.repo.invalidar_token_redefinicao(request_data.token) # Invalida o token após o uso
+        
+        return {"message": "Senha redefinida com sucesso!"}
 
