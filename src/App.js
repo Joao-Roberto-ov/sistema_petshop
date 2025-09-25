@@ -9,6 +9,7 @@ import HomePageFuncionario from './components/HomePageFuncionario';
 import VisualizarClientes from "./components/VisualizarClientes";
 import PetCadastroScreen from './components/PetCadastroScreen';
 import MeusPetsScreen from './components/MeusPetsScreen';
+import MeuPerfilScreen from './components/MeuPerfilScreen';
 
 function App() {
     const [currentScreen, setCurrentScreen] = useState('home');
@@ -28,14 +29,11 @@ function App() {
 
     const navigateToHome = (user = userData, forced = false) => {
         if (!forced && user?.cargo) {
-            // Se for funcionário (ou gestor) e não estiver forçando visitante
             setCurrentScreen('homeFuncionario');
         } else {
-            // Se for cliente, visitante ou se estiver forçando
             setCurrentScreen('home');
         }
     };
-
 
     const handleLogin = (data) => {
         setIsLoggedIn(true);
@@ -43,14 +41,14 @@ function App() {
         navigateToHome(data);
     };
 
-    //logout
     const handleLogout = () => {
         localStorage.removeItem('token');
         localStorage.removeItem('userData');
         setIsLoggedIn(false);
         setUserData(null);
-        navigateToHome(null,true);
+        navigateToHome(null, true);
     };
+
     const renderScreen = () => {
         if (isLoggedIn && (currentScreen === 'login' || currentScreen === 'signup')) {
             return <HomePage
@@ -85,6 +83,11 @@ function App() {
                         />;
             case 'meus-pets':
                 return <MeusPetsScreen
+                            onNavigateToPetCadastro={() => setCurrentScreen('pet-cadastro')}
+                            onNavigateToHome={() => setCurrentScreen('home')}
+                        />;
+            case 'meu-perfil':
+                return <MeuPerfilScreen
                             onNavigateToHome={() => setCurrentScreen('home')}
                         />;
             case 'homeFuncionario':
@@ -107,6 +110,7 @@ function App() {
                         />;
         }
     };
+
     return (
         <div className="App">
             <AppHeader
@@ -116,9 +120,9 @@ function App() {
                 onNavigateToLogin={() => setCurrentScreen('login')}
                 onNavigateToSignup={() => setCurrentScreen('signup')}
                 onNavigateToDashboard={() => setCurrentScreen('dashboard')}
-                onNavigateToHome={() => setCurrentScreen('home')}
                 onNavigateToPetCadastro={() => setCurrentScreen('pet-cadastro')}
                 onNavigateToMeusPets={() => setCurrentScreen('meus-pets')}
+                onNavigateToMeuPerfil={() => setCurrentScreen('meu-perfil')}
                 onNavigateToHome={navigateToHome}
             />
             <main>

@@ -20,14 +20,17 @@ body {
     padding: 0.5rem 0;
 }
 
+/* Bloco de CSS corrigido e pronto para uso */
+
 .nav {
     display: flex;
-    justify-content: space-between;
+    /* justify-content: space-between;  <-- REMOVIDO: Não precisamos mais disso */
     align-items: center;
     padding: 1rem 2rem;
     max-width: 1200px;
     margin: 0 auto;
     min-height: 60px;
+    width: 100%; /* Garante que o nav ocupe toda a largura do container */
 }
 
 .nav-brand {
@@ -38,15 +41,19 @@ body {
     color: #4a9b8e;
     text-decoration: none;
     height: 100%;
+    flex-shrink: 0; /* Impede que o logo encolha */
 }
 
 .nav-brand .icon {
     font-size: 2rem;
-    margin-right: var(--spacing-sm);
+    /* A variável --spacing-sm não foi definida, então substituí por um valor fixo */
+    margin-right: 0.5rem;
 }
 
-/*ajustes do menu*/
+/* --- AJUSTES DO MENU (CORREÇÃO PRINCIPAL) --- */
 .nav-menu {
+    flex-grow: 1; /* FAZ O MENU OCUPAR O ESPAÇO CENTRAL */
+    justify-content: center; /* CENTRALIZA OS LINKS DENTRO DO MENU */
     display: flex;
     list-style: none;
     gap: 1.5rem;
@@ -55,6 +62,13 @@ body {
     align-items: center;
     height: 100%;
 }
+
+/* Adicione esta regra para os botões de usuário para garantir o alinhamento correto */
+.nav-buttons {
+    flex-shrink: 0; /* Impede que os botões encolham */
+    margin-left: auto; /* Empurra os botões para a direita (alternativa ao space-between) */
+}
+
 
 .nav-link {
     text-decoration: none;
@@ -77,6 +91,8 @@ body {
     display: flex;
     gap: 1rem;
     align-items: center;
+    flex-shrink: 0; /* Impede que os botões encolham */
+    margin-left: auto; /* Empurra os botões para a direita (alternativa ao space-between) */
 }
 
 .btn-login {
@@ -1119,29 +1135,116 @@ body {
     background-color: #f5f5f5;
 }
 
-/*balaozin da senha*/
+
+
+.bg-light {
+    background-color: #f8f9fa;
+}
+
+
+.grid-3 {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 2rem;
+    margin-top: 3rem;
+}
+
+
+.feature-card {
+    background: white;
+    padding: 2rem;
+    border-radius: 12px;
+    text-align: center;
+    border: 1px solid #eee;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+.feature-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 30px rgba(0,0,0,0.08);
+}
+.feature-card .feature-icon {
+    font-size: 2.5rem;
+    margin-bottom: 1rem;
+}
+.feature-card h3 {
+    font-size: 1.3rem;
+    margin-bottom: 0.5rem;
+    color: #333;
+}
+.feature-card p {
+    color: #666;
+}
+
+
+.testimonials-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 2rem;
+    margin-top: 3rem;
+}
+
+
+.testimonial-card {
+    background: white;
+    padding: 2rem;
+    border-radius: 12px;
+    border: 1px solid #eee;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    text-align: left;
+}
+.testimonial-text {
+    font-style: italic;
+    color: #555;
+    margin-bottom: 1.5rem;
+    flex-grow: 1;
+}
+.testimonial-author {
+    font-size: 0.9rem;
+    color: #333;
+    border-top: 1px solid #f0f0f0;
+    padding-top: 1rem;
+}
+.testimonial-author span {
+    color: #777;
+}
+
+@media (max-width: 992px) {
+    .grid-3, .testimonials-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
 .password-tooltip {
     position: absolute;
+    /* Posiciona o balão abaixo do campo da senha */
     top: 105%;
     left: 0;
     width: 100%;
-    background-color: #333;
+
+    /* Visual do balão */
+    background-color: #2d3748; /* Fundo escuro */
     color: white;
     padding: 1rem;
     border-radius: 8px;
     z-index: 10;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-    font-size: 0.85rem;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+    font-size: 0.875rem;
+
+    /* Animação suave de entrada */
+    animation: fadeIn 0.3s ease-out;
 }
 
+/* A "setinha" do balão, apontando para cima */
 .password-tooltip::before {
     content: '';
     position: absolute;
-    bottom: 100%;
-    left: 20px;
+    bottom: 100%; /* Posiciona a seta no topo do balão */
+    left: 30px; /* Alinha a seta com o início do campo */
     border-width: 8px;
     border-style: solid;
-    border-color: transparent transparent #333 transparent;
+    border-color: transparent transparent #2d3748 transparent; /* Cria o triângulo */
 }
 
 .password-tooltip ul {
@@ -1152,13 +1255,21 @@ body {
 
 .password-tooltip li {
     transition: color 0.3s ease;
-    margin-bottom: 0.25rem;
+    margin-bottom: 0.3rem;
 }
 
+/* Estilo para requisito VÁLIDO (verde) */
 .password-tooltip li.valid {
     color: #4ade80;
 }
 
+/* Estilo para requisito INVÁLIDO (vermelho) */
 .password-tooltip li.invalid {
     color: #f87171;
+}
+
+/* Animação simples de Fade In */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
 }

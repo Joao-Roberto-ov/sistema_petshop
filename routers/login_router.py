@@ -18,19 +18,45 @@ async def rota_login_unificado(
     service_cliente: ServicosCliente = Depends(pegar_servicos_cliente),
     service_funcionario: ServicosFuncionario = Depends(pegar_servicos_funcionario)
 ):
-
+    """
+    Rota de login unificado que tenta primeiro funcionário, depois cliente
+    """
+    # Primeiro tenta login como funcionário
     try:
-
-        return service_funcionario.login(dados_login)
+        resultado_funcionario = service_funcionario.login(dados_login)
+        return resultado_funcionario
 
     except HTTPException as e:
-        if e.status_code not in (401, 403):
+        # Se for erro 401 ou 403, tenta login como cliente
+        if e.status_code in (401, 403):
+            try:
+                resultado_cliente = service_cliente.login(dados_login)
+                return resultado_cliente
+
+            except HTTPException as cliente_error:
+                # Se ambos falharam com 401, retorna erro genérico
+                if cliente_error.status_code == 401:
+                    raise HTTPException(status_code=401, detail="E-mail ou senha inválidos")
+                else:
+                    raise cliente_error
+            except Exception as cliente_exception:
+                raise HTTPException(status_code=500, detail=f"Erro interno no login de cliente: {str(cliente_exception)}")
+        else:
+            # Se não for 401 ou 403, re-raise o erro original
             raise e
+
+    except Exception as funcionario_exception:
+        # Se houve erro interno no login de funcionário, tenta cliente
         try:
-            return service_cliente.login(dados_login)
+            resultado_cliente = service_cliente.login(dados_login)
+            return resultado_cliente
 
-        except HTTPException:
-            raise HTTPException(status_code=401, detail="E-mail ou senha inválidos")
+        except HTTPException as cliente_error:
+            if cliente_error.status_code == 401:
+                raise HTTPException(status_code=401, detail="E-mail ou senha inválidos")
+            else:
+                raise cliente_error
+        except Exception:
+            # Se ambos falharam com erro interno, retorna erro genérico
+            raise HTTPException(status_code=500, detail="Ocorreu um erro interno no sistema de login")
 
-    except Exception:
-        raise HTTPException(status_code=500, detail="Ocorreu um erro interno")

@@ -1,21 +1,27 @@
 import React from 'react';
 
-function HomePage({ onNavigateToLogin, isLoggedIn, userData, onLogout, onNavigateToDashboard }) {
+function HomePage({ onNavigateToLogin, onNavigateToSignup, isLoggedIn, userData, onLogout, onNavigateToDashboard }) {
     const handlePlaceholderClick = (feature) => {
         alert(`A funcionalidade "${feature}" será implementada em breve!`);
     };
 
     const services = [
-        { icon: '👨‍⚕️', title: "Consultas Veterinárias", description: "Atendimento especializado para cuidar da saúde do seu pet." },
-        { icon: '✂️', title: "Banho e Tosa", description: "Serviços de higiene e estética para manter seu pet limpo." },
-        { icon: '💉', title: "Vacinação", description: "Programa completo de vacinação para proteger seu pet." },
-        { icon: '🛍️', title: "Pet Shop", description: "Produtos de qualidade: ração, brinquedos e acessórios." }
+        { icon: '🩺', title: "Consultas Veterinárias", description: "Atendimento especializado para cuidar da saúde do seu pet." },
+        { icon: '🛁', title: "Banho e Tosa", description: "Serviços de higiene e estética para manter seu pet limpo e cheiroso." },
+        { icon: '💉', title: "Vacinação Completa", description: "Programa de imunização para proteger seu companheiro de doenças." },
+        { icon: '🛍️', title: "Pet Shop & Farmácia", description: "Produtos de qualidade: ração, brinquedos, acessórios e medicamentos." }
     ];
 
-    const features = [
-        { icon: '👥', title: "Equipe Especializada", description: "Veterinários e profissionais qualificados para o melhor atendimento." },
-        { icon: '❤️', title: "Cuidado com Amor", description: "Tratamos cada pet com carinho e dedicação, como se fosse nosso." },
-        { icon: '📅', title: "Agendamento Fácil", description: "Sistema online para agendar consultas e serviços com praticidade." }
+    const differentials = [
+        { icon: '🏆', title: "Qualidade Superior", description: "Equipamentos de ponta e profissionais qualificados para garantir o melhor para seu pet." },
+        { icon: '❤️', title: "Cuidado com Amor", description: "Tratamos cada pet com o carinho e a dedicação que ele merece, como se fosse nosso." },
+        { icon: '📅', title: "Conveniência Total", description: "Agende serviços, acompanhe históricos e gerencie tudo online, de forma fácil e rápida." }
+    ];
+
+    const testimonials = [
+        { name: "Ana P.", pet: "Toby, Golden Retriever", text: "O atendimento na PetLife é incrível! O Dr. Ricardo foi super atencioso com o Toby e o banho ficou impecável. Recomendo de olhos fechados!" },
+        { name: "Carlos S.", pet: "Mimi, Gata SRD", text: "Levei a Mimi para vacinar e a equipe foi muito paciente e carinhosa. O sistema de agendamento online facilitou muito minha vida." },
+        { name: "Juliana M.", pet: "Fred, Bulldog Francês", text: "A melhor pet shop da cidade! Encontro tudo que preciso para o Fred, e a equipe está sempre pronta para ajudar com as melhores indicações." }
     ];
 
     return (
@@ -56,19 +62,33 @@ function HomePage({ onNavigateToLogin, isLoggedIn, userData, onLogout, onNavigat
                 </div>
             </section>
 
-            <section className="section" style={{backgroundColor: '#FFFFFF'}}>
-                <div className="container" style={{maxWidth: '800px'}}>
-                    <div className="text-center" style={{marginBottom: '3rem'}}>
-                         <h2 className="section-title">Por que escolher o PetLife?</h2>
+            <section className="section bg-light">
+                <div className="container text-center">
+                    <h2 className="section-title">Por que escolher a PetLife?</h2>
+                    <p className="section-description">Entendemos que seu pet é parte da família. Por isso, nosso compromisso vai além do serviço.</p>
+                    <div className="grid-3">
+                        {differentials.map((item, index) => (
+                            <div key={index} className="feature-card animate-fade-in-up" style={{ animationDelay: `${index * 0.1}s` }}>
+                                <div className="feature-icon">{item.icon}</div>
+                                <h3>{item.title}</h3>
+                                <p>{item.description}</p>
+                            </div>
+                        ))}
                     </div>
-                    {}
-                    <div className="features-list">
-                        {features.map((feature, index) => (
-                            <div key={index} className="feature">
-                                <span className="feature-icon">{feature.icon}</span>
-                                <div className="feature-content">
-                                    <h3>{feature.title}</h3>
-                                    <p>{feature.description}</p>
+                </div>
+            </section>
+
+            <section className="section">
+                <div className="container text-center">
+                    <h2 className="section-title">O que nossos clientes dizem</h2>
+                    <p className="section-description">A confiança de quem já conhece nosso trabalho é nossa maior recompensa.</p>
+                    <div className="testimonials-grid">
+                        {testimonials.map((testimonial, index) => (
+                            <div key={index} className="testimonial-card animate-fade-in-up" style={{ animationDelay: `${index * 0.1}s` }}>
+                                <p className="testimonial-text">"{testimonial.text}"</p>
+                                <div className="testimonial-author">
+                                    <strong>{testimonial.name}</strong>
+                                    <span>, tutor(a) de {testimonial.pet}</span>
                                 </div>
                             </div>
                         ))}
@@ -79,7 +99,6 @@ function HomePage({ onNavigateToLogin, isLoggedIn, userData, onLogout, onNavigat
             <section className="cta">
                 <div className="container">
                     <h2>Pronto para cuidar do seu pet?</h2>
-                    {/* O texto foi ajustado para refletir a ausência do botão de cadastro */}
                     <p>Explore nossos serviços e descubra como podemos ajudar seu companheiro.</p>
                     <div className="cta-buttons">
                         <button className="btn btn-outline-white btn-lg hover-lift" onClick={() => handlePlaceholderClick('Conhecer Serviços')}>Conhecer Serviços</button>

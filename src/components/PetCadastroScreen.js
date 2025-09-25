@@ -81,5 +81,4 @@ function PetCadastroScreen({ onNavigateToHome }) {
         </div>
     );
 }
-
 export default PetCadastroScreen;

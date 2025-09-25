@@ -47,26 +47,24 @@ def criar_tabelas():
         );""")
 
         curs.execute("""CREATE TABLE IF NOT EXISTS Cargos (
-        Id SERIAL PRIMARY KEY,
-        Nome VARCHAR(50) UNIQUE NOT NULL
-    );""")
+            Id SERIAL PRIMARY KEY,
+            Nome VARCHAR(50) UNIQUE NOT NULL
+        );""")
 
         curs.execute("INSERT INTO Cargos (Nome) VALUES ('gestor') ON CONFLICT (Nome) DO NOTHING;")
-        # cargo funcionario como placeholder
         curs.execute("INSERT INTO Cargos (Nome) VALUES ('funcionario') ON CONFLICT (Nome) DO NOTHING;")
 
         curs.execute("""CREATE TABLE IF NOT EXISTS Funcionarios (
-        Id SERIAL PRIMARY KEY,
-        Nome VARCHAR(150) NOT NULL,
-        CPF VARCHAR(14) UNIQUE,
-        Email VARCHAR(150) UNIQUE NOT NULL,
-        Senha TEXT NOT NULL,
-        Telefone VARCHAR(20)NOT NULL,
-        Endereco VARCHAR(400) DEFAULT 'Não informado',
-        Cargo_id INT NOT NULL REFERENCES Cargos(Id),
-        Is_ativo BOOLEAN DEFAULT TRUE
-        );
-                     """)
+            Id SERIAL PRIMARY KEY,
+            Nome VARCHAR(150) NOT NULL,
+            CPF VARCHAR(14) UNIQUE,
+            Email VARCHAR(150) UNIQUE NOT NULL,
+            Senha TEXT NOT NULL,
+            Telefone VARCHAR(20)NOT NULL,
+            Endereco VARCHAR(400) DEFAULT 'Não informado',
+            Cargo_id INT NOT NULL REFERENCES Cargos(Id),
+            Is_ativo BOOLEAN DEFAULT TRUE
+        );""")
 
         curs.execute("""CREATE TABLE IF NOT EXISTS Pets (
             id SERIAL PRIMARY KEY,
@@ -106,7 +104,20 @@ def criar_tabelas():
             data_hora TIMESTAMP NOT NULL DEFAULT NOW()
         );""")
 
+        curs.execute("""CREATE TABLE IF NOT EXISTS CodigosVerificacao (
+            id SERIAL PRIMARY KEY,
+            cliente_id INTEGER NOT NULL REFERENCES Clientes(id) ON DELETE CASCADE,
+            codigo VARCHAR(6) NOT NULL,
+            expiracao TIMESTAMP WITH TIME ZONE NOT NULL,
+            criado_em TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+        );""")
+        
         conectado.commit()
+        print("Verificação e criação de tabelas concluída com sucesso.")
         curs.close()
     finally:
         encerra_conexao(conectado)
+
+if __name__ == '__main__':
+    print("Iniciando a criação das tabelas no banco de dados...")
+    criar_tabelas()

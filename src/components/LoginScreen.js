@@ -6,43 +6,39 @@ function LoginScreen({ onLogin, onNavigateToSignup, setUserData }) {
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
 
-const handleSubmit = async (e) => {
-    e.preventDefault();
-    setLoading(true);
-    setError('');
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        setLoading(true);
+        setError('');
 
-    try {
-        const response = await axios.post('/login', formData);
-        const user = response.data.user;
+        try {
+            const response = await axios.post('/login', formData);
+            const user = response.data.user;
 
-        // salva token
-        localStorage.setItem('token', response.data.access_token);
+            localStorage.setItem('token', response.data.access_token);
 
-        // monta userData completo
-        const userData = {
-            id: user.id,
-            nome: user.nome,
-            email: user.email,
-            telefone: user.telefone || '',
-            endereco: user.endereco || '',
-            cpf: user.cpf || '',
-            cargo: user.cargo || null,
-            is_ativo: user.is_ativo || null
-        };
+            const userData = {
+                id: user.id,
+                nome: user.nome,
+                email: user.email,
+                telefone: user.telefone || '',
+                endereco: user.endereco || '',
+                cpf: user.cpf || '',
+                cargo: user.cargo || null,
+                is_ativo: user.is_ativo || null
+            };
 
-        // salva no localStorage e atualiza estado
-        localStorage.setItem('userData', JSON.stringify(userData));
-        setUserData(userData);
+            localStorage.setItem('userData', JSON.stringify(userData));
+            setUserData(userData);
 
-        // chama callback do App.js
-        onLogin(userData);
+            onLogin(userData);
 
-    } catch (err) {
-        setError(err.response?.data?.detail || 'Erro ao fazer login. Verifique suas credenciais.');
-    } finally {
-        setLoading(false);
-    }
-};
+        } catch (err) {
+            setError(err.response?.data?.detail || 'Erro ao fazer login. Verifique suas credenciais.');
+        } finally {
+            setLoading(false);
+        }
+    };
 
     return (
         <div className="login-container">
@@ -72,5 +68,4 @@ const handleSubmit = async (e) => {
         </div>
     );
 }
-
 export default LoginScreen;

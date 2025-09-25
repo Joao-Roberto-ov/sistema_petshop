@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from seguranca import pegar_id_do_usuario_logado
 from services.cliente_service import ServicosCliente
-from modelos import ClienteCadastro, UsuarioLogin  # Corrigido para usar UsuarioLogin se necessário
+from modelos import (ClienteCadastro, UsuarioLogin, ClienteUpdate, PasswordResetRequest, PasswordResetConfirm, ForgotPasswordRequest)
 
 router = APIRouter(prefix="/api", tags=["Clientes"])
 
@@ -20,6 +20,14 @@ async def rota_signup(dados_cliente: ClienteCadastro, service: ServicosCliente =
     except Exception as e:
         raise HTTPException(status_code=500, detail="Ocorreu um erro interno.")
 
+@router.post("/login")
+async def rota_login(cliente_login_data: UsuarioLogin, service: ServicosCliente = Depends(pegar_servicos_cliente)):
+    try:
+        return service.login(cliente_login_data)
+    except HTTPException as e:
+        raise e
+    except Exception as e:
+        raise HTTPException(status_code=500, detail="Ocorreu um erro interno.")
 
 @router.get("/users/me")
 async def rota_para_usuario(
@@ -33,6 +41,37 @@ async def rota_para_usuario(
     except HTTPException as e:
         raise e
 
+@router.put("/users/me")
+async def rota_atualizar_perfil(
+    dados_update: ClienteUpdate,
+    current_user_id: int = Depends(pegar_id_do_usuario_logado),
+    service: ServicosCliente = Depends(pegar_servicos_cliente)
+):
+    return service.atualizar_perfil(current_user_id, dados_update)
+
+@router.post("/users/me/request-password-change", status_code=200)
+async def rota_solicitar_alteracao_senha(
+    request_data: PasswordResetRequest,
+    current_user_id: int = Depends(pegar_id_do_usuario_logado),
+    service: ServicosCliente = Depends(pegar_servicos_cliente)
+):
+    return service.solicitar_alteracao_senha(current_user_id, request_data)
+
+@router.post("/users/me/confirm-password-change", status_code=200)
+async def rota_confirmar_alteracao_senha(
+    confirm_data: PasswordResetConfirm,
+    current_user_id: int = Depends(pegar_id_do_usuario_logado),
+    service: ServicosCliente = Depends(pegar_servicos_cliente)
+):
+    return service.confirmar_alteracao_senha(current_user_id, confirm_data)
+
+# Rota para o fluxo de "Esqueci a Senha"
+@router.post("/forgot-password", status_code=200)
+async def rota_esqueci_senha(
+    request_data: ForgotPasswordRequest,
+    service: ServicosCliente = Depends(pegar_servicos_cliente)
+):
+    return service.esqueci_minha_senha(request_data)
 
 @router.get("/users", status_code=200)
 async def rota_buscar_todos(service: ServicosCliente = Depends(pegar_servicos_cliente)):

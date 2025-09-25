@@ -1,24 +1,139 @@
+/* MeusPetsScreen.css */
+
 .meus-pets-container {
-    padding: 2rem;
-    max-width: 1200px;
-    margin: 0 auto;
+    min-height: calc(100vh - 120px); /* Ajusta a altura para preencher a tela, descontando um possível header/footer */
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding: 3rem 1.5rem;
+    background-color: #f8f9fa;
 }
 
-.meus-pets-container h1 {
-    color: #333;
-    text-align: center;
-    margin-bottom: 2rem;
+.content-wrapper {
+    width: 100%;
+    max-width: 1200px;
+    background-color: white;
+    padding: 3rem;
+    border-radius: 16px;
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.07);
+}
+
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap; /* Permite que o botão quebre a linha em telas menores */
+    gap: 1.5rem;
+    border-bottom: 1px solid #e5e7eb;
+    padding-bottom: 1.5rem;
+    padding: 0.5rem 0.5rem;
+    border-radius: 10px;
+}
+
+.header-text h1 {
+    padding: 0rem 1rem;
+    color: #111827;
+    margin: 0;
+    font-size: 2.25rem;
+    font-weight: 700;
+}
+
+.header-text p {
+    color: #6b7280;
+    margin-top: 0.25rem;
+    padding: 1rem 1rem;
+    font-size: 1rem;
+    margin-bottom: 0;
+}
+
+.btn-add-pet {
+    display: flex; /* Adicionado para alinhar o ícone */
+    align-items: center; /* Adicionado para alinhar o ícone */
+    gap: 0.5rem; /* Adicionado para espaçar o ícone do texto */
+    flex-shrink: 0;
+    background-color: #4a9b8e;
+    color: white;
+    border: none;
+    padding: 0.75rem 1.5rem;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-decoration: none;
+    white-space: nowrap;
+}
+
+.btn-add-pet:hover {
+    background-color: #3d8b7e;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 10px rgba(74, 155, 142, 0.3);
 }
 
 .pets-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
     gap: 1.5rem;
-    margin-top: 2rem;
+    padding: 0.5rem 0.5rem;
 }
 
-.loading-message, .error-message {
+/* Estilos para a tela de "Nenhum Pet" */
+.no-pets-container {
     text-align: center;
-    padding: 2rem;
-    font-size: 1.2rem;
+    padding: 4rem 1rem;
+    background-color: #f9fafb;
+    border: 2px dashed #e5e7eb;
+    border-radius: 12px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+.icon-paw {
+    color: #4a9b8e;
+    opacity: 0.5;
+    margin-bottom: 1rem;
+}
+
+.no-pets-title {
+    font-size: 1.5rem;
+    color: #111827;
+    font-weight: 600;
+    margin: 0.5rem 0;
+}
+
+.no-pets-text {
+    font-size: 1rem;
+    color: #6b7280;
+    max-width: 400px;
+    margin-bottom: 2rem;
+}
+
+/* Mensagens de loading e erro */
+.message {
+    text-align: center;
+    padding: 3rem 1rem;
+    font-size: 1.1rem;
+    color: #6b7280;
+}
+
+.error-message {
+    color: #991b1b;
+    background-color: #fef2f2;
+    border: 1px solid #fecaca;
+    border-radius: 8px;
+}
+
+@media (max-width: 768px) {
+    .header {
+        justify-content: center;
+        text-align: center;
+    }
+    .content-wrapper {
+        padding: 1.5rem;
+    }
+    .header-text h1 {
+        font-size: 1.75rem;
+    }
 }
