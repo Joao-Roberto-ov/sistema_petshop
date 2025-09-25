@@ -97,7 +97,7 @@ def criar_tabelas():
         curs.execute("""CREATE TABLE IF NOT EXISTS Cliente_historico (
             id SERIAL PRIMARY KEY,
             cliente_id INT NOT NULL,
-            funcionario_id INT REFERENCES funcionarios (id),
+            funcionario_id INT REFERENCES funcionarios(id),
             campo TEXT NOT NULL,
             valor_antigo TEXT,
             valor_novo TEXT,
@@ -111,7 +111,7 @@ def criar_tabelas():
             expiracao TIMESTAMP WITH TIME ZONE NOT NULL,
             criado_em TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
         );""")
-
+        
         conectado.commit()
         print("Verificação e criação de tabelas concluída com sucesso.")
         curs.close()

@@ -46,6 +46,20 @@ class RepositorioCliente:
             if cursor: cursor.close()
             if conn: encerra_conexao(conn)
 
+    def buscar_pelo_cpf(self, cpf: str):
+        conn = None
+        cursor = None
+        try:
+            conn = conectar()
+            cursor = conn.cursor()
+            sql = "SELECT id FROM Clientes WHERE cpf = %s"
+            cursor.execute(sql, (cpf,))
+            return cursor.fetchone()  # retorna None ou (id,)
+        finally:
+            if cursor: cursor.close()
+            if conn: encerra_conexao(conn)
+
+
     def buscar_todos(self):
         conn = None
         cursor = None
@@ -101,7 +115,6 @@ class RepositorioCliente:
         try:
             conn = conectar()
             cursor = conn.cursor()
-
             cursor.execute("SELECT nome, email, telefone, endereco, cpf FROM clientes WHERE id = %s", (id,))
             antigo = cursor.fetchone()
             if not antigo:
@@ -137,6 +150,7 @@ class RepositorioCliente:
             if conn:
                 conn.rollback()
             raise  # Re-raise the exception
+
         finally:
             if cursor:
                 cursor.close()
