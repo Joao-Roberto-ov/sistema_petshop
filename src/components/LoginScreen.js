@@ -10,7 +10,7 @@ function LoginScreen({ onLogin, onNavigateToSignup, onNavigateToForgotPassword, 
         e.preventDefault();
         setLoading(true);
         setError('');
-
+         console.log("Enviando para o login:", formData);
         try {
             const response = await axios.post('/login', formData);
             const user = response.data.user;

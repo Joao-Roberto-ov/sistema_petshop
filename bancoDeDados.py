@@ -54,6 +54,33 @@ def criar_tabelas():
         curs.execute("INSERT INTO Cargos (Nome) VALUES ('gestor') ON CONFLICT (Nome) DO NOTHING;")
         curs.execute("INSERT INTO Cargos (Nome) VALUES ('funcionario') ON CONFLICT (Nome) DO NOTHING;")
 
+        curs.execute("""CREATE TABLE IF NOT EXISTS produtos_externos (
+                barcode VARCHAR(50) PRIMARY KEY,
+                product_name TEXT,
+                brands TEXT,
+                categories TEXT,
+                image_url TEXT,
+                ingredients_text TEXT,
+                nutriscore_grade VARCHAR(20),
+                ecoscore_grade VARCHAR(20),
+                data_sync TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+        );""")
+
+        curs.execute("""CREATE TABLE IF NOT EXISTS produtos_cadastrados (
+                id SERIAL PRIMARY KEY,
+                barcode VARCHAR(50) UNIQUE NOT NULL,
+                nome TEXT NOT NULL,
+                marca TEXT,
+                categoria TEXT,
+                descricao TEXT,
+                url_imagem TEXT,
+                preco_venda NUMERIC(10, 2) NOT NULL,
+                estoque INT NOT NULL DEFAULT 0,
+                cadastrado_por_id INT REFERENCES funcionarios (id),
+                data_cadastro TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+                ultima_atualizacao TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+        );""")
+
         curs.execute("""CREATE TABLE IF NOT EXISTS Funcionarios (
             Id SERIAL PRIMARY KEY,
             Nome VARCHAR(150) NOT NULL,

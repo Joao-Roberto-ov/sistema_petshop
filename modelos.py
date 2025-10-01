@@ -124,3 +124,12 @@ class RedefinirSenhaRequest(BaseModel):
     token: str
     nova_senha: str
 
+class ProdutoCadastro(BaseModel):
+    barcode: str
+    nome: str
+    preco_venda: float
+    estoque: int
+    marca: Optional[str] = None
+    categoria: Optional[str] = None
+    descricao: Optional[str] = None
+    url_imagem: Optional[str] = None

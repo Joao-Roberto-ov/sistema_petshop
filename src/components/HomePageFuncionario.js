@@ -1,6 +1,6 @@
 import React from 'react';
 
-function HomePageFuncionario({ userData, onNavigateToVisualizarClientes, onNavigateToCadastrarCliente, onLogout }) {
+function HomePageFuncionario({ userData, onNavigateToVisualizarClientes, onNavigateToCadastrarProduto, onLogout }) {
 
     return (
         <>
@@ -16,6 +16,14 @@ function HomePageFuncionario({ userData, onNavigateToVisualizarClientes, onNavig
                         <button className="btn btn-outline-white hover-lift" onClick={onNavigateToVisualizarClientes}>
                             👥 Visualizar Clientes
                         </button>
+
+                        {/* botao para o cargo de gestor */}
+                        {userData?.cargo === 'gestor' && (
+                             <button className="btn btn-outline-white hover-lift" onClick={onNavigateToCadastrarProduto}>
+                                📦 Cadastrar Produto
+                            </button>
+                        )}
+                        
                         <button className="btn btn-outline-white hover-lift" onClick={onLogout}>
                             🚪 Sair
                         </button>

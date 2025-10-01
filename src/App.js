@@ -12,6 +12,7 @@ import VisualizarClientes from "./components/VisualizarClientes";
 import PetCadastroScreen from './components/PetCadastroScreen';
 import MeusPetsScreen from './components/MeusPetsScreen';
 import MeuPerfilScreen from './components/MeuPerfilScreen';
+import CadastrarProdutoScreen from './components/CadastrarProduto';
 
 function App() {
     const [currentScreen, setCurrentScreen] = useState('home');
@@ -19,7 +20,6 @@ function App() {
     const [userData, setUserData] = useState(null);
 
     useEffect(() => {
-        // Verificar se é uma página de redefinição de senha
         const urlParams = new URLSearchParams(window.location.search);
         const token = urlParams.get('token');
         if (token) {
@@ -108,16 +108,21 @@ function App() {
             case 'meu-perfil':
                 return <MeuPerfilScreen
                             onNavigateToHome={() => setCurrentScreen('home')}
-                            onNavigateToForgotPassword={() => setCurrentScreen('forgot-password')} // CORREÇÃO: Adicionei esta linha
+                            onNavigateToForgotPassword={() => setCurrentScreen('forgot-password')}
                         />;
             case 'homeFuncionario':
                 return <HomePageFuncionario
                     userData={userData}
                     onNavigateToVisualizarClientes={() => setCurrentScreen('visualizarClientes')}
+                    onNavigateToCadastrarProduto={() => setCurrentScreen('cadastrarProduto')}
                     onLogout={handleLogout}
                 />;
             case 'visualizarClientes':
                 return <VisualizarClientes onBack={() => navigateToHome()} />;
+
+            case 'cadastrarProduto':
+                return <CadastrarProdutoScreen onNavigateToHome={() => navigateToHome()} />;
+
             case 'home':
             default:
                 return <HomePage

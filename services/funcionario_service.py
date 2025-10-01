@@ -1,3 +1,4 @@
+# Petshop_GP/services/funcionario_service.py (Versão de depuração final)
 
 from fastapi import HTTPException
 from psycopg2 import IntegrityError
@@ -8,7 +9,9 @@ from modelos import ForgotPasswordRequest, RedefinirSenhaRequest
 import secrets
 from datetime import datetime, timedelta, timezone
 from passlib.context import CryptContext
+
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
 
 class ServicosFuncionario:
     def __init__(self):
@@ -16,87 +19,77 @@ class ServicosFuncionario:
         self.email_service = EmailService()
 
     def login(self, dados_login):
-        """
-        Login de funcionário
-        """
+        print("\n--- INICIANDO TENTATIVA DE LOGIN DE FUNCIONÁRIO ---")
+        print(f"1. Buscando funcionário com email: {dados_login.email}")
         try:
             resultado = self.repo.buscar_pelo_email(dados_login.email)
 
             if not resultado:
+                print("   [FALHA] Nenhum funcionário encontrado com este email.")
                 raise HTTPException(status_code=401, detail="E-mail ou senha inválidos.")
 
+            print("   [SUCESSO] Funcionário encontrado no banco.")
             user_id, senha_hashed_do_banco = resultado
 
+            print("2. Verificando a senha...")
             if not verifica_senha(dados_login.senha, senha_hashed_do_banco):
+                print("   [FALHA] A senha digitada não corresponde ao hash.")
                 raise HTTPException(status_code=401, detail="E-mail ou senha inválidos.")
 
+            print("   [SUCESSO] Senha verificada com sucesso.")
+
+            print(f"3. Buscando dados completos do funcionário com ID: {user_id}")
             dados_usuario = self.buscar_pelo_id(user_id)
 
             if not dados_usuario:
+                print("   [FALHA] Não foi possível buscar os dados completos do funcionário (verifique o cargo_id).")
                 raise HTTPException(status_code=404, detail="Funcionário não encontrado após verificação.")
 
-            if not dados_usuario.get("is_ativo", True):
+            print("   [SUCESSO] Dados completos do funcionário obtidos.")
+            print(f"   Dados obtidos: {dados_usuario}")
+
+            print("4. Verificando se o funcionário está ativo...")
+            if not dados_usuario.get("is_ativo"):
+                print("   [FALHA] O funcionário está marcado como inativo.")
                 raise HTTPException(status_code=403, detail="Funcionário inativo")
 
+            print("   [SUCESSO] Funcionário está ativo.")
+
+            print("5. Criando token de acesso...")
             token = cria_token_de_acesso(data={
                 "sub": str(user_id),
                 "role": dados_usuario.get("cargo", "funcionario")
             })
+            print("   [SUCESSO] Token criado. Login de funcionário bem-sucedido!")
 
             return {
                 "access_token": token,
                 "token_type": "bearer",
                 "user": dados_usuario
             }
-        
-        except HTTPException:
-            raise  # Re-raise HTTPExceptions
+
+        except HTTPException as http_exc:
+            # Apenas repassa a exceção HTTP para a próxima camada
+            raise http_exc
         except Exception as e:
-            raise HTTPException(status_code=500, detail=f"Erro interno no login de funcionário: {str(e)}")
+            # Captura qualquer outro erro inesperado
+            print(f"\n[ERRO INESPERADO NO SERVIÇO DE FUNCIONÁRIO] Ocorreu uma exceção não tratada: {e}\n")
+            raise HTTPException(status_code=500, detail=f"Erro interno inesperado no login de funcionário: {str(e)}")
 
     def buscar_pelo_id(self, user_id: int):
         """
-        Retorna dados completos do funcionário
+        Função simplificada e robusta para buscar dados do funcionário.
         """
         try:
             user_data = self.repo.procurar_pelo_id(user_id)
-            if not user_data:
-                return None
-
-            # Garantir que user_data é um dicionário
-            if isinstance(user_data, dict):
-                return {
-                    "id": user_data.get("id"),
-                    "nome": user_data.get("nome"),
-                    "email": user_data.get("email"),
-                    "telefone": user_data.get("telefone"),
-                    "endereco": user_data.get("endereco") if user_data.get("endereco") else "Não informado",
-                    "cpf": user_data.get("cpf"),
-                    "cargo_id": user_data.get("cargo_id"),
-                    "cargo": user_data.get("cargo"),
-                    "is_ativo": user_data.get("is_ativo", True)
-                }
-            else:
-                # Se for uma tupla (fallback para compatibilidade)
-                return {
-                    "id": user_data[0] if len(user_data) > 0 else None,
-                    "nome": user_data[1] if len(user_data) > 1 else None,
-                    "email": user_data[2] if len(user_data) > 2 else None,
-                    "telefone": user_data[3] if len(user_data) > 3 else None,
-                    "endereco": user_data[4] if len(user_data) > 4 and user_data[4] else "Não informado",
-                    "cpf": user_data[5] if len(user_data) > 5 else None,
-                    "cargo_id": user_data[6] if len(user_data) > 6 else None,
-                    "cargo": user_data[7] if len(user_data) > 7 else "funcionario",
-                    "is_ativo": user_data[8] if len(user_data) > 8 else True
-                }
-        
+            return user_data
         except Exception as e:
-            raise HTTPException(status_code=500, detail=f"Erro ao buscar funcionário: {str(e)}")
+            print(f"[ERRO] Falha na função 'buscar_pelo_id' do serviço: {e}")
+            # Retorna None para que a lógica de login possa tratar a falha
+            return None
 
+    # O resto do arquivo permanece igual
     def cadastrar_funcionario(self, nome, email, senha, telefone, endereco, cpf, cargo_id, is_ativo=True):
-        """
-        Cadastra um novo funcionário
-        """
         try:
             senha_hash = cria_hash_senha(senha)
             user_id = self.repo.cadastrar_funcionario(
@@ -115,29 +108,20 @@ class ServicosFuncionario:
             raise HTTPException(status_code=500, detail=f"Erro ao cadastrar funcionário: {str(e)}")
 
     def esqueci_minha_senha(self, request_data: ForgotPasswordRequest):
-        """
-        Inicia o fluxo de recuperação de senha para um funcionário que não está logado.
-        """
         try:
             user_db = self.repo.buscar_funcionario_pelo_email(request_data.email)
             if not user_db:
-                # AC3: Mensagem genérica para evitar enumeração de usuários
-                print(f"Tentativa de redefinição de senha para e-mail de funcionário não cadastrado: {request_data.email}")
+                print(
+                    f"Tentativa de redefinição de senha para e-mail de funcionário não cadastrado: {request_data.email}")
                 return {"message": "Se um usuário com este e-mail existir, um link de redefinição será enviado."}
 
             user_id, user_email = user_db
-            token = secrets.token_urlsafe(32) # Gera um token seguro
-            expiracao = datetime.now(timezone.utc) + timedelta(minutes=15) # AC4: Token expira em 15 minutos
-            
-            # Armazena o token no banco de dados associado ao funcionário
+            token = secrets.token_urlsafe(32)
+            expiracao = datetime.now(timezone.utc) + timedelta(minutes=15)
+
             self.repo.salvar_token_redefinicao(user_id, token, expiracao)
 
-            # AC1: Envia o e-mail com o link de redefinição
-            # AC2: O e-mail não revela a senha atual
-            # AC4: O link deve ser de uso único e com prazo de expiração
-            # AC5: O link deve direcionar para a página de redefinição de senha
-            # (A URL base do frontend precisará ser configurada)
-            link_redefinicao = f"http://localhost:3000/reset-password-funcionario?token={token}&email={user_email}" # Exemplo de URL
+            link_redefinicao = f"http://localhost:3000/reset-password-funcionario?token={token}&email={user_email}"
             self.email_service.enviar_link_redefinicao(user_email, link_redefinicao)
             return {"message": "Se um usuário com este e-mail existir, um link de redefinição será enviado."}
         except HTTPException:
@@ -146,25 +130,19 @@ class ServicosFuncionario:
             raise HTTPException(status_code=500, detail=f"Erro interno do servidor: {str(e)}")
 
     def redefinir_senha_publica(self, request_data: RedefinirSenhaRequest):
-        """
-        Redefine a senha de um funcionário usando um token de redefinição.
-        """
-        # Busca o token e o email associado no banco de dados
         token_info = self.repo.buscar_token_redefinicao(request_data.token)
-        
+
         if not token_info:
             raise HTTPException(status_code=400, detail="Token inválido ou expirado.")
-        
+
         funcionario_id, email_associado, expiracao_token = token_info
 
         if datetime.now(timezone.utc) > expiracao_token:
-            self.repo.invalidar_token_redefinicao(request_data.token) # Invalida o token expirado
+            self.repo.invalidar_token_redefinicao(request_data.token)
             raise HTTPException(status_code=400, detail="Token inválido ou expirado.")
-        
-        # Hash da nova senha antes de salvar
+
         senha_hashed = pwd_context.hash(request_data.nova_senha)
         self.repo.atualizar_senha_funcionario(funcionario_id, senha_hashed)
-        self.repo.invalidar_token_redefinicao(request_data.token) # Invalida o token após o uso
-        
-        return {"message": "Senha redefinida com sucesso!"}
+        self.repo.invalidar_token_redefinicao(request_data.token)
 
+        return {"message": "Senha redefinida com sucesso!"}
