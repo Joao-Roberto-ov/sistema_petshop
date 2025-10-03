@@ -113,6 +113,60 @@ class ServicosCliente:
             "cpf": user_data[5] if len(user_data) > 5 else None  # CORREÇÃO: Verificar se CPF existe
         }
 
+    def editar_cliente(
+            self,
+            id: int,
+            nome: str,
+            email: str,
+            telefone: str,
+            endereco: str,
+            cpf: str | None = None,
+            funcionario_id: int | None = None
+    ):
+        # Buscar dados atuais para histórico
+        cliente_atual = self.repo.procurar_pelo_id(id)
+        if not cliente_atual:
+            raise HTTPException(status_code=404, detail="Cliente não encontrado.")
+
+        # Verificar email duplicado
+        cliente_email = self.repo.buscar_pelo_email(email)
+        if cliente_email and cliente_email[0] != id:
+            raise HTTPException(status_code=400, detail="Já existe um cliente com este email.")
+
+        # Verificar CPF duplicado
+        if cpf:
+            cliente_cpf = self.repo.procurar_por_cpf(cpf)
+            if cliente_cpf and cliente_cpf[0] != id:
+                raise HTTPException(status_code=400, detail="Já existe um cliente com este CPF.")
+
+        campos_modificados = []
+
+        if cliente_atual[1] != nome:
+            campos_modificados.append(("nome", cliente_atual[1], nome))
+        if cliente_atual[2] != email:
+            campos_modificados.append(("email", cliente_atual[2], email))
+        if cliente_atual[3] != telefone:
+            campos_modificados.append(("telefone", cliente_atual[3], telefone))
+        if cliente_atual[4] != endereco:
+            campos_modificados.append(("endereco", cliente_atual[4], endereco))
+        if (len(cliente_atual) > 5 and cliente_atual[5] != cpf):
+            campos_modificados.append(("cpf", cliente_atual[5], cpf))
+
+        # Atualizar cliente
+        self.repo.editar_cliente(id, nome, email, telefone, endereco, cpf)
+
+        # Registrar histórico
+        for campo, antigo, novo in campos_modificados:
+            self.repo.registrar_historico(
+                cliente_id=id,
+                funcionario_id=funcionario_id,
+                campo=campo,
+                valor_antigo=antigo,
+                valor_novo=novo
+            )
+
+        return {"mensagem": f"Cliente '{nome}' atualizado com sucesso."}
+
     def solicitar_alteracao_senha(self, user_id: int, request_data: PasswordResetRequest):
         user_db = self.repo.buscar_pelo_id_com_senha(user_id)
         if not user_db:
@@ -216,7 +270,7 @@ class ServicosCliente:
             user_id, _, user_email = user_db
             token = secrets.token_urlsafe(32) # Gera um token seguro
             expiracao = datetime.now(timezone.utc) + timedelta(minutes=15) # AC4: Token expira em 15 minutos
-            
+
             # Armazena o token no banco de dados associado ao cliente
             self.repo.salvar_token_redefinicao(user_id, token, expiracao)
 
@@ -239,20 +293,20 @@ class ServicosCliente:
         """
         # Busca o token e o email associado no banco de dados
         token_info = self.repo.buscar_token_redefinicao(request_data.token)
-        
+
         if not token_info:
             raise HTTPException(status_code=400, detail="Token inválido ou expirado.")
-        
+
         user_id, email_associado, expiracao_token = token_info
 
         if datetime.now(timezone.utc) > expiracao_token:
             self.repo.invalidar_token_redefinicao(request_data.token) # Invalida o token expirado
             raise HTTPException(status_code=400, detail="Token inválido ou expirado.")
-        
+
         # Hash da nova senha antes de salvar
         senha_hashed = cria_hash_senha(request_data.nova_senha)
         self.repo.atualizar_senha_cliente(user_id, senha_hashed)
         self.repo.invalidar_token_redefinicao(request_data.token) # Invalida o token após o uso
-        
+
         return {"message": "Senha redefinida com sucesso!"}
 

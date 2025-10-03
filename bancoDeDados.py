@@ -124,7 +124,7 @@ def criar_tabelas():
         curs.execute("""CREATE TABLE IF NOT EXISTS Cliente_historico (
             id SERIAL PRIMARY KEY,
             cliente_id INT NOT NULL,
-            funcionario_id INT REFERENCES funcionarios (id),
+            funcionario_id INT REFERENCES funcionarios(id),
             campo TEXT NOT NULL,
             valor_antigo TEXT,
             valor_novo TEXT,

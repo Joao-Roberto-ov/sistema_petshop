@@ -19,32 +19,22 @@ async def rota_login_unificado(
     service_cliente: ServicosCliente = Depends(pegar_servicos_cliente),
     service_funcionario: ServicosFuncionario = Depends(pegar_servicos_funcionario)
 ):
-    """
-    Rota de login unificado que tenta primeiro funcionário, depois cliente
-    """
-    # Primeiro tenta login como funcionário
+    # Tenta login como funcionário
     try:
-        resultado_funcionario = service_funcionario.login(dados_login)
-        return resultado_funcionario
-
+        return service_funcionario.login(dados_login)
     except HTTPException as e:
-        # Se for erro 401 ou 403, tenta login como cliente
-        if e.status_code in (401, 403):
-            try:
-                resultado_cliente = service_cliente.login(dados_login)
-                return resultado_cliente
+        if e.status_code not in (401, 403):
+            raise
 
-            except HTTPException as cliente_error:
-                # Se ambos falharam com 401, retorna erro genérico
-                if cliente_error.status_code == 401:
-                    raise HTTPException(status_code=401, detail="E-mail ou senha inválidos")
-                else:
-                    raise cliente_error
-            except Exception as cliente_exception:
-                raise HTTPException(status_code=500, detail=f"Erro interno no login de cliente: {str(cliente_exception)}")
-        else:
-            # Se não for 401 ou 403, re-raise o erro original
-            raise e
+    # Se falhou como funcionário, tenta cliente
+    try:
+        return service_cliente.login(dados_login)
+    except HTTPException as e:
+        if e.status_code == 401:
+            raise HTTPException(status_code=401, detail="E-mail ou senha inválidos")
+        raise e
+    except Exception:
+        raise HTTPException(status_code=500, detail="Erro interno no login de cliente")
 
     except Exception as funcionario_exception:
         # Se houve erro interno no login de funcionário, tenta cliente

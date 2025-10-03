@@ -20,15 +20,6 @@ async def rota_signup(dados_cliente: ClienteCadastro, service: ServicosCliente =
     except Exception as e:
         raise HTTPException(status_code=500, detail="Ocorreu um erro interno.")
 
-@router.post("/login")
-async def rota_login(cliente_login_data: UsuarioLogin, service: ServicosCliente = Depends(pegar_servicos_cliente)):
-    try:
-        return service.login(cliente_login_data)
-    except HTTPException as e:
-        raise e
-    except Exception as e:
-        raise HTTPException(status_code=500, detail="Ocorreu um erro interno.")
-
 @router.get("/users/me")
 async def rota_para_usuario(
         current_user_id: int = Depends(pegar_id_do_usuario_logado),
