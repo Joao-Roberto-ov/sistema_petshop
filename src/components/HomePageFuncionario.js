@@ -1,6 +1,51 @@
 import React from 'react';
 
-function HomePageFuncionario({ userData, onNavigateToVisualizarClientes, onNavigateToCadastrarCliente, onLogout }) {
+function HomePageFuncionario({ userData, onNavigateToVisualizarClientes, onNavigateToFuncionarioCadastroAdmin, onLogout }) {
+
+    const services = [
+        { 
+            icon: '👥', 
+            title: "Visualizar Clientes", 
+            description: "Gerencie e visualize todos os clientes cadastrados no sistema.",
+            onClick: onNavigateToVisualizarClientes
+        },
+        ...(userData?.cargo === 'ADMINISTRADOR' ? [{
+            icon: '➕', 
+            title: "Cadastrar Funcionário", 
+            description: "Adicione novos funcionários ao sistema (exclusivo para administradores).",
+            onClick: onNavigateToFuncionarioCadastroAdmin
+        }] : []),
+        { 
+            icon: '📊', 
+            title: "Relatórios", 
+            description: "Visualize relatórios e estatísticas do sistema (em breve).",
+            onClick: () => alert('A funcionalidade "Relatórios" será implementada em breve!')
+        },
+        { 
+            icon: '📅', 
+            title: "Agendamentos", 
+            description: "Gerencie os agendamentos de serviços (em breve).",
+            onClick: () => alert('A funcionalidade "Agendamentos" será implementada em breve!')
+        }
+    ];
+
+    const differentials = [
+        { 
+            icon: '🔒', 
+            title: "Segurança", 
+            description: "Sistema seguro com controle de acesso baseado em funções e cargos."
+        },
+        { 
+            icon: '⚡', 
+            title: "Eficiência", 
+            description: "Interface intuitiva para gerenciar clientes e funcionários de forma rápida."
+        },
+        { 
+            icon: '📱', 
+            title: "Acessibilidade", 
+            description: "Acesse o sistema de qualquer dispositivo, a qualquer hora."
+        }
+    ];
 
     return (
         <>
@@ -10,15 +55,19 @@ function HomePageFuncionario({ userData, onNavigateToVisualizarClientes, onNavig
                         Bem-vindo, {userData?.nome ? userData.nome.split(' ')[0] : 'Funcionário'}!
                     </h1>
                     <p className="animate-fade-in-up">
-                        Gerencie os clientes e mantenha tudo organizado na PetLife.
+                        {userData?.cargo === 'ADMINISTRADOR' 
+                            ? 'Gerencie clientes, funcionários e mantenha tudo organizado na PetLife.'
+                            : 'Gerencie os clientes e mantenha tudo organizado na PetLife.'}
                     </p>
                     <div className="hero-buttons">
                         <button className="btn btn-outline-white hover-lift" onClick={onNavigateToVisualizarClientes}>
                             👥 Visualizar Clientes
                         </button>
-                        <button className="btn btn-outline-white hover-lift" onClick={onLogout}>
-                            🚪 Sair
-                        </button>
+                        {userData?.cargo === 'ADMINISTRADOR' && (
+                            <button className="btn btn-outline-white hover-lift" onClick={onNavigateToFuncionarioCadastroAdmin}>
+                                ➕ Cadastrar Funcionário
+                            </button>
+                        )}
                     </div>
                 </div>
             </section>
@@ -26,10 +75,54 @@ function HomePageFuncionario({ userData, onNavigateToVisualizarClientes, onNavig
             <section className="section">
                 <div className="container">
                     <div className="text-center" style={{marginBottom: '3rem'}}>
-                        <h2 className="section-title">Bem-vindo à área administrativa</h2>
+                        <h2 className="section-title">Área Administrativa</h2>
                         <p className="section-description">
-                            Use os botões acima para gerenciar clientes de forma rápida e segura.
+                            Acesse as ferramentas necessárias para gerenciar o sistema de forma eficiente.
                         </p>
+                    </div>
+                    <div className="services-grid">
+                        {services.map((service, index) =>
+                            <div 
+                                key={index} 
+                                className="service-card hover-lift animate-fade-in-up" 
+                                style={{ animationDelay: `${index * 0.1}s`, cursor: 'pointer' }}
+                                onClick={service.onClick}
+                            >
+                                <div className="icon">{service.icon}</div>
+                                <h3>{service.title}</h3>
+                                <p>{service.description}</p>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            </section>
+
+            <section className="section bg-light">
+                <div className="container text-center">
+                    <h2 className="section-title">Por que usar o sistema PetLife?</h2>
+                    <p className="section-description">
+                        Um sistema completo e seguro para gerenciar seu negócio de forma profissional.
+                    </p>
+                    <div className="grid-3">
+                        {differentials.map((item, index) => (
+                            <div key={index} className="feature-card animate-fade-in-up" style={{ animationDelay: `${index * 0.1}s` }}>
+                                <div className="feature-icon">{item.icon}</div>
+                                <h3>{item.title}</h3>
+                                <p>{item.description}</p>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            </section>
+
+            <section className="cta">
+                <div className="container">
+                    <h2>Pronto para gerenciar?</h2>
+                    <p>Use as ferramentas acima para manter tudo organizado e eficiente.</p>
+                    <div className="cta-buttons">
+                        <button className="btn btn-outline-white btn-lg hover-lift" onClick={onNavigateToVisualizarClientes}>
+                            Começar Agora
+                        </button>
                     </div>
                 </div>
             </section>

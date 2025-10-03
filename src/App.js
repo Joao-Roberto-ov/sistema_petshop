@@ -12,6 +12,7 @@ import VisualizarClientes from "./components/VisualizarClientes";
 import PetCadastroScreen from './components/PetCadastroScreen';
 import MeusPetsScreen from './components/MeusPetsScreen';
 import MeuPerfilScreen from './components/MeuPerfilScreen';
+import FuncionarioCadastroAdminScreen from './components/FuncionarioCadastroAdminScreen';
 
 function App() {
     const [currentScreen, setCurrentScreen] = useState('home');
@@ -113,11 +114,15 @@ function App() {
             case 'homeFuncionario':
                 return <HomePageFuncionario
                     userData={userData}
-                    onNavigateToVisualizarClientes={() => setCurrentScreen('visualizarClientes')}
+                    onNavigateToVisualizarClientes={() => setCurrentScreen("visualizarClientes")}
+                    onNavigateToFuncionarioCadastroAdmin={() => setCurrentScreen("funcionario-cadastro-admin")}
                     onLogout={handleLogout}
                 />;
             case 'visualizarClientes':
                 return <VisualizarClientes onBack={() => navigateToHome()} />;
+            case 'funcionario-cadastro-admin':
+                return <FuncionarioCadastroAdminScreen />;
+
             case 'home':
             default:
                 return <HomePage

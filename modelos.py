@@ -13,6 +13,7 @@ class ClienteCadastro(BaseModel):
     telefone: str
     cpf: Optional[str] = None
     endereco: Optional[str] = None
+    is_ativo: bool = True
 
     @validator('cpf', pre=True, always=True)
     def validar_e_limpar_cpf(cls, validador: str) -> Optional[str]:
@@ -28,6 +29,7 @@ class ClienteCadastroPorFuncionario(BaseModel):
     telefone: str
     cpf: Optional[str] = None
     endereco: Optional[str] = None
+    is_ativo: bool = True
 
     @validator('cpf', pre=True, always=True)
     def validar_e_limpar_cpf(cls, validador: str) -> Optional[str]:
@@ -123,4 +125,22 @@ class TokenRedefinicaoSenha(BaseModel):
 class RedefinirSenhaRequest(BaseModel):
     token: str
     nova_senha: str
+
+class FuncionarioCadastroPorAdmin(BaseModel):
+    nome: str
+    email: EmailStr
+    senha: str
+    telefone: str
+    cargo_id: int
+    cpf: str
+    endereco: str
+    isAtivo: bool = True
+
+    @validator("cpf", pre=True, always=True)
+    def validar_e_limpar_cpf(cls, validador: str) -> Optional[str]:
+        if not validador: return None
+        cpf_numeros = "".join(filter(str.isdigit, validador))
+        if len(cpf_numeros) != 11:
+            raise ValueError("O CPF deve conter 11 dígitos numéricos.")
+        return cpf_numeros
 

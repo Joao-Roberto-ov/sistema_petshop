@@ -43,7 +43,8 @@ def criar_tabelas():
             telefone VARCHAR(20)NOT NULL,
             nome_pet VARCHAR(80) DEFAULT 'Não informado',
             endereco VARCHAR(400) DEFAULT 'Não informado',
-            cpf VARCHAR(14) UNIQUE
+            cpf VARCHAR(14) UNIQUE,
+            is_ativo BOOLEAN DEFAULT TRUE
         );""")
 
         curs.execute("""CREATE TABLE IF NOT EXISTS Cargos (

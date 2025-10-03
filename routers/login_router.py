@@ -1,4 +1,3 @@
-
 from fastapi import APIRouter, Depends, HTTPException, status
 from services.cliente_service import ServicosCliente
 from services.funcionario_service import ServicosFuncionario
@@ -12,7 +11,6 @@ def pegar_servicos_cliente():
 def pegar_servicos_funcionario():
     return ServicosFuncionario()
 
-
 @router.post("/login")
 async def rota_login_unificado(
     dados_login: UsuarioLogin,
@@ -22,44 +20,38 @@ async def rota_login_unificado(
     """
     Rota de login unificado que tenta primeiro funcionário, depois cliente
     """
-    # Primeiro tenta login como funcionário
+    print(f"=== LOGIN UNIFICADO INICIADO - Email: {dados_login.email} ===")
+    
+    # Tenta o login como funcionário primeiro
     try:
+        print("🔧 Tentando login como funcionário...")
         resultado_funcionario = service_funcionario.login(dados_login)
+        print("✅ Login como funcionário bem-sucedido")
         return resultado_funcionario
-
     except HTTPException as e:
-        # Se for erro 401 ou 403, tenta login como cliente
-        if e.status_code in (401, 403):
-            try:
-                resultado_cliente = service_cliente.login(dados_login)
-                return resultado_cliente
-
-            except HTTPException as cliente_error:
-                # Se ambos falharam com 401, retorna erro genérico
-                if cliente_error.status_code == 401:
-                    raise HTTPException(status_code=401, detail="E-mail ou senha inválidos")
-                else:
-                    raise cliente_error
-            except Exception as cliente_exception:
-                raise HTTPException(status_code=500, detail=f"Erro interno no login de cliente: {str(cliente_exception)}")
-        else:
-            # Se não for 401 ou 403, re-raise o erro original
+        # Se o erro NÃO for de autenticação (401), é um erro inesperado. Propague-o.
+        if e.status_code != 401:
+            print(f"❌ Erro inesperado no login de funcionário: {e.detail}")
             raise e
+        # Se for 401, tenta como cliente
+        print("❌ Login como funcionário falhou, tentando como cliente...")
 
-    except Exception as funcionario_exception:
-        # Se houve erro interno no login de funcionário, tenta cliente
-        try:
-            resultado_cliente = service_cliente.login(dados_login)
-            return resultado_cliente
-
-        except HTTPException as cliente_error:
-            if cliente_error.status_code == 401:
-                raise HTTPException(status_code=401, detail="E-mail ou senha inválidos")
-            else:
-                raise cliente_error
-        except Exception:
-            # Se ambos falharam com erro interno, retorna erro genérico
-            raise HTTPException(status_code=500, detail="Ocorreu um erro interno no sistema de login")
+    # Se o login de funcionário falhou com 401, tenta como cliente
+    try:
+        print("👤 Tentando login como cliente...")
+        resultado_cliente = service_cliente.login(dados_login)
+        print("✅ Login como cliente bem-sucedido")
+        return resultado_cliente
+    except HTTPException as e:
+        # Se o login de cliente também falhar, propague o erro do cliente.
+        print(f"❌ Login como cliente falhou: {e.detail}")
+        raise HTTPException(status_code=401, detail="E-mail ou senha inválidos.")
+    except Exception as e:
+        # Captura qualquer outra exceção inesperada no login do cliente
+        print(f"❌ Erro interno no login de cliente: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail="Erro interno no servidor durante o login")
 
 @router.post("/forgot-password", status_code=status.HTTP_200_OK)
 async def forgot_password(
@@ -102,4 +94,3 @@ async def reset_password_funcionario(
     Redefine a senha do funcionário usando um token de redefinição e a nova senha.
     """
     return service_funcionario.redefinir_senha_publica(request)
-

@@ -1,4 +1,5 @@
 from bancoDeDados import conectar, encerra_conexao
+from datetime import datetime
 
 class RepositorioFuncionario:
 
@@ -12,7 +13,6 @@ class RepositorioFuncionario:
         try:
             conn = conectar()
             cursor = conn.cursor()
-            # MELHORIA: Busca por email sem diferenciar maiúsculas/minúsculas
             sql = "SELECT id, senha FROM Funcionarios WHERE LOWER(email) = LOWER(%s)"
             cursor.execute(sql, (email,))
             return cursor.fetchone()
@@ -34,7 +34,6 @@ class RepositorioFuncionario:
         try:
             conn = conectar()
             cursor = conn.cursor()
-            # MELHORIA: Padronização dos nomes de colunas para minúsculas
             sql = """
                   SELECT f.id,
                          f.nome,
@@ -81,7 +80,36 @@ class RepositorioFuncionario:
         try:
             conn = conectar()
             cursor = conn.cursor()
-            # MELHORIA: Padronização dos nomes de colunas para minúsculas
+            sql = """
+                INSERT INTO Funcionarios
+                (nome, email, senha, telefone, endereco, cpf, cargo_id, is_ativo)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                RETURNING id
+            """
+            cursor.execute(sql, (nome, email, senha_hash, telefone, endereco, cpf, cargo_id, is_ativo))
+            user_id = cursor.fetchone()[0]
+            conn.commit()
+            return user_id
+
+        except Exception as e:
+            if conn:
+                conn.rollback()
+            print(f"Erro ao cadastrar funcionário: {e}")
+            raise  # Re-raise the exception
+        finally:
+            if cursor: cursor.close()
+            if conn: encerra_conexao(conn)
+
+    def criar_funcionario_admin(self, nome, email, senha_hash, telefone, endereco, cpf, cargo_id, is_ativo=True):
+        """
+        Insere um novo funcionário pelo administrador
+        """
+        conn = None
+        cursor = None
+
+        try:
+            conn = conectar()
+            cursor = conn.cursor()
             sql = """
                 INSERT INTO Funcionarios
                 (nome, email, senha, telefone, endereco, cpf, cargo_id, is_ativo)
@@ -181,4 +209,115 @@ class RepositorioFuncionario:
             if cursor: cursor.close()
             if conn: encerra_conexao(conn)
 
+
+def buscar_funcionario_pelo_email(self, email: str):
+    """
+    Retorna (id, email) do funcionário pelo email (case-insensitive).
+    Específico para recuperação de senha.
+    """
+    conn = None
+    cursor = None
+    try:
+        conn = conectar()
+        cursor = conn.cursor()
+        sql = "SELECT id, email FROM Funcionarios WHERE LOWER(email) = LOWER(%s)"
+        cursor.execute(sql, (email,))
+        return cursor.fetchone()
+    except Exception as e:
+        print(f"Erro ao buscar funcionário por email: {e}")
+        raise
+    finally:
+        if cursor: cursor.close()
+        if conn: encerra_conexao(conn)
+
+def salvar_token_redefinicao(self, user_id: int, token: str, expiracao: datetime):
+    """
+    Salva o token de redefinição de senha no banco
+    """
+    conn = None
+    cursor = None
+    try:
+        conn = conectar()
+        cursor = conn.cursor()
+        sql = """
+            INSERT INTO tokens_redefinicao_funcionario 
+            (funcionario_id, token, expiracao) 
+            VALUES (%s, %s, %s)
+        """
+        cursor.execute(sql, (user_id, token, expiracao))
+        conn.commit()
+    except Exception as e:
+        if conn:
+            conn.rollback()
+        print(f"Erro ao salvar token de redefinição: {e}")
+        raise
+    finally:
+        if cursor: cursor.close()
+        if conn: encerra_conexao(conn)
+
+def buscar_token_redefinicao(self, token: str):
+    """
+    Busca informações do token de redefinição
+    """
+    conn = None
+    cursor = None
+    try:
+        conn = conectar()
+        cursor = conn.cursor()
+        sql = """
+            SELECT tr.funcionario_id, f.email, tr.expiracao 
+            FROM tokens_redefinicao_funcionario tr
+            JOIN Funcionarios f ON tr.funcionario_id = f.id
+            WHERE tr.token = %s AND tr.ativo = TRUE
+        """
+        cursor.execute(sql, (token,))
+        return cursor.fetchone()
+    except Exception as e:
+        print(f"Erro ao buscar token de redefinição: {e}")
+        raise
+    finally:
+        if cursor: cursor.close()
+        if conn: encerra_conexao(conn)
+
+def invalidar_token_redefinicao(self, token: str):
+    """
+    Invalida um token após uso
+    """
+    conn = None
+    cursor = None
+    try:
+        conn = conectar()
+        cursor = conn.cursor()
+        sql = "UPDATE tokens_redefinicao_funcionario SET ativo = FALSE WHERE token = %s"
+        cursor.execute(sql, (token,))
+        conn.commit()
+    except Exception as e:
+        if conn:
+            conn.rollback()
+        print(f"Erro ao invalidar token: {e}")
+        raise
+    finally:
+        if cursor: cursor.close()
+        if conn: encerra_conexao(conn)
+
+def atualizar_senha_funcionario(self, user_id: int, nova_senha_hash: str):
+    """
+    Atualiza a senha do funcionário
+    """
+    conn = None
+    cursor = None
+    try:
+        conn = conectar()
+        cursor = conn.cursor()
+        sql = "UPDATE Funcionarios SET senha = %s WHERE id = %s"
+        cursor.execute(sql, (nova_senha_hash, user_id))
+        conn.commit()
+    except Exception as e:
+        if conn:
+            conn.rollback()
+        print(f"Erro ao atualizar senha do funcionário: {e}")
+        raise
+    finally:
+        if cursor: cursor.close()
+        if conn: encerra_conexao(conn)
 

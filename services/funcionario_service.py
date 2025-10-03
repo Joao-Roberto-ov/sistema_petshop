@@ -1,10 +1,9 @@
-
 from fastapi import HTTPException
 from psycopg2 import IntegrityError
 from seguranca import cria_hash_senha, verifica_senha, cria_token_de_acesso
 from repositories.funcionario_repository import RepositorioFuncionario
 from services.email_service import EmailService
-from modelos import ForgotPasswordRequest, RedefinirSenhaRequest
+from modelos import ForgotPasswordRequest, RedefinirSenhaRequest, FuncionarioCadastroPorAdmin
 import secrets
 from datetime import datetime, timedelta, timezone
 from passlib.context import CryptContext
@@ -38,9 +37,11 @@ class ServicosFuncionario:
             if not dados_usuario.get("is_ativo", True):
                 raise HTTPException(status_code=403, detail="Funcionário inativo")
 
+            # Usar 'tipo' em vez de 'role' para consistência
             token = cria_token_de_acesso(data={
                 "sub": str(user_id),
-                "role": dados_usuario.get("cargo", "funcionario")
+                "tipo": "funcionario",
+                "cargo_id": dados_usuario.get("cargo_id")
             })
 
             return {
@@ -78,13 +79,14 @@ class ServicosFuncionario:
                 }
             else:
                 # Se for uma tupla (fallback para compatibilidade)
+                # Acessar elementos da tupla com verificação de tamanho
                 return {
                     "id": user_data[0] if len(user_data) > 0 else None,
                     "nome": user_data[1] if len(user_data) > 1 else None,
                     "email": user_data[2] if len(user_data) > 2 else None,
                     "telefone": user_data[3] if len(user_data) > 3 else None,
                     "endereco": user_data[4] if len(user_data) > 4 and user_data[4] else "Não informado",
-                    "cpf": user_data[5] if len(user_data) > 5 else None,
+                    "cpf": user_data[5] if len(user_data) > 5 and user_data[5] else None,
                     "cargo_id": user_data[6] if len(user_data) > 6 else None,
                     "cargo": user_data[7] if len(user_data) > 7 else "funcionario",
                     "is_ativo": user_data[8] if len(user_data) > 8 else True
@@ -101,6 +103,28 @@ class ServicosFuncionario:
             senha_hash = cria_hash_senha(senha)
             user_id = self.repo.cadastrar_funcionario(
                 nome, email, senha_hash, telefone, endereco, cpf, cargo_id, is_ativo
+            )
+            return user_id
+        except IntegrityError as e:
+            error_message = str(e).lower()
+            if "email" in error_message:
+                raise HTTPException(status_code=400, detail="O e-mail fornecido já está cadastrado.")
+            elif "cpf" in error_message:
+                raise HTTPException(status_code=400, detail="O CPF fornecido já está cadastrado.")
+            else:
+                raise HTTPException(status_code=400, detail="Erro de integridade dos dados.")
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Erro ao cadastrar funcionário: {str(e)}")
+
+    def cadastrar_funcionario_por_admin(self, funcionario: FuncionarioCadastroPorAdmin):
+        """
+        Cadastra um novo funcionário por um administrador.
+        """
+        try:
+            senha_hash = cria_hash_senha(funcionario.senha)
+            user_id = self.repo.criar_funcionario_admin(
+                funcionario.nome, funcionario.email, senha_hash, funcionario.telefone, 
+                funcionario.endereco, funcionario.cpf, funcionario.cargo_id, funcionario.isAtivo
             )
             return user_id
         except IntegrityError as e:
@@ -162,7 +186,7 @@ class ServicosFuncionario:
             raise HTTPException(status_code=400, detail="Token inválido ou expirado.")
         
         # Hash da nova senha antes de salvar
-        senha_hashed = pwd_context.hash(request_data.nova_senha)
+        senha_hashed = cria_hash_senha(request_data.nova_senha) # Usar cria_hash_senha para consistência
         self.repo.atualizar_senha_funcionario(funcionario_id, senha_hashed)
         self.repo.invalidar_token_redefinicao(request_data.token) # Invalida o token após o uso
         
