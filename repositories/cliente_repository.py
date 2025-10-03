@@ -12,14 +12,25 @@ class RepositorioCliente:
     def buscar_pelo_email(self, email: str):
         conn = None
         cursor = None
-
         try:
+            print("=== RepositorioCliente.buscar_pelo_email() ===")
+            print(f"Buscando email: {email}")
+            
             conn = self.conectar()
             cursor = conn.cursor()
-            sql = "SELECT id, senha FROM Clientes WHERE email = %s"
+            
+            sql = "SELECT id, senha, is_ativo FROM Clientes WHERE email = %s"
             cursor.execute(sql, (email,))
-            return cursor.fetchone()
+            resultado = cursor.fetchone()
+            
+            print(f"Resultado do banco: {resultado}")
+            return resultado
 
+        except Exception as e:
+            print(f"=== ERRO em buscar_pelo_email: {str(e)} ===")
+            import traceback
+            traceback.print_exc()
+            raise
         finally:
             if cursor: cursor.close()
             if conn: self.encerra_conexao(conn)
@@ -33,7 +44,7 @@ class RepositorioCliente:
         try:
             conn = self.conectar()
             cursor = conn.cursor()
-            sql = "SELECT id, nome, email FROM Clientes WHERE email = %s"
+            sql = "SELECT id, nome, email FROM Clientes WHERE email = %s AND is_ativo = TRUE"
             cursor.execute(sql, (email,))
             return cursor.fetchone()
         finally:
@@ -73,18 +84,47 @@ class RepositorioCliente:
         try:
             conn = self.conectar()
             cursor = conn.cursor()
-            cursor.execute("SELECT id, nome, email, telefone, endereco, cpf FROM clientes ORDER BY id")
-            clientes = cursor.fetchall()
-            return [
-                {
-                    "id": c[0],
-                    "nome": c[1],
-                    "email": c[2],
-                    "telefone": c[3],
-                    "endereco": c[4],
-                    "cpf": c[5]
-                } for c in clientes
-            ]
+            
+            # Verificar se a coluna is_ativo existe
+            cursor.execute("""
+                SELECT column_name 
+                FROM information_schema.columns 
+                WHERE table_name = 'clientes' AND column_name = 'is_ativo'
+            """)
+            coluna_existe = cursor.fetchone()
+            
+            if coluna_existe:
+                cursor.execute("SELECT id, nome, email, telefone, endereco, cpf, is_ativo FROM clientes ORDER BY id")
+                clientes = cursor.fetchall()
+                return [
+                    {
+                        "id": c[0],
+                        "nome": c[1],
+                        "email": c[2],
+                        "telefone": c[3],
+                        "endereco": c[4],
+                        "cpf": c[5],
+                        "is_ativo": c[6] if c[6] is not None else True
+                    } for c in clientes
+                ]
+            else:
+                cursor.execute("SELECT id, nome, email, telefone, endereco, cpf FROM clientes ORDER BY id")
+                clientes = cursor.fetchall()
+                return [
+                    {
+                        "id": c[0],
+                        "nome": c[1],
+                        "email": c[2],
+                        "telefone": c[3],
+                        "endereco": c[4],
+                        "cpf": c[5],
+                        "is_ativo": True  # Valor padrão
+                    } for c in clientes
+                ]
+                
+        except Exception as e:
+            print(f"Erro ao buscar todos os clientes: {e}")
+            raise
         finally:
             if cursor: cursor.close()
             if conn: self.encerra_conexao(conn)
@@ -95,9 +135,30 @@ class RepositorioCliente:
         try:
             conn = self.conectar()
             cursor = conn.cursor()
-            sql = "SELECT id, nome, email, telefone, endereco, cpf FROM Clientes WHERE Id = %s"
+            
+            # Verificar se a coluna is_ativo existe
+            cursor.execute("""
+                SELECT column_name 
+                FROM information_schema.columns 
+                WHERE table_name = 'clientes' AND column_name = 'is_ativo'
+            """)
+            coluna_existe = cursor.fetchone()
+            
+            if coluna_existe:
+                # Se a coluna existe, incluir na query
+                sql = "SELECT id, nome, email, telefone, endereco, cpf, is_ativo FROM clientes WHERE id = %s"
+            else:
+                # Se não existe, usar valor padrão
+                sql = "SELECT id, nome, email, telefone, endereco, cpf FROM clientes WHERE id = %s"
+            
             cursor.execute(sql, (user_id,))
-            return cursor.fetchone()
+            resultado = cursor.fetchone()
+            print(f"Resultado da busca por ID {user_id}: {resultado}")
+            return resultado
+            
+        except Exception as e:
+            print(f"Erro ao buscar cliente por ID: {e}")
+            return None
         finally:
             if cursor: cursor.close()
             if conn: self.encerra_conexao(conn)
@@ -216,6 +277,7 @@ class RepositorioCliente:
             if cursor: cursor.close()
             if conn: self.encerra_conexao(conn)
 
+
     def salvar_codigo_reset(self, user_id: int, codigo: str, expiracao: datetime):
         """
         Insere um novo código de verificação na tabela CodigosVerificacao.
@@ -285,7 +347,7 @@ class RepositorioCliente:
         try:
             conn = self.conectar()
             cursor = conn.cursor()
-            sql = "SELECT id, nome, email, telefone, senha FROM Clientes WHERE id = %s"
+            sql = "SELECT id, nome, email, telefone, senha, is_ativo FROM Clientes WHERE id = %s"
             cursor.execute(sql, (user_id,))
             return cursor.fetchone()
         finally:
@@ -368,6 +430,48 @@ class RepositorioCliente:
             if conn:
                 conn.rollback()
             raise
+        finally:
+            if cursor: cursor.close()
+            if conn: self.encerra_conexao(conn)
+
+    def atualizar_status_cliente(self, cliente_id: int, is_ativo: bool):
+        conn = None
+        cursor = None
+        try:
+            print(f"=== ATUALIZAR STATUS CLIENTE ===")
+            print(f"Cliente ID: {cliente_id}, Novo status: {is_ativo}")
+            
+            conn = self.conectar()
+            cursor = conn.cursor()
+            
+            # PRIMEIRO: Verificar se a coluna is_ativo existe
+            cursor.execute("""
+                SELECT column_name 
+                FROM information_schema.columns 
+                WHERE table_name = 'clientes' AND column_name = 'is_ativo'
+            """)
+            coluna_existe = cursor.fetchone()
+            
+            if not coluna_existe:
+                print("❌ Coluna 'is_ativo' não existe. Criando...")
+                # Criar a coluna se não existir
+                cursor.execute("ALTER TABLE clientes ADD COLUMN is_ativo BOOLEAN DEFAULT TRUE")
+                conn.commit()
+                print("✅ Coluna 'is_ativo' criada com sucesso")
+            
+            # AGORA atualizar o status
+            sql = "UPDATE clientes SET is_ativo = %s WHERE id = %s"
+            print(f"Executando: {sql} com valores: ({is_ativo}, {cliente_id})")
+            cursor.execute(sql, (is_ativo, cliente_id))
+            conn.commit()
+            print(f"✅ Status do cliente {cliente_id} atualizado para {is_ativo}")
+            return {"message": "Status do cliente atualizado com sucesso!"}
+
+        except Exception as e:
+            print(f"❌ Erro ao atualizar status do cliente: {str(e)}")
+            if conn:
+                conn.rollback()
+            raise  # Re-raise the exception
         finally:
             if cursor: cursor.close()
             if conn: self.encerra_conexao(conn)

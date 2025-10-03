@@ -1,4 +1,3 @@
-
 from fastapi import APIRouter, Depends, HTTPException, status
 from services.cliente_service import ServicosCliente
 from services.funcionario_service import ServicosFuncionario
@@ -11,7 +10,6 @@ def pegar_servicos_cliente():
 
 def pegar_servicos_funcionario():
     return ServicosFuncionario()
-
 
 @router.post("/login")
 async def rota_login_unificado(
@@ -92,4 +90,3 @@ async def reset_password_funcionario(
     Redefine a senha do funcionário usando um token de redefinição e a nova senha.
     """
     return service_funcionario.redefinir_senha_publica(request)
-

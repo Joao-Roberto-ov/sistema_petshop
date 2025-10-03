@@ -42,7 +42,6 @@ class ServicosPet:
         ]
         return pets
 
-    # vvv--- A CORREÇÃO ESTÁ AQUI ---vvv
     def buscar_historico_do_pet(self, pet_id: int, cliente_id: int):
         # 1. VERIFICAÇÃO DE SEGURANÇA QUE ESTAVA FALTANDO
         self._verificar_dono_do_pet(pet_id, cliente_id)
@@ -60,8 +59,6 @@ class ServicosPet:
             for s in servicos_data
         ]
         return {"consultas": consultas, "servicos": servicos}
-
-    # ^^^--- FIM DA CORREÇÃO ---^^^
 
     def atualizar_pet(self, pet_id: int, pet_dados: PetUpdate, cliente_id: int):
         self._verificar_dono_do_pet(pet_id, cliente_id)

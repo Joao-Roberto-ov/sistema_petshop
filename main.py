@@ -6,7 +6,7 @@ import os
 import threading
 from bancoDeDados import criar_tabelas
 import sync_data
-from routers import cliente_router, pet_router, login_router, funcionario_router, produto_router
+from routers import cliente_router, pet_router, login_router, funcionario_router, admin_router, produto_router
 
 basedir = os.path.abspath(os.path.dirname(__file__))
 frontend_dir = os.path.join(basedir, "build")
@@ -35,9 +35,21 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+@app.get("/routes")
+async def list_routes():
+    routes = []
+    for route in app.routes:
+        if hasattr(route, "methods") and hasattr(route, "path"):
+            routes.append({
+                "path": route.path,
+                "methods": list(route.methods)
+            })
+    return routes
+
 app.include_router(cliente_router.router)
 app.include_router(funcionario_router.router)
 app.include_router(login_router.router)
 app.include_router(pet_router.router)
+app.include_router(admin_router.router, prefix="/api")
 app.include_router(produto_router.router)
 app.mount("/", StaticFiles(directory=frontend_dir, html=True), name="static")
