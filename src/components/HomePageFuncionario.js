@@ -1,13 +1,20 @@
 import React from 'react';
 
+// ATUALIZAÇÃO 1: Adicionada a nova prop "onNavigateToVisualizarServicos"
 function HomePageFuncionario({
     userData,
     onNavigateToVisualizarClientes,
     onNavigateToCadastrarProduto,
     onNavigateToFuncionarioCadastroAdmin,
     onNavigateToVisualizarProdutos,
+    onNavigateToVisualizarServicos, // Nova prop
     onLogout
 }) {
+
+    // ATUALIZAÇÃO 2: Adicionada uma constante para verificar o cargo de gestor (boa prática do código-fonte)
+    const isGestor = userData?.cargo?.toLowerCase() === 'gestor';
+    // Mantendo a verificação de ADMINISTRADOR, pois parece ser um cargo distinto no seu código
+    const isAdmin = userData?.cargo === 'ADMINISTRADOR';
 
     const services = [
         {
@@ -16,17 +23,23 @@ function HomePageFuncionario({
             description: "Gerencie e visualize todos os clientes cadastrados no sistema.",
             onClick: onNavigateToVisualizarClientes
         },
-        ...(userData?.cargo === 'ADMINISTRADOR' ? [{
+        // ATUALIZAÇÃO 3: Adicionado o card de "Gerenciar Serviços" para gestores
+        ...(isGestor ? [{
+            icon: '🛠',
+            title: "Gerenciar Serviços",
+            description: "Adicione, edite ou remova os serviços oferecidos pela PetLife.",
+            onClick: onNavigateToVisualizarServicos
+        }] : []),
+        ...(isAdmin ? [{
             icon: '➕',
             title: "Cadastrar Funcionário",
             description: "Adicione novos funcionários ao sistema (exclusivo para administradores).",
             onClick: onNavigateToFuncionarioCadastroAdmin
         }] : []),
-
         {
             icon: '🛒',
-            title: userData?.cargo === 'gestor' ? "Gerenciar Produtos" : "Consultar Produtos",
-            description: userData?.cargo === 'gestor'
+            title: isGestor ? "Gerenciar Produtos" : "Consultar Produtos",
+            description: isGestor
                 ? "Cadastre e edite produtos do sistema."
                 : "Consulte disponibilidade e preços de produtos.",
             onClick: onNavigateToVisualizarProdutos
@@ -71,7 +84,7 @@ function HomePageFuncionario({
                         Bem-vindo, {userData?.nome ? userData.nome.split(' ')[0] : 'Funcionário'}!
                     </h1>
                     <p className="animate-fade-in-up">
-                        {userData?.cargo === 'ADMINISTRADOR'
+                        {isAdmin
                             ? 'Gerencie clientes, funcionários e mantenha tudo organizado na PetLife.'
                             : 'Gerencie os clientes e mantenha tudo organizado na PetLife.'}
                     </p>
@@ -80,14 +93,14 @@ function HomePageFuncionario({
                         <button className="btn btn-outline-white hover-lift" onClick={onNavigateToVisualizarClientes}>
                             👥 Visualizar Clientes
                         </button>
-                        {userData?.cargo === 'ADMINISTRADOR' && (
+                        {isAdmin && (
                             <button className="btn btn-outline-white hover-lift" onClick={onNavigateToFuncionarioCadastroAdmin}>
                                 ➕ Cadastrar Funcionário
                             </button>
                         )}
 
-                        {/* botoes de produtos baseados no cargo */}
-                        {userData?.cargo === 'gestor' ? (
+                        {/* ATUALIZAÇÃO 4: Botões de produtos e serviços agrupados e refatorados */}
+                        {isGestor ? (
                             <>
                                 <button className="btn btn-outline-white hover-lift" onClick={onNavigateToCadastrarProduto}>
                                     📦 Cadastrar Produto
@@ -95,8 +108,13 @@ function HomePageFuncionario({
                                 <button className="btn btn-outline-white hover-lift" onClick={onNavigateToVisualizarProdutos}>
                                     🛒 Gerenciar Produtos
                                 </button>
+                                {/* Botão de Gerenciar Serviços para gestores */}
+                                <button className="btn btn-outline-white hover-lift" onClick={onNavigateToVisualizarServicos}>
+                                    🛠 Gerenciar Serviços
+                                </button>
                             </>
                         ) : (
+                            // Funcionário comum (não-gestor) só consulta produtos
                             <button className="btn btn-outline-white hover-lift" onClick={onNavigateToVisualizarProdutos}>
                                 🛒 Consultar Produtos
                             </button>

@@ -1,4 +1,4 @@
-from pydantic import BaseModel, EmailStr, validator
+from pydantic import BaseModel, EmailStr, validator, Field
 from typing import Optional, Literal
 from datetime import datetime
 
@@ -155,3 +155,10 @@ class ProdutoCadastro(BaseModel):
     categoria: Optional[str] = None
     descricao: Optional[str] = None
     url_imagem: Optional[str] = None
+
+class ServicoModel(BaseModel):
+    nome: str
+    descricao: Optional[str] = None
+    duracao: int = Field(..., gt=0, description="Duração padrão em minutos")
+    preco: float = Field(..., gt=0, description="Preço do serviço em reais")
+    criador_id: Optional[int] = None
