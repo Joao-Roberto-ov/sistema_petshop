@@ -9,7 +9,7 @@ router = APIRouter(prefix="/api/servicos", tags=["Catálogo de Serviços"])
 def pegar_servicos_catalogo():
     return ServicosService()
 
-@router.get("/", status_code=200)
+@router.get("", status_code=200)
 async def rota_listar_servicos(service: ServicosService = Depends(pegar_servicos_catalogo)):
     return service.listar_servicos()
 
@@ -18,7 +18,7 @@ async def rota_buscar_servico(servico_id: int, service: ServicosService = Depend
     return service.buscar_servico_por_id(servico_id)
 
 
-@router.post("/", status_code=201)
+@router.post("", status_code=201)
 async def rota_cadastrar_servico(
     dados_servico: ServicoModel,
     user_id: int = Depends(pegar_id_do_usuario_logado),

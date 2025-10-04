@@ -18,6 +18,30 @@ function VisualizarServicos({ onBack }) {
     const [formError, setFormError] = useState('');
     const [formSuccess, setFormSuccess] = useState('');
 
+    // Função para formatar preço em Real
+    const formatarReal = (value) => {
+        let numero = value.replace(/\D/g, '');
+        numero = (Number(numero) / 100).toFixed(2);
+        return numero.replace('.', ',').replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+    };
+
+    // Função para converter minutos em horas e minutos (para exibição)
+    const formatarDuracao = (minutos) => {
+        const min = parseInt(minutos) || 0;
+        if (min === 0) return '0 minutos';
+
+        const horas = Math.floor(min / 60);
+        const minutosRestantes = min % 60;
+
+        if (horas === 0) {
+            return `${minutosRestantes} minuto${minutosRestantes !== 1 ? 's' : ''}`;
+        } else if (minutosRestantes === 0) {
+            return `${horas} hora${horas !== 1 ? 's' : ''}`;
+        } else {
+            return `${horas} hora${horas !== 1 ? 's' : ''} e ${minutosRestantes} minuto${minutosRestantes !== 1 ? 's' : ''}`;
+        }
+    };
+
     useEffect(() => {
         fetchServicos();
     }, []);
@@ -38,19 +62,53 @@ function VisualizarServicos({ onBack }) {
         }
     };
 
+    const handleInputChange = (e) => {
+        const { name, value } = e.target;
+
+        if (name === 'preco') {
+            // Aplica máscara de Real
+            const valorFormatado = formatarReal(value);
+            setFormData(prev => ({ ...prev, [name]: valorFormatado }));
+        } else if (name === 'duracao') {
+            // Permite apenas números positivos
+            const apenasNumeros = value.replace(/\D/g, '');
+            setFormData(prev => ({ ...prev, [name]: apenasNumeros }));
+        } else {
+            setFormData(prev => ({ ...prev, [name]: value }));
+        }
+    };
+
     const handleFormSubmit = async (e) => {
         e.preventDefault();
         setFormLoading(true);
         setFormError('');
         setFormSuccess('');
 
+        // Validações
+        const duracaoNum = Number(formData.duracao);
+        if (duracaoNum <= 0 || isNaN(duracaoNum)) {
+            setFormError('A duração deve ser um número positivo maior que zero.');
+            setFormLoading(false);
+            return;
+        }
+
+        // Converte o preço formatado para número
+        const precoLimpo = formData.preco.replace(/\./g, '').replace(',', '.');
+        const precoNum = parseFloat(precoLimpo);
+
+        if (precoNum <= 0 || isNaN(precoNum)) {
+            setFormError('O preço deve ser um valor positivo maior que zero.');
+            setFormLoading(false);
+            return;
+        }
+
         try {
             const token = localStorage.getItem('token');
             const dadosParaEnviar = {
                 nome: formData.nome || undefined,
                 descricao: formData.descricao || undefined,
-                duracao: Number(formData.duracao) || undefined,
-                preco: Number(formData.preco) || undefined
+                duracao: duracaoNum,
+                preco: precoNum
             };
 
             if (editingId) {
@@ -85,7 +143,7 @@ function VisualizarServicos({ onBack }) {
             nome: servico.nome,
             descricao: servico.descricao || '',
             duracao: servico.duracao || '',
-            preco: servico.preco || ''
+            preco: servico.preco ? servico.preco.toFixed(2).replace('.', ',') : ''
         });
         setEditingId(servico.id);
         setShowForm(true);
@@ -117,7 +175,12 @@ function VisualizarServicos({ onBack }) {
                     <div>
                         <button className="btn btn-secondary hover-lift" onClick={() => {
                             setShowForm(!showForm);
-                            if (!showForm) setEditingId(null);
+                            if (!showForm) {
+                                setEditingId(null);
+                                setFormData({ nome: '', descricao: '', duracao: '', preco: '' });
+                                setFormError('');
+                                setFormSuccess('');
+                            }
                         }}>
                             {showForm ? 'Cancelar' : 'Cadastrar Novo Serviço'}
                         </button>
@@ -147,23 +210,48 @@ function VisualizarServicos({ onBack }) {
                                 onChange={e => setFormData({ ...formData, descricao: e.target.value })}
                                 style={{ width: '100%', padding: '0.5rem', marginBottom: '0.5rem', borderRadius: '5px', border: '1px solid #ccc' }}
                             />
-                            <input
-                                type="number"
-                                placeholder="Duração (minutos) *"
-                                value={formData.duracao}
-                                onChange={e => setFormData({ ...formData, duracao: e.target.value })}
-                                required
-                                style={{ width: '100%', padding: '0.5rem', marginBottom: '0.5rem', borderRadius: '5px', border: '1px solid #ccc' }}
-                            />
-                            <input
-                                type="number"
-                                placeholder="Preço (R$) *"
-                                value={formData.preco}
-                                onChange={e => setFormData({ ...formData, preco: e.target.value })}
-                                required
-                                step="0.01"
-                                style={{ width: '100%', padding: '0.5rem', marginBottom: '0.5rem', borderRadius: '5px', border: '1px solid #ccc' }}
-                            />
+                            <div style={{ position: 'relative', marginBottom: '0.5rem' }}>
+                                <input
+                                    type="text"
+                                    name="duracao"
+                                    placeholder="Duração *"
+                                    value={formData.duracao}
+                                    onChange={handleInputChange}
+                                    required
+                                    style={{ width: '100%', padding: '0.5rem', paddingRight: '80px', borderRadius: '5px', border: '1px solid #ccc' }}
+                                />
+                                <span style={{
+                                    position: 'absolute',
+                                    right: '12px',
+                                    top: '50%',
+                                    transform: 'translateY(-50%)',
+                                    color: '#666',
+                                    pointerEvents: 'none',
+                                    fontSize: '0.9rem'
+                                }}>
+                                    minutos
+                                </span>
+                            </div>
+                            <div style={{ position: 'relative', marginBottom: '0.5rem' }}>
+                                <span style={{
+                                    position: 'absolute',
+                                    left: '12px',
+                                    top: '50%',
+                                    transform: 'translateY(-50%)',
+                                    color: '#666',
+                                    fontWeight: '500',
+                                    pointerEvents: 'none'
+                                }}>R$</span>
+                                <input
+                                    type="text"
+                                    name="preco"
+                                    placeholder="0,00"
+                                    value={formData.preco}
+                                    onChange={handleInputChange}
+                                    required
+                                    style={{ width: '100%', padding: '0.5rem', paddingLeft: '35px', borderRadius: '5px', border: '1px solid #ccc' }}
+                                />
+                            </div>
                             <button
                                 type="submit"
                                 disabled={formLoading}
@@ -198,8 +286,8 @@ function VisualizarServicos({ onBack }) {
                             <tr key={servico.id} style={{ borderBottom: '1px solid #ddd' }}>
                                 <td style={{ padding: '10px' }}>{servico.nome}</td>
                                 <td style={{ padding: '10px' }}>{servico.descricao || '-'}</td>
-                                <td style={{ padding: '10px' }}>{servico.duracao} min</td>
-                                <td style={{ padding: '10px' }}>R$ {servico.preco.toFixed(2)}</td>
+                                <td style={{ padding: '10px' }}>{formatarDuracao(servico.duracao)}</td>
+                                <td style={{ padding: '10px' }}>R$ {servico.preco.toFixed(2).replace('.', ',')}</td>
                                 <td style={{ padding: '10px' }}>
                                     <button className="btn btn-primary" onClick={() => handleEditClick(servico)}>Editar</button>
                                     <button className="btn btn-danger" onClick={() => handleDeleteClick(servico.id)} style={{ marginLeft: '0.5rem' }}>Deletar</button>

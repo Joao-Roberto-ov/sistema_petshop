@@ -2,14 +2,12 @@ import React, { useState, useEffect } from 'react';
 import axios from '../api/axios';
 import './PetCard.css';
 
-// Ícone de Edição (Lápis) - sem alterações
 const IconPencil = () => (
     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
         <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path>
     </svg>
- );
+);
 
-// --- ÍCONE DE HISTÓRICO ATUALIZADO (Prancheta com linhas de texto) ---
 const IconHistoryLog = () => (
     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
         <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path>
@@ -17,8 +15,7 @@ const IconHistoryLog = () => (
         <line x1="8" y1="12" x2="16" y2="12"></line>
         <line x1="8" y1="16" x2="16" y2="16"></line>
     </svg>
- );
-
+);
 
 function PetCard({ pet, onViewHistory, onPetUpdated }) {
     const [isEditing, setIsEditing] = useState(false);
@@ -28,28 +25,56 @@ function PetCard({ pet, onViewHistory, onPetUpdated }) {
     useEffect(() => {
         if (isEditing) {
             setFormData({
-                nome: pet.nome || '', tipo: pet.tipo || '', raca: pet.raca || '',
-                idade: pet.idade || '', peso: pet.peso || '',
+                nome: pet.nome || '',
+                tipo: pet.tipo || '',
+                raca: pet.raca || '',
+                idade: pet.idade || '',
+                peso: pet.peso || '',
             });
         }
     }, [isEditing, pet]);
 
+    const capitalizeName = (name) => {
+        if (!name) return '';
+        return name.toLowerCase().split(' ').map(word =>
+            word.charAt(0).toUpperCase() + word.slice(1)
+        ).join(' ');
+    };
+
     const handleInputChange = (e) => {
         const { name, value } = e.target;
-        setFormData(prev => ({ ...prev, [name]: value }));
+
+        if (name === 'nome') {
+            setFormData(prev => ({ ...prev, [name]: capitalizeName(value) }));
+        } else {
+            setFormData(prev => ({ ...prev, [name]: value }));
+        }
     };
 
     const handleSave = async (e) => {
         e.preventDefault();
         setError('');
+
+        if (parseInt(formData.idade) < 0) {
+            setError('A idade não pode ser negativa.');
+            return;
+        }
+
+        if (formData.peso && parseFloat(formData.peso) < 0) {
+            setError('O peso não pode ser negativo.');
+            return;
+        }
+
         try {
             const token = localStorage.getItem('token');
             const dataToUpdate = {
-                nome: formData.nome, tipo: formData.tipo, raca: formData.raca,
+                nome: formData.nome,
+                tipo: formData.tipo,
+                raca: formData.raca,
                 idade: parseInt(formData.idade),
                 peso: formData.peso ? parseFloat(formData.peso) : null,
             };
-            
+
             const response = await axios.put(`/pets/${pet.id}`, dataToUpdate, {
                  headers: { 'Authorization': `Bearer ${token}` }
             });
@@ -83,7 +108,6 @@ function PetCard({ pet, onViewHistory, onPetUpdated }) {
                     <button className="action-btn" title="Editar Pet" onClick={() => setIsEditing(!isEditing)}>
                         <IconPencil />
                     </button>
-                    {/* --- ÍCONE FINAL ATUALIZADO AQUI --- */}
                     <button className="action-btn" title="Ver Histórico" onClick={onViewHistory}>
                         <IconHistoryLog />
                     </button>
@@ -94,11 +118,58 @@ function PetCard({ pet, onViewHistory, onPetUpdated }) {
                 {isEditing ? (
                     <form onSubmit={handleSave} className="pet-edit-form">
                         <div className="form-grid">
-                            <div className="form-group-edit"><label>Nome</label><input name="nome" type="text" value={formData.nome} onChange={handleInputChange} required/></div>
-                            <div className="form-group-edit"><label>Tipo</label><input name="tipo" type="text" value={formData.tipo} onChange={handleInputChange} required/></div>
-                            <div className="form-group-edit"><label>Raça</label><input name="raca" type="text" value={formData.raca} onChange={handleInputChange} required/></div>
-                            <div className="form-group-edit"><label>Idade</label><input name="idade" type="number" value={formData.idade} onChange={handleInputChange} required/></div>
-                            <div className="form-group-edit"><label>Peso (kg)</label><input name="peso" type="number" step="0.1" value={formData.peso} onChange={handleInputChange} /></div>
+                            <div className="form-group-edit">
+                                <label>Nome</label>
+                                <input
+                                    name="nome"
+                                    type="text"
+                                    value={formData.nome}
+                                    onChange={handleInputChange}
+                                    required
+                                />
+                            </div>
+                            <div className="form-group-edit">
+                                <label>Tipo</label>
+                                <input
+                                    name="tipo"
+                                    type="text"
+                                    value={formData.tipo}
+                                    onChange={handleInputChange}
+                                    required
+                                />
+                            </div>
+                            <div className="form-group-edit">
+                                <label>Raça</label>
+                                <input
+                                    name="raca"
+                                    type="text"
+                                    value={formData.raca}
+                                    onChange={handleInputChange}
+                                    required
+                                />
+                            </div>
+                            <div className="form-group-edit">
+                                <label>Idade</label>
+                                <input
+                                    name="idade"
+                                    type="number"
+                                    value={formData.idade}
+                                    onChange={handleInputChange}
+                                    min="0"
+                                    required
+                                />
+                            </div>
+                            <div className="form-group-edit">
+                                <label>Peso (kg)</label>
+                                <input
+                                    name="peso"
+                                    type="number"
+                                    step="0.1"
+                                    value={formData.peso}
+                                    onChange={handleInputChange}
+                                    min="0"
+                                />
+                            </div>
                         </div>
                         {error && <small className="error-text">{error}</small>}
                         <div className="edit-buttons">
