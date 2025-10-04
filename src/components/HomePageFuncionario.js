@@ -1,6 +1,13 @@
 import React from 'react';
 
-function HomePageFuncionario({ userData, onNavigateToVisualizarClientes, onNavigateToCadastrarProduto, onNavigateToFuncionarioCadastroAdmin, onLogout }) {
+function HomePageFuncionario({
+    userData,
+    onNavigateToVisualizarClientes,
+    onNavigateToCadastrarProduto,
+    onNavigateToFuncionarioCadastroAdmin,
+    onNavigateToVisualizarProdutos,
+    onLogout
+}) {
 
     const services = [
         {
@@ -15,6 +22,15 @@ function HomePageFuncionario({ userData, onNavigateToVisualizarClientes, onNavig
             description: "Adicione novos funcionários ao sistema (exclusivo para administradores).",
             onClick: onNavigateToFuncionarioCadastroAdmin
         }] : []),
+
+        {
+            icon: '🛒',
+            title: userData?.cargo === 'gestor' ? "Gerenciar Produtos" : "Consultar Produtos",
+            description: userData?.cargo === 'gestor'
+                ? "Cadastre e edite produtos do sistema."
+                : "Consulte disponibilidade e preços de produtos.",
+            onClick: onNavigateToVisualizarProdutos
+        },
         {
             icon: '📊',
             title: "Relatórios",
@@ -59,6 +75,7 @@ function HomePageFuncionario({ userData, onNavigateToVisualizarClientes, onNavig
                             ? 'Gerencie clientes, funcionários e mantenha tudo organizado na PetLife.'
                             : 'Gerencie os clientes e mantenha tudo organizado na PetLife.'}
                     </p>
+
                     <div className="hero-buttons">
                         <button className="btn btn-outline-white hover-lift" onClick={onNavigateToVisualizarClientes}>
                             👥 Visualizar Clientes
@@ -69,10 +86,19 @@ function HomePageFuncionario({ userData, onNavigateToVisualizarClientes, onNavig
                             </button>
                         )}
 
-                        {/* botao para o cargo de gestor */}
-                        {userData?.cargo === 'gestor' && (
-                             <button className="btn btn-outline-white hover-lift" onClick={onNavigateToCadastrarProduto}>
-                                📦 Cadastrar Produto
+                        {/* botoes de produtos baseados no cargo */}
+                        {userData?.cargo === 'gestor' ? (
+                            <>
+                                <button className="btn btn-outline-white hover-lift" onClick={onNavigateToCadastrarProduto}>
+                                    📦 Cadastrar Produto
+                                </button>
+                                <button className="btn btn-outline-white hover-lift" onClick={onNavigateToVisualizarProdutos}>
+                                    🛒 Gerenciar Produtos
+                                </button>
+                            </>
+                        ) : (
+                            <button className="btn btn-outline-white hover-lift" onClick={onNavigateToVisualizarProdutos}>
+                                🛒 Consultar Produtos
                             </button>
                         )}
 

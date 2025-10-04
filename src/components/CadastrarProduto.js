@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import axios from '../api/axios';
 import './CadastrarProduto.css';
 
@@ -11,7 +11,8 @@ const initialState = {
     descricao: '',
     url_imagem: '',
     preco_venda: '',
-    estoque: 0
+    estoque: 0,
+    animais_alvo: 'Todos'
 };
 
 function CadastrarProdutoScreen({ onNavigateToHome }) {
@@ -79,20 +80,37 @@ function CadastrarProdutoScreen({ onNavigateToHome }) {
                 descricao: response.data.descricao || '',
                 url_imagem: response.data.url_imagem || '',
                 preco_venda: '', //deixei o preço e o estoque para o gestor digitar
-                estoque: 0
+                estoque: 0,
+                animais_alvo: 'Todos'
             });
-            //bloqueia o campo de código de barras, pois o produto foi encontrado
+            //bloqueia o campo de codigo de barras, pois o produto foi encontrado
             setIsBarcodeLocked(true);
         } catch (err) {
             setError('Não foi possível obter os detalhes do produto selecionado.');
         }
     };
 
+    //funçao para formatar valor em Real
+    const formatarReal = (value) => {
+        //remove tudo que nao é digito
+        let numero = value.replace(/\D/g, '');
+
+        //converte para numero e divide por 100 para ter centavos
+        numero = (Number(numero) / 100).toFixed(2);
+
+        //formata com separadores brasileiros
+        return numero.replace('.', ',').replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+    };
+
     const handleInputChange = (e) => {
         const { name, value } = e.target;
-        //se a barra de busca for alterada, atualiza o searchQuery
+
         if (name === 'search') {
             setSearchQuery(value);
+        } else if (name === 'preco_venda') {
+            //aplica mascara de Real
+            const valorFormatado = formatarReal(value);
+            setFormData(prev => ({ ...prev, [name]: valorFormatado }));
         } else {
             setFormData(prev => ({ ...prev, [name]: value }));
         }
@@ -120,11 +138,22 @@ function CadastrarProdutoScreen({ onNavigateToHome }) {
             return;
         }
 
+        //validaçao de estoque negativo
+        if (parseInt(formData.estoque) < 0) {
+            setError('O estoque não pode ser negativo.');
+            setLoading(false);
+            return;
+        }
+
         try {
             const token = localStorage.getItem('token');
+
+            //converte o preço formatado para o preço em numero padrao (R$1,50) -> (1.50)
+            const precoLimpo = formData.preco_venda.replace(/\./g, '').replace(',', '.');
+
             const dadosParaEnviar = {
                 ...formData,
-                preco_venda: parseFloat(formData.preco_venda),
+                preco_venda: parseFloat(precoLimpo),
                 estoque: parseInt(formData.estoque)
             };
 
@@ -209,12 +238,48 @@ function CadastrarProdutoScreen({ onNavigateToHome }) {
 
                         <div className="form-group">
                             <label className="form-label">Preço de Venda (R$) *</label>
-                            <input type="number" step="0.01" name="preco_venda" className="form-input" value={formData.preco_venda} onChange={handleInputChange} required />
+                            <div style={{ position: 'relative' }}>
+                                <span style={{
+                                    position: 'absolute',
+                                    left: '12px',
+                                    top: '50%',
+                                    transform: 'translateY(-50%)',
+                                    color: '#666',
+                                    fontWeight: '500'
+                                }}>R$</span>
+                                <input
+                                    type="text"
+                                    name="preco_venda"
+                                    className="form-input"
+                                    style={{ paddingLeft: '35px' }}
+                                    value={formData.preco_venda}
+                                    onChange={handleInputChange}
+                                    placeholder="0,00"
+                                    required
+                                />
+                            </div>
                         </div>
 
                         <div className="form-group">
                             <label className="form-label">Estoque Inicial *</label>
-                            <input type="number" name="estoque" className="form-input" value={formData.estoque} onChange={handleInputChange} required />
+                            <input
+                                type="number"
+                                name="estoque"
+                                className="form-input"
+                                value={formData.estoque}
+                                onChange={handleInputChange}
+                                min="0"
+                                required
+                            />
+                        </div>
+
+                        <div className="form-group">
+                            <label className="form-label">Animal Alvo *</label>
+                            <select name="animais_alvo" className="form-input" value={formData.animais_alvo} onChange={handleInputChange} required>
+                                <option value="Todos">Todos</option>
+                                <option value="Cães">Cães</option>
+                                <option value="Gatos">Gatos</option>
+                            </select>
                         </div>
 
                         <div className="form-group full-width">

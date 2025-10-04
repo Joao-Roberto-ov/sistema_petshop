@@ -1,9 +1,6 @@
-// Arquivo completo e final para: src/components/MeuPerfilScreen.js
-
 import React, { useState, useEffect } from 'react';
 import axios from '../api/axios';
 
-// --- NOVO: Componente do medidor de força da senha (integrado) ---
 const PasswordStrengthMeter = ({ checks }) => {
     const checkItems = [
         { key: 'length', text: 'Pelo menos 8 caracteres' },
@@ -28,18 +25,16 @@ const PasswordStrengthMeter = ({ checks }) => {
 
 const PWD_FLOW = { IDLE: 'IDLE', ENTERING_PASSWORDS: 'ENTERING_PASSWORDS', CODE_SENT: 'CODE_SENT', LOCKED: 'LOCKED' };
 
-// --- CORREÇÃO: Adicionar a prop onNavigateToForgotPassword ---
 function MeuPerfilScreen({ onNavigateToHome, onNavigateToForgotPassword }) {
     const [profileData, setProfileData] = useState({ telefone: '', endereco: '', cpf: '' });
     const [passwordData, setPasswordData] = useState({ senha_atual: '', nova_senha: '', codigo_verificacao: '' });
     const [passwordFlowState, setPasswordFlowState] = useState(PWD_FLOW.IDLE);
     const [passwordAttempts, setPasswordAttempts] = useState(0);
-    
+
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
 
-    // --- NOVO: Estados para o medidor de senha ---
     const [isPasswordFocused, setIsPasswordFocused] = useState(false);
     const [passwordChecks, setPasswordChecks] = useState({
         length: false,
@@ -48,7 +43,6 @@ function MeuPerfilScreen({ onNavigateToHome, onNavigateToForgotPassword }) {
         special: false,
     });
 
-    // --- NOVO: Efeito para validar a nova senha em tempo real ---
     useEffect(() => {
         const validatePassword = (password) => {
             const checks = {
@@ -84,7 +78,48 @@ function MeuPerfilScreen({ onNavigateToHome, onNavigateToForgotPassword }) {
         fetchUserData();
     }, []);
 
-    const handleProfileChange = (e) => setProfileData({ ...profileData, [e.target.name]: e.target.value });
+    //formatar telefone
+    const formatPhone = (value) => {
+        if (!value) return '';
+        let digits = value.replace(/\D/g, '');
+        if (digits.length > 11) digits = digits.slice(0, 11);
+
+        if (digits.length > 6) {
+            return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`;
+        } else if (digits.length > 2) {
+            return `(${digits.slice(0, 2)}) ${digits.slice(2)}`;
+        }
+        return digits ? `(${digits}` : '';
+    };
+
+    //formata CPF
+    const formatCPF = (value) => {
+        if (!value) return '';
+        let digits = value.replace(/\D/g, '');
+        if (digits.length > 11) digits = digits.slice(0, 11);
+
+        if (digits.length > 9) {
+            return `${digits.slice(0, 3)}.${digits.slice(3, 6)}.${digits.slice(6, 9)}-${digits.slice(9)}`;
+        } else if (digits.length > 6) {
+            return `${digits.slice(0, 3)}.${digits.slice(3, 6)}.${digits.slice(6)}`;
+        } else if (digits.length > 3) {
+            return `${digits.slice(0, 3)}.${digits.slice(3)}`;
+        }
+        return digits;
+    };
+
+    const handleProfileChange = (e) => {
+        const { name, value } = e.target;
+
+        if (name === 'telefone') {
+            setProfileData({ ...profileData, [name]: formatPhone(value) });
+        } else if (name === 'cpf') {
+            setProfileData({ ...profileData, [name]: formatCPF(value) });
+        } else {
+            setProfileData({ ...profileData, [name]: value });
+        }
+    };
+
     const handlePasswordChange = (e) => setPasswordData({ ...passwordData, [e.target.name]: e.target.value });
 
     const handleProfileSubmit = async (e) => {
@@ -102,7 +137,6 @@ function MeuPerfilScreen({ onNavigateToHome, onNavigateToForgotPassword }) {
     };
 
     const handleRequestCode = async () => {
-        // --- ATUALIZADO: Validação antes de enviar ---
         if (!isNewPasswordValid) {
             setError('A nova senha não atende a todos os requisitos de segurança.');
             return;
@@ -119,13 +153,12 @@ function MeuPerfilScreen({ onNavigateToHome, onNavigateToForgotPassword }) {
             setPasswordAttempts(0);
         } catch (err) {
             const errorDetail = err.response?.data?.detail;
-            // --- ATUALIZADO: Tratamento de erro de validação do Pydantic ---
             if (Array.isArray(errorDetail)) {
                 setError(errorDetail[0].msg);
             } else {
                 setError(errorDetail || 'Erro ao solicitar o código.');
             }
-            
+
             if (err.response && err.response.status === 401) {
                 const newAttempts = passwordAttempts + 1;
                 setPasswordAttempts(newAttempts);
@@ -157,21 +190,19 @@ function MeuPerfilScreen({ onNavigateToHome, onNavigateToForgotPassword }) {
         }
     };
 
-    // --- CORREÇÃO: Usar a prop onNavigateToForgotPassword ---
     const handleForgotPassword = () => {
-        onNavigateToForgotPassword(); // Agora usa a prop correta
+        onNavigateToForgotPassword();
     };
 
     const renderPasswordSection = () => {
         switch (passwordFlowState) {
             case PWD_FLOW.IDLE:
                 return <button type="button" className="btn-submit" style={{backgroundColor: '#6c757d'}} onClick={() => { setPasswordFlowState(PWD_FLOW.ENTERING_PASSWORDS); setPasswordAttempts(0); setError(''); setSuccess(''); }}>Alterar Senha</button>;
-            
+
             case PWD_FLOW.LOCKED:
                 return (
                     <>
                         <p>Por segurança, a alteração de senha por aqui foi bloqueada.</p>
-                        {/* CORREÇÃO: Usar handleForgotPassword em vez de onNavigateToForgotPassword direto */}
                         <button type="button" className="btn-submit" onClick={handleForgotPassword}>
                             Esqueci Minha Senha
                         </button>
@@ -186,25 +217,24 @@ function MeuPerfilScreen({ onNavigateToHome, onNavigateToForgotPassword }) {
                             <label className="form-label">Senha Atual</label>
                             <input type="password" name="senha_atual" className="form-input" value={passwordData.senha_atual} onChange={handlePasswordChange} required />
                         </div>
-                        {/* --- ATUALIZADO: Campo de nova senha com medidor --- */}
                         <div className="form-group" style={{ position: 'relative' }}>
                             <label className="form-label">Nova Senha</label>
-                            <input 
-                                type="password" 
-                                name="nova_senha" 
-                                className="form-input" 
-                                value={passwordData.nova_senha} 
+                            <input
+                                type="password"
+                                name="nova_senha"
+                                className="form-input"
+                                value={passwordData.nova_senha}
                                 onChange={handlePasswordChange}
                                 onFocus={() => setIsPasswordFocused(true)}
                                 onBlur={() => setIsPasswordFocused(false)}
-                                required 
+                                required
                             />
                             {isPasswordFocused && passwordData.nova_senha && <PasswordStrengthMeter checks={passwordChecks} />}
                         </div>
-                        <button 
-                            type="button" 
-                            className="btn-submit" 
-                            onClick={handleRequestCode} 
+                        <button
+                            type="button"
+                            className="btn-submit"
+                            onClick={handleRequestCode}
                             disabled={loading || !isNewPasswordValid || !passwordData.senha_atual}
                         >
                             {loading ? 'Enviando...' : 'Enviar Código de Verificação'}
@@ -241,12 +271,35 @@ function MeuPerfilScreen({ onNavigateToHome, onNavigateToForgotPassword }) {
                 <div className="login-header"><h1>Meu Perfil</h1></div>
                 {error && <div className="error-message">{error}</div>}
                 {success && <div className="success-message">{success}</div>}
-                
+
                 <form onSubmit={handleProfileSubmit}>
                     <p>Atualize suas informações pessoais.</p>
-                    <div className="form-group"><label className="form-label">Telefone</label><input type="tel" name="telefone" className="form-input" value={profileData.telefone} onChange={handleProfileChange} /></div>
-                    <div className="form-group"><label className="form-label">Endereço</label><input type="text" name="endereco" className="form-input" value={profileData.endereco} onChange={handleProfileChange} /></div>
-                    <div className="form-group"><label className="form-label">CPF</label><input type="text" name="cpf" className="form-input" value={profileData.cpf} onChange={handleProfileChange} placeholder="000.000.000-00" /></div>
+                    <div className="form-group">
+                        <label className="form-label">Telefone</label>
+                        <input
+                            type="tel"
+                            name="telefone"
+                            className="form-input"
+                            value={profileData.telefone}
+                            onChange={handleProfileChange}
+                            placeholder="(00) 00000-0000"
+                        />
+                    </div>
+                    <div className="form-group">
+                        <label className="form-label">Endereço</label>
+                        <input type="text" name="endereco" className="form-input" value={profileData.endereco} onChange={handleProfileChange} />
+                    </div>
+                    <div className="form-group">
+                        <label className="form-label">CPF</label>
+                        <input
+                            type="text"
+                            name="cpf"
+                            className="form-input"
+                            value={profileData.cpf}
+                            onChange={handleProfileChange}
+                            placeholder="000.000.000-00"
+                        />
+                    </div>
                     <button type="submit" className="btn-submit" disabled={loading}>{loading ? 'Salvando...' : 'Salvar Dados do Perfil'}</button>
                 </form>
                 

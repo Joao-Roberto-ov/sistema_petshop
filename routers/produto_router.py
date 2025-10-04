@@ -27,7 +27,7 @@ async def buscar_produtos_externos(
     gestor_id: int = Depends(pegar_gestor_logado),
     service: ServicosProduto = Depends(ServicosProduto)
 ):
-    #endpoint para rocurar sugestoes de produtos
+    #endpoint para procurar sugestoes de produtos
     return service.buscar_sugestoes(q)
 
 
@@ -37,9 +37,8 @@ async def buscar_detalhes_produto_externo(
     gestor_id: int = Depends(pegar_gestor_logado),
     service: ServicosProduto = Depends(ServicosProduto)
 ):
-    #pega os detalhes de um produto da base externa para preencher o formulário
-    return service.buscar_detalhes_para_cadastro(barcode)
 
+    return service.buscar_detalhes_para_cadastro(barcode)
 
 @router.post("/cadastrar")
 async def cadastrar_novo_produto(
@@ -47,5 +46,44 @@ async def cadastrar_novo_produto(
     gestor_id: int = Depends(pegar_gestor_logado),
     service: ServicosProduto = Depends(ServicosProduto)
 ):
-    #cadastra um novo produto no sistema
+
     return service.cadastrar_produto(dados_produto, gestor_id)
+
+@router.get("/listar")
+async def listar_produtos(
+    service: ServicosProduto = Depends(ServicosProduto)
+):
+    """Lista todos os produtos cadastrados - PÚBLICO, não requer autenticação"""
+    return service.listar_todos_produtos()
+
+
+@router.put("/editar/{produto_id}")
+async def editar_produto(
+    produto_id: int,
+    dados_produto: ProdutoCadastro,
+    gestor_id: int = Depends(pegar_gestor_logado),
+    service: ServicosProduto = Depends(ServicosProduto)
+):
+    """Edita um produto cadastrado - apenas gestores"""
+    return service.editar_produto(produto_id, dados_produto, gestor_id)
+
+
+@router.delete("/excluir/{produto_id}")
+async def excluir_produto(
+    produto_id: int,
+    gestor_id: int = Depends(pegar_gestor_logado),
+    service: ServicosProduto = Depends(ServicosProduto)
+):
+    """Exclui um produto cadastrado - apenas gestores"""
+    return service.excluir_produto(produto_id, gestor_id)
+
+
+@router.get("/verificar-externo/{barcode}")
+async def verificar_produto_externo(
+    barcode: str,
+    gestor_id: int = Depends(pegar_gestor_logado),
+    service: ServicosProduto = Depends(ServicosProduto)
+):
+    """Verifica se produto existe na base externa - apenas gestores"""
+    eh_externo = service.repo.verificar_produto_externo(barcode)
+    return {"eh_externo": eh_externo}

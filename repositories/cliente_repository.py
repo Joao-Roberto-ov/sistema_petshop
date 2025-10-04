@@ -1,4 +1,3 @@
-
 from datetime import datetime
 from bancoDeDados import conectar, encerra_conexao
 
@@ -36,9 +35,6 @@ class RepositorioCliente:
             if conn: self.encerra_conexao(conn)
 
     def buscar_cliente_pelo_email(self, email: str):
-        """
-        Método para buscar cliente completo pelo email (usado no fluxo de esqueci senha)
-        """
         conn = None
         cursor = None
         try:
@@ -85,7 +81,7 @@ class RepositorioCliente:
             conn = self.conectar()
             cursor = conn.cursor()
             
-            # Verificar se a coluna is_ativo existe
+            #verifica se a coluna is_ativo ta na tabela
             cursor.execute("""
                 SELECT column_name 
                 FROM information_schema.columns 
@@ -136,7 +132,7 @@ class RepositorioCliente:
             conn = self.conectar()
             cursor = conn.cursor()
             
-            # Verificar se a coluna is_ativo existe
+            #verifica se a coluna is_ativo ta na tabela
             cursor.execute("""
                 SELECT column_name 
                 FROM information_schema.columns 
@@ -145,10 +141,10 @@ class RepositorioCliente:
             coluna_existe = cursor.fetchone()
             
             if coluna_existe:
-                # Se a coluna existe, incluir na query
+                #se a coluna existe, incluir na query
                 sql = "SELECT id, nome, email, telefone, endereco, cpf, is_ativo FROM clientes WHERE id = %s"
             else:
-                # Se não existe, usar valor padrão
+                #se não existe, usar valor padrão
                 sql = "SELECT id, nome, email, telefone, endereco, cpf FROM clientes WHERE id = %s"
             
             cursor.execute(sql, (user_id,))
@@ -217,7 +213,7 @@ class RepositorioCliente:
             print(f"Erro ao editar cliente: {e}")
             if conn:
                 conn.rollback()
-            raise  # Re-raise the exception
+            raise
 
         finally:
             if cursor:
@@ -272,43 +268,37 @@ class RepositorioCliente:
         except Exception as e:
             if conn:
                 conn.rollback()
-            raise  # Re-raise the exception
+            raise
         finally:
             if cursor: cursor.close()
             if conn: self.encerra_conexao(conn)
 
 
     def salvar_codigo_reset(self, user_id: int, codigo: str, expiracao: datetime):
-        """
-        Insere um novo código de verificação na tabela CodigosVerificacao.
-        Primeiro, apaga códigos antigos do mesmo usuário para evitar duplicatas.
-        """
+
         conn = None
         cursor = None
         try:
             conn = self.conectar()
             cursor = conn.cursor()
-            # Passo 1: Apagar códigos antigos para este usuário (boa prática)
+            #apaga os codigos antigos para o usuario
             sql_delete = "DELETE FROM CodigosVerificacao WHERE cliente_id = %s"
             cursor.execute(sql_delete, (user_id,))
 
-            # Passo 2: Inserir o novo código
+            #coloca um novo codigo
             sql_insert = "INSERT INTO CodigosVerificacao (cliente_id, codigo, expiracao) VALUES (%s, %s, %s)"
             cursor.execute(sql_insert, (user_id, codigo, expiracao))
             conn.commit()
         except Exception as e:
             if conn:
                 conn.rollback()
-            raise  # Re-raise the exception
+            raise
         finally:
             if cursor: cursor.close()
             if conn: self.encerra_conexao(conn)
 
     def buscar_codigo_reset(self, user_id: int, codigo_fornecido: str):
-        """
-        Busca um código na tabela CodigosVerificacao que corresponda ao usuário e ao código.
-        Retorna a linha inteira para que o serviço possa verificar a data de expiração.
-        """
+
         conn = None
         cursor = None
         try:
@@ -322,9 +312,6 @@ class RepositorioCliente:
             if conn: self.encerra_conexao(conn)
 
     def deletar_codigo_reset(self, user_id: int, codigo_usado: str):
-        """
-        Deleta um código específico após ele ter sido usado com sucesso.
-        """
         conn = None
         cursor = None
         try:
@@ -336,7 +323,7 @@ class RepositorioCliente:
         except Exception as e:
             if conn:
                 conn.rollback()
-            raise  # Re-raise the exception
+            raise
         finally:
             if cursor: cursor.close()
             if conn: self.encerra_conexao(conn)
@@ -360,7 +347,6 @@ class RepositorioCliente:
         try:
             conn = self.conectar()
             cursor = conn.cursor()
-            # Inserir o token na tabela PasswordResetTokens
             cursor.execute(
                 "INSERT INTO PasswordResetTokens (cliente_id, token, expiracao) VALUES (%s, %s, %s)",
                 (cliente_id, token, expiracao)
@@ -444,7 +430,7 @@ class RepositorioCliente:
             conn = self.conectar()
             cursor = conn.cursor()
             
-            # PRIMEIRO: Verificar se a coluna is_ativo existe
+            #verifica se a coluna is_ativo tá na tabela
             cursor.execute("""
                 SELECT column_name 
                 FROM information_schema.columns 
@@ -453,25 +439,25 @@ class RepositorioCliente:
             coluna_existe = cursor.fetchone()
             
             if not coluna_existe:
-                print("❌ Coluna 'is_ativo' não existe. Criando...")
+                print("Coluna 'is_ativo' não existe. Criando...")
                 # Criar a coluna se não existir
                 cursor.execute("ALTER TABLE clientes ADD COLUMN is_ativo BOOLEAN DEFAULT TRUE")
                 conn.commit()
-                print("✅ Coluna 'is_ativo' criada com sucesso")
+                print("Coluna 'is_ativo' criada com sucesso")
             
             # AGORA atualizar o status
             sql = "UPDATE clientes SET is_ativo = %s WHERE id = %s"
             print(f"Executando: {sql} com valores: ({is_ativo}, {cliente_id})")
             cursor.execute(sql, (is_ativo, cliente_id))
             conn.commit()
-            print(f"✅ Status do cliente {cliente_id} atualizado para {is_ativo}")
+            print(f"Status do cliente {cliente_id} atualizado para {is_ativo}")
             return {"message": "Status do cliente atualizado com sucesso!"}
 
         except Exception as e:
-            print(f"❌ Erro ao atualizar status do cliente: {str(e)}")
+            print(f"Erro ao atualizar status do cliente: {str(e)}")
             if conn:
                 conn.rollback()
-            raise  # Re-raise the exception
+            raise
         finally:
             if cursor: cursor.close()
             if conn: self.encerra_conexao(conn)

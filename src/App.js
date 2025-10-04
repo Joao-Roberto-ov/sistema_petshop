@@ -14,6 +14,9 @@ import MeusPetsScreen from './components/MeusPetsScreen';
 import MeuPerfilScreen from './components/MeuPerfilScreen';
 import FuncionarioCadastroAdminScreen from './components/FuncionarioCadastroAdminScreen';
 import CadastrarProdutoScreen from './components/CadastrarProduto';
+import VisualizarProdutosGestor from './components/VisualizarProdutosGestor';
+import VisualizarProdutosFuncionario from './components/VisualizarProdutosFuncionario';
+import VisualizarProdutosCliente from './components/VisualizarProdutosCliente';
 
 function App() {
     const [currentScreen, setCurrentScreen] = useState('home');
@@ -63,79 +66,117 @@ function App() {
     const renderScreen = () => {
         if (isLoggedIn && (currentScreen === 'login' || currentScreen === 'signup')) {
             return <HomePage
-                        onNavigateToLogin={() => setCurrentScreen('login')}
-                        onNavigateToSignup={() => setCurrentScreen('signup')}
-                        onNavigateToDashboard={() => setCurrentScreen('dashboard')}
-                        isLoggedIn={isLoggedIn}
-                        userData={userData}
-                        onLogout={handleLogout}
-                    />;
+                    onNavigateToLogin={() => setCurrentScreen('login')}
+                    onNavigateToSignup={() => setCurrentScreen('signup')}
+                    onNavigateToDashboard={() => setCurrentScreen('dashboard')}
+                    isLoggedIn={isLoggedIn}
+                    userData={userData}
+                    onLogout={handleLogout}
+                />;
         }
         switch (currentScreen) {
             case 'login':
                 return <LoginScreen
-                            onLogin={handleLogin}
-                            onNavigateToSignup={() => setCurrentScreen('signup')}
-                            onNavigateToForgotPassword={() => setCurrentScreen('forgot-password')}
-                            setUserData={setUserData}
-                        />;
+                    onLogin={handleLogin}
+                    onNavigateToSignup={() => setCurrentScreen('signup')}
+                    onNavigateToForgotPassword={() => setCurrentScreen('forgot-password')}
+                    setUserData={setUserData}
+                />;
+
             case 'signup':
                 return <SignupScreen
-                            onNavigateToLogin={() => setCurrentScreen('login')}
-                        />;
+                    onNavigateToLogin={() => setCurrentScreen('login')}
+                />;
+
             case 'forgot-password':
                 return <ForgotPasswordScreen
-                            onNavigateToLogin={() => setCurrentScreen('login')}
-                        />;
+                    onNavigateToLogin={() => setCurrentScreen('login')}
+                />;
+
             case 'reset-password':
                 return <ResetPasswordScreen
-                            onNavigateToLogin={() => setCurrentScreen('login')}
-                        />;
+                    onNavigateToLogin={() => setCurrentScreen('login')}
+                />;
+
             case 'dashboard':
                 return <Dashboard
-                            userData={userData}
-                            onLogout={handleLogout}
-                            onNavigateToHome={navigateToHome}
-                        />;
+                    userData={userData}
+                    onLogout={handleLogout}
+                    onNavigateToHome={navigateToHome}
+                />;
             case 'pet-cadastro':
                 return <PetCadastroScreen
-                            onNavigateToHome={() => setCurrentScreen('home')}
-                        />;
+                    onNavigateToHome={() => setCurrentScreen('home')}
+                />;
+
             case 'meus-pets':
                 return <MeusPetsScreen
-                            onNavigateToPetCadastro={() => setCurrentScreen('pet-cadastro')}
-                            onNavigateToHome={() => setCurrentScreen('home')}
-                        />;
+                    onNavigateToPetCadastro={() => setCurrentScreen('pet-cadastro')}
+                    onNavigateToHome={() => setCurrentScreen('home')}
+                />;
+
             case 'meu-perfil':
                 return <MeuPerfilScreen
-                            onNavigateToHome={() => setCurrentScreen('home')}
-                            onNavigateToForgotPassword={() => setCurrentScreen('forgot-password')}
-                        />;
+                    onNavigateToHome={() => setCurrentScreen('home')}
+                    onNavigateToForgotPassword={() => setCurrentScreen('forgot-password')}
+                />;
+
             case 'homeFuncionario':
                 return <HomePageFuncionario
                     userData={userData}
                     onNavigateToVisualizarClientes={() => setCurrentScreen("visualizarClientes")}
                     onNavigateToFuncionarioCadastroAdmin={() => setCurrentScreen("funcionario-cadastro-admin")}
                     onNavigateToCadastrarProduto={() => setCurrentScreen('cadastrarProduto')}
+                    onNavigateToVisualizarProdutos={() => {
+                        //verifica se é gestor ou funcionario
+                        if (userData?.cargo === 'gestor') {
+                            setCurrentScreen('visualizar-produtos-gestor');
+                        } else {
+                            setCurrentScreen('visualizar-produtos-funcionario');
+                        }
+                    }}
                     onLogout={handleLogout}
                 />;
+
+            case 'visualizar-produtos-gestor':
+                return <VisualizarProdutosGestor
+                    onBack={() => navigateToHome()}
+                />;
+
+            case 'visualizar-produtos-funcionario':
+                return <VisualizarProdutosFuncionario
+                    onBack={() => navigateToHome()}
+                />;
+
+            case 'visualizar-produtos-cliente':
+                return <VisualizarProdutosCliente
+                    onBack={() => setCurrentScreen('home')}
+                />;
+
             case 'visualizarClientes':
-                return <VisualizarClientes onBack={() => navigateToHome()} />;
+                return <VisualizarClientes onBack={() => navigateToHome()}
+                />;
+
             case 'funcionario-cadastro-admin':
-                return <FuncionarioCadastroAdminScreen />;
+                return <FuncionarioCadastroAdminScreen
+                />;
+
             case 'cadastrarProduto':
-                return <CadastrarProdutoScreen onNavigateToHome={() => navigateToHome()} />;
+                return <CadastrarProdutoScreen
+                    onNavigateToHome={() => navigateToHome()}
+                />;
 
             case 'home':
             default:
                 return <HomePage
-                            onNavigateToLogin={() => setCurrentScreen('login')}
-                            onNavigateToSignup={() => setCurrentScreen('signup')}
-                            onNavigateToDashboard={() => setCurrentScreen('dashboard')}
-                            isLoggedIn={isLoggedIn}
-                            userData={userData}
-                            onLogout={handleLogout}
-                        />;
+                    onNavigateToLogin={() => setCurrentScreen('login')}
+                    onNavigateToSignup={() => setCurrentScreen('signup')}
+                    onNavigateToDashboard={() => setCurrentScreen('dashboard')}
+                    onNavigateToProdutos={() => setCurrentScreen('visualizar-produtos-cliente')}
+                    isLoggedIn={isLoggedIn}
+                    userData={userData}
+                    onLogout={handleLogout}
+                />;
         }
     };
 
@@ -152,6 +193,11 @@ function App() {
                 onNavigateToMeusPets={() => setCurrentScreen('meus-pets')}
                 onNavigateToMeuPerfil={() => setCurrentScreen('meu-perfil')}
                 onNavigateToHome={navigateToHome}
+                onNavigateToProdutos={(tipo) => {
+                    if (tipo === 'gestor') setCurrentScreen('visualizar-produtos-gestor');
+                    else if (tipo === 'funcionario') setCurrentScreen('visualizar-produtos-funcionario');
+                    else setCurrentScreen('visualizar-produtos-cliente');
+                }}
             />
             <main>
                 {renderScreen()}

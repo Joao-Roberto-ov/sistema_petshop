@@ -1,5 +1,5 @@
 from pydantic import BaseModel, EmailStr, validator
-from typing import Optional
+from typing import Optional, Literal
 from datetime import datetime
 
 class UsuarioLogin(BaseModel):
@@ -150,6 +150,7 @@ class ProdutoCadastro(BaseModel):
     nome: str
     preco_venda: float
     estoque: int
+    animais_alvo: Literal['Cães', 'Gatos', 'Todos'] = 'Todos'
     marca: Optional[str] = None
     categoria: Optional[str] = None
     descricao: Optional[str] = None
