@@ -111,7 +111,19 @@ def criar_tabelas():
             expiracao TIMESTAMP WITH TIME ZONE NOT NULL,
             criado_em TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
         );""")
-        
+
+        curs.execute("""CREATE TABLE IF NOT EXISTS catalogo_servicos (
+            id SERIAL PRIMARY KEY,
+            nome VARCHAR(255) NOT NULL,
+            descricao TEXT,
+            duracao INTEGER NOT NULL CHECK (duracao > 0), -- duração em minutos
+            preco NUMERIC(10,2) NOT NULL CHECK (preco > 0), -- preço em reais
+            criador_id INTEGER REFERENCES Funcionarios(id) ON DELETE SET NULL, -- quem cadastrou
+            criado_em TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+            atualizado_em TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+        );""")
+
+
         conectado.commit()
         print("Verificação e criação de tabelas concluída com sucesso.")
         curs.close()
