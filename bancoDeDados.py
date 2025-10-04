@@ -123,6 +123,26 @@ def criar_tabelas():
             atualizado_em TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
         );""")
 
+        curs.execute("""CREATE TABLE IF NOT EXISTS Vendas (
+            id SERIAL PRIMARY KEY,
+            funcionario_id INTEGER REFERENCES Funcionarios (id),
+            cliente_id INTEGER REFERENCES Clientes (id),
+            total NUMERIC(10, 2) NOT NULL,
+            forma_pagamento VARCHAR(50)    NOT NULL,
+            status_pagamento VARCHAR(20) DEFAULT 'pendente',
+            criado_em TIMESTAMP   DEFAULT CURRENT_TIMESTAMP
+        );""")
+
+        curs.execute("""CREATE TABLE IF NOT EXISTS ItensVenda(
+            id SERIAL PRIMARY KEY,
+            venda_id INTEGER REFERENCES Vendas (id) ON DELETE CASCADE,
+            tipo VARCHAR(20)    NOT NULL,
+            id_item  INTEGER        NOT NULL,
+            nome VARCHAR(255)   NOT NULL,
+            quantidade INTEGER        NOT NULL,
+            preco_unitario NUMERIC(10, 2) NOT NULL
+        );""")
+
 
         conectado.commit()
         print("Verificação e criação de tabelas concluída com sucesso.")

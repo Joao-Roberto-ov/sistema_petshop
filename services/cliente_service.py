@@ -73,12 +73,12 @@ class ServicosCliente:
         resultado = self.repo.buscar_pelo_email(dados_login_clientes.email)
 
         if not resultado:
-            raise HTTPException(status_code=401, detail="E-mail ou senha inválidos.")
+            raise HTTPException(status_code=401, detail="E-mail ou senha inválidos. 2")
 
         user_id, senha_hashed_do_banco = resultado
 
         if not verifica_senha(dados_login_clientes.senha, senha_hashed_do_banco):
-            raise HTTPException(status_code=401, detail="E-mail ou senha inválidos.")
+            raise HTTPException(status_code=401, detail="E-mail ou senha inválidos. 3")
 
         dados_usuario = self.buscar_pelo_id(user_id)
 
@@ -109,6 +109,7 @@ class ServicosCliente:
             "endereco": user_data[4] if user_data[4] else "Não informado",
             "cpf": user_data[5] if len(user_data) > 5 else None  # CORREÇÃO: Verificar se CPF existe
         }
+
 
     def editar_cliente(
             self,
@@ -277,3 +278,10 @@ class ServicosCliente:
             raise
         except Exception as e:
             raise HTTPException(status_code=500, detail=f"Erro interno do servidor: {str(e)}")
+
+    def buscar_clientes_por_nome(self, nome: str):
+        """
+        Retorna clientes cujo nome contenha a string fornecida (case-insensitive)
+        """
+        clientes = self.repo.buscar_clientes_por_nome(nome)
+        return [{"id": c[0], "nome": c[1]} for c in clientes]
