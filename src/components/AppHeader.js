@@ -5,7 +5,6 @@ function getFirstName(fullName) {
     return fullName.trim().split(' ')[0];
 }
 
-// ATUALIZAÇÃO 1: Adicionada a nova prop "onNavigateToProdutos"
 function AppHeader({
     onNavigateToLogin,
     onNavigateToSignup,
@@ -27,6 +26,12 @@ function AppHeader({
         setIsDropdownOpen(false);
     };
 
+    // Nova função para lidar com o clique em "Serviços"
+    const handleServicosClick = (e) => {
+        e.preventDefault();
+        alert('Função em desenvolvimento');
+    };
+
     useEffect(() => {
         function handleClickOutside(event) {
             if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
@@ -44,7 +49,6 @@ function AppHeader({
 
     const isAdmin = userData?.cargo === 'GESTOR';
 
-    // ATUALIZAÇÃO 2: Adicionada a nova função de clique para "Produtos"
     const handleProdutosClick = (e) => {
         e.preventDefault();
 
@@ -70,7 +74,6 @@ function AppHeader({
                     PetLife
                 </a>
 
-                {/* ATUALIZAÇÃO 3: A estrutura do menu foi reorganizada */}
                 <ul className="nav-menu">
                     <li><a href="#" className="nav-link" onClick={(e) => { e.preventDefault(); onNavigateToHome(); }}>Início</a></li>
 
@@ -79,6 +82,7 @@ function AppHeader({
                         <>
                             <li><a href="#" className="nav-link" onClick={(e) => { e.preventDefault(); onNavigateToDashboard(); }}>Dashboard</a></li>
                             <li><a href="#" className="nav-link" onClick={(e) => { e.preventDefault(); onNavigateToMeusPets(); }}>Meus Pets</a></li>
+                            <li><a href="#" className="nav-link" onClick={handleServicosClick}>Serviços</a></li>
                         </>
                     )}
 
@@ -94,7 +98,7 @@ function AppHeader({
                                         window.dispatchEvent(new CustomEvent('navigate', { detail: 'visualizarClientes' }));
                                     }}
                                 >
-                                    👥 Clientes
+                                    Clientes
                                 </a>
                             </li>
                             {isAdmin && (
@@ -107,10 +111,11 @@ function AppHeader({
                                             window.dispatchEvent(new CustomEvent('navigate', { detail: 'funcionario-cadastro-admin' }));
                                         }}
                                     >
-                                        ➕ Cadastrar Funcionário
+                                        Cadastrar Funcionário
                                     </a>
                                 </li>
                             )}
+                            <li><a href="#" className="nav-link" onClick={handleServicosClick}>Serviços</a></li>
                         </>
                     )}
 
@@ -121,13 +126,13 @@ function AppHeader({
                             className="nav-link"
                             onClick={handleProdutosClick}
                         >
-                            🛒 Produtos
+                            Produtos
                         </a>
                     </li>
 
-                    {/* Link de Agendamento - Visível apenas para deslogados */}
+                    {/* Link de Serviços - Visível apenas para deslogados */}
                     {!isLoggedIn && (
-                        <li><a href="#" className="nav-link" onClick={(e) => { e.preventDefault(); handlePlaceholderClick('Agendamento'); }}>Agendamento</a></li>
+                        <li><a href="#" className="nav-link" onClick={(e) => { e.preventDefault(); handlePlaceholderClick('Serviços'); }}>Serviços</a></li>
                     )}
                 </ul>
 

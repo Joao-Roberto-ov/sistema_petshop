@@ -1,6 +1,24 @@
 import React, { useEffect, useState } from 'react';
 import axios from '../api/axios';
 
+// Ícones SVG para os botões da tabela
+const IconEdit = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+    </svg>
+);
+
+const IconToggle = ({ isActive }) => (
+    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        {isActive ? (
+            <path d="M18 6 6 18M6 6l12 12"/>
+        ) : (
+            <path d="M20 6 9 17l-5-5"/>
+        )}
+    </svg>
+);
+
 function VisualizarClientes({ onBack }) {
     const [clientes, setClientes] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -285,86 +303,161 @@ function VisualizarClientes({ onBack }) {
                         </p>
                     </div>
 
-                    <div style={{ overflowX: 'auto', background: 'white', borderRadius: '12px', boxShadow: '0 4px 20px rgba(0,0,0,0.08)' }}>
-                        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                            <thead style={{ backgroundColor: '#4a9b8e', color: '#fff' }}>
-                                <tr>
-                                    <th style={{ padding: '1rem', textAlign: 'left', fontWeight: '600' }}>Nome</th>
-                                    <th style={{ padding: '1rem', textAlign: 'left', fontWeight: '600' }}>Email</th>
-                                    <th style={{ padding: '1rem', textAlign: 'left', fontWeight: '600' }}>Telefone</th>
-                                    <th style={{ padding: '1rem', textAlign: 'left', fontWeight: '600' }}>Endereço</th>
-                                    <th style={{ padding: '1rem', textAlign: 'left', fontWeight: '600' }}>CPF</th>
-                                    <th style={{ padding: '1rem', textAlign: 'center', fontWeight: '600' }}>Status</th>
-                                    <th style={{ padding: '1rem', textAlign: 'center', fontWeight: '600' }}>Ações</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {clientes.map((cliente, index) => (
-                                    <tr 
-                                        key={cliente.id} 
-                                        style={{ 
-                                            borderBottom: '1px solid #e5e7eb',
-                                            backgroundColor: index % 2 === 0 ? '#ffffff' : '#f9fafb'
-                                        }}
-                                    >
-                                        <td style={{ padding: '1rem' }}>{cliente.nome}</td>
-                                        <td style={{ padding: '1rem' }}>{cliente.email}</td>
-                                        <td style={{ padding: '1rem' }}>{cliente.telefone || '-'}</td>
-                                        <td style={{ padding: '1rem' }}>{cliente.endereco || '-'}</td>
-                                        <td style={{ padding: '1rem' }}>{cliente.cpf || '-'}</td>
-                                        <td style={{ padding: '1rem', textAlign: 'center' }}>
-                                            <span style={{
-                                                padding: '0.25rem 0.75rem',
-                                                borderRadius: '12px',
-                                                fontSize: '0.875rem',
-                                                fontWeight: '500',
-                                                backgroundColor: cliente.is_ativo ? '#d1fae5' : '#fee2e2',
-                                                color: cliente.is_ativo ? '#065f46' : '#991b1b'
-                                            }}>
-                                                {cliente.is_ativo ? 'Ativo' : 'Inativo'}
-                                            </span>
-                                        </td>
-                                        <td style={{ padding: '1rem', textAlign: 'center' }}>
-                                            <button 
-                                                onClick={() => handleEditClick(cliente)}
-                                                style={{
-                                                    padding: '0.5rem 1rem',
-                                                    marginRight: '0.5rem',
-                                                    backgroundColor: '#4a9b8e',
-                                                    color: 'white',
-                                                    border: 'none',
-                                                    borderRadius: '6px',
-                                                    cursor: 'pointer',
-                                                    fontWeight: '500',
-                                                    transition: 'all 0.3s ease'
-                                                }}
-                                                onMouseOver={(e) => e.target.style.backgroundColor = '#3d8b7e'}
-                                                onMouseOut={(e) => e.target.style.backgroundColor = '#4a9b8e'}
-                                            >
-                                                ✏️ Editar
-                                            </button>
-                                            <button 
-                                                onClick={() => handleToggleStatus(cliente.id, !cliente.is_ativo)}
-                                                style={{
-                                                    padding: '0.5rem 0.4rem',
-                                                    backgroundColor: cliente.is_ativo ? '#dc2626' : '#16a34a',
-                                                    color: 'white',
-                                                    border: 'none',
-                                                    borderRadius: '6px',
-                                                    cursor: 'pointer',
-                                                    fontWeight: '600',
-                                                    transition: 'all 0.3s ease'
-                                                }}
-                                                onMouseOver={(e) => e.target.style.backgroundColor = cliente.is_ativo ? '#b91c1c' : '#15803d'}
-                                                onMouseOut={(e) => e.target.style.backgroundColor = cliente.is_ativo ? '#dc2626' : '#16a34a'}
-                                            >
-                                                {cliente.is_ativo ? '🚫 Desativar' : '✅ Ativar'}
-                                            </button>
-                                        </td>
+                    {/* Tabela modernizada */}
+                    <div style={{
+                        background: 'white',
+                        borderRadius: '16px',
+                        boxShadow: '0 4px 20px rgba(0, 0, 0, 0.1)',
+                        overflow: 'hidden'
+                    }}>
+                        <div style={{ overflowX: 'auto' }}>
+                            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                                <thead style={{
+                                    background: 'linear-gradient(135deg, #4a9b8e 0%, #3d8b7e 100%)',
+                                    color: 'white'
+                                }}>
+                                    <tr>
+                                        <th style={{ padding: '1rem', textAlign: 'left', fontWeight: '600', fontSize: '1rem' }}>Nome</th>
+                                        <th style={{ padding: '1rem', textAlign: 'left', fontWeight: '600', fontSize: '1rem' }}>Email</th>
+                                        <th style={{ padding: '1rem', textAlign: 'left', fontWeight: '600', fontSize: '1rem' }}>Telefone</th>
+                                        <th style={{ padding: '1rem', textAlign: 'left', fontWeight: '600', fontSize: '1rem' }}>Endereço</th>
+                                        <th style={{ padding: '1rem', textAlign: 'left', fontWeight: '600', fontSize: '1rem' }}>CPF</th>
+                                        <th style={{ padding: '1rem', textAlign: 'center', fontWeight: '600', fontSize: '1rem' }}>Status</th>
+                                        <th style={{ padding: '1rem', textAlign: 'center', fontWeight: '600', fontSize: '1rem' }}>Ações</th>
                                     </tr>
-                                ))}
-                            </tbody>
-                        </table>
+                                </thead>
+                                <tbody>
+                                    {clientes.map((cliente, index) => (
+                                        <tr 
+                                            key={cliente.id} 
+                                            style={{ 
+                                                borderBottom: index === clientes.length - 1 ? 'none' : '1px solid #ecf0f1',
+                                                transition: 'background 0.3s ease'
+                                            }}
+                                            onMouseEnter={(e) => e.currentTarget.style.background = '#f8f9fa'}
+                                            onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                                        >
+                                            <td style={{ 
+                                                padding: '1rem', 
+                                                fontWeight: '600', 
+                                                color: '#2c3e50' 
+                                            }}>
+                                                {cliente.nome}
+                                            </td>
+                                            <td style={{ 
+                                                padding: '1rem', 
+                                                color: '#7f8c8d' 
+                                            }}>
+                                                {cliente.email}
+                                            </td>
+                                            <td style={{ 
+                                                padding: '1rem', 
+                                                color: '#7f8c8d' 
+                                            }}>
+                                                {cliente.telefone || '—'}
+                                            </td>
+                                            <td style={{ 
+                                                padding: '1rem', 
+                                                color: '#7f8c8d' 
+                                            }}>
+                                                {cliente.endereco || '—'}
+                                            </td>
+                                            <td style={{ 
+                                                padding: '1rem', 
+                                                color: '#7f8c8d' 
+                                            }}>
+                                                {cliente.cpf || '—'}
+                                            </td>
+                                            <td style={{ padding: '1rem', textAlign: 'center' }}>
+                                                <span style={{
+                                                    padding: '0.25rem 0.75rem',
+                                                    borderRadius: '20px',
+                                                    fontSize: '0.875rem',
+                                                    fontWeight: '500',
+                                                    backgroundColor: cliente.is_ativo ? '#d1fae5' : '#fee2e2',
+                                                    color: cliente.is_ativo ? '#065f46' : '#991b1b'
+                                                }}>
+                                                    {cliente.is_ativo ? 'Ativo' : 'Inativo'}
+                                                </span>
+                                            </td>
+                                            <td style={{ padding: '1rem', textAlign: 'center' }}>
+                                                <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center' }}>
+                                                    <button 
+                                                        style={{
+                                                            background: 'linear-gradient(135deg, #3498db 0%, #2980b9 100%)',
+                                                            color: 'white',
+                                                            border: 'none',
+                                                            padding: '0.5rem',
+                                                            borderRadius: '6px',
+                                                            cursor: 'pointer',
+                                                            transition: 'all 0.3s ease',
+                                                            display: 'flex',
+                                                            alignItems: 'center',
+                                                            justifyContent: 'center',
+                                                            width: '36px',
+                                                            height: '36px'
+                                                        }}
+                                                        onMouseEnter={(e) => {
+                                                            e.target.style.background = 'linear-gradient(135deg, #2980b9 0%, #1f5f8b 100%)';
+                                                            e.target.style.transform = 'translateY(-1px)';
+                                                            e.target.style.boxShadow = '0 4px 12px rgba(52, 152, 219, 0.3)';
+                                                        }}
+                                                        onMouseLeave={(e) => {
+                                                            e.target.style.background = 'linear-gradient(135deg, #3498db 0%, #2980b9 100%)';
+                                                            e.target.style.transform = 'translateY(0)';
+                                                            e.target.style.boxShadow = 'none';
+                                                        }}
+                                                        onClick={() => handleEditClick(cliente)}
+                                                        title="Editar cliente"
+                                                    >
+                                                        <IconEdit />
+                                                    </button>
+                                                    <button 
+                                                        style={{
+                                                            background: cliente.is_ativo 
+                                                                ? 'linear-gradient(135deg, #e74c3c 0%, #c0392b 100%)' 
+                                                                : 'linear-gradient(135deg, #27ae60 0%, #229954 100%)',
+                                                            color: 'white',
+                                                            border: 'none',
+                                                            padding: '0.5rem',
+                                                            borderRadius: '6px',
+                                                            cursor: 'pointer',
+                                                            transition: 'all 0.3s ease',
+                                                            display: 'flex',
+                                                            alignItems: 'center',
+                                                            justifyContent: 'center',
+                                                            width: '36px',
+                                                            height: '36px'
+                                                        }}
+                                                        onMouseEnter={(e) => {
+                                                            if (cliente.is_ativo) {
+                                                                e.target.style.background = 'linear-gradient(135deg, #c0392b 0%, #922b21 100%)';
+                                                                e.target.style.boxShadow = '0 4px 12px rgba(231, 76, 60, 0.3)';
+                                                            } else {
+                                                                e.target.style.background = 'linear-gradient(135deg, #229954 0%, #1e7e34 100%)';
+                                                                e.target.style.boxShadow = '0 4px 12px rgba(39, 174, 96, 0.3)';
+                                                            }
+                                                            e.target.style.transform = 'translateY(-1px)';
+                                                        }}
+                                                        onMouseLeave={(e) => {
+                                                            e.target.style.background = cliente.is_ativo 
+                                                                ? 'linear-gradient(135deg, #e74c3c 0%, #c0392b 100%)' 
+                                                                : 'linear-gradient(135deg, #27ae60 0%, #229954 100%)';
+                                                            e.target.style.transform = 'translateY(0)';
+                                                            e.target.style.boxShadow = 'none';
+                                                        }}
+                                                        onClick={() => handleToggleStatus(cliente.id, !cliente.is_ativo)}
+                                                        title={cliente.is_ativo ? 'Desativar cliente' : 'Ativar cliente'}
+                                                    >
+                                                        <IconToggle isActive={cliente.is_ativo} />
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
             </section>
