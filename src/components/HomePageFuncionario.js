@@ -1,6 +1,8 @@
 import React from 'react';
 
-function HomePageFuncionario({ userData, onNavigateToVisualizarClientes, onNavigateToCadastrarCliente, onLogout }) {
+function HomePageFuncionario({ userData, onNavigateToVisualizarClientes, onNavigateToVisualizarServicos, onLogout }) {
+
+    const isGestor = userData?.cargo?.toLowerCase() === 'gestor';
 
     return (
         <>
@@ -16,6 +18,13 @@ function HomePageFuncionario({ userData, onNavigateToVisualizarClientes, onNavig
                         <button className="btn btn-outline-white hover-lift" onClick={onNavigateToVisualizarClientes}>
                             👥 Visualizar Clientes
                         </button>
+
+                        {isGestor && (
+                            <button className="btn btn-outline-white hover-lift" onClick={onNavigateToVisualizarServicos}>
+                                🛠 Gerenciar Serviços
+                            </button>
+                        )}
+
                         <button className="btn btn-outline-white hover-lift" onClick={onLogout}>
                             🚪 Sair
                         </button>
@@ -28,7 +37,7 @@ function HomePageFuncionario({ userData, onNavigateToVisualizarClientes, onNavig
                     <div className="text-center" style={{marginBottom: '3rem'}}>
                         <h2 className="section-title">Bem-vindo à área administrativa</h2>
                         <p className="section-description">
-                            Use os botões acima para gerenciar clientes de forma rápida e segura.
+                            Use os botões acima para gerenciar clientes e serviços de forma rápida e segura.
                         </p>
                     </div>
                 </div>

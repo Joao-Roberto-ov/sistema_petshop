@@ -7,6 +7,7 @@ import SignupScreen from './components/SignupScreen';
 import Dashboard from './components/Dashboard';
 import HomePageFuncionario from './components/HomePageFuncionario';
 import VisualizarClientes from "./components/VisualizarClientes";
+import VisualizarServicos from "./components/VisualizarServicos"; // nova tela
 import PetCadastroScreen from './components/PetCadastroScreen';
 import MeusPetsScreen from './components/MeusPetsScreen';
 import MeuPerfilScreen from './components/MeuPerfilScreen';
@@ -60,6 +61,7 @@ function App() {
                         onLogout={handleLogout}
                     />;
         }
+
         switch (currentScreen) {
             case 'login':
                 return <LoginScreen
@@ -94,10 +96,23 @@ function App() {
                 return <HomePageFuncionario
                     userData={userData}
                     onNavigateToVisualizarClientes={() => setCurrentScreen('visualizarClientes')}
+                    onNavigateToVisualizarServicos={() => setCurrentScreen('visualizarServicos')} // link para serviços
                     onLogout={handleLogout}
                 />;
             case 'visualizarClientes':
                 return <VisualizarClientes onBack={() => navigateToHome()} />;
+            case 'visualizarServicos':
+                // verifica se o usuário é gestor
+                if (!userData?.cargo || userData.cargo.toLowerCase() !== 'gestor') {
+                    return (
+                        <div className="container" style={{ padding: '2rem' }}>
+                            <h2>Acesso Negado</h2>
+                            <p>Você não tem permissão para gerenciar serviços.</p>
+                            <button className="btn btn-secondary" onClick={() => navigateToHome()}>Voltar</button>
+                        </div>
+                    );
+                }
+                return <VisualizarServicos onBack={() => navigateToHome()} />;
             case 'home':
             default:
                 return <HomePage
@@ -131,4 +146,5 @@ function App() {
         </div>
     );
 }
+
 export default App;
