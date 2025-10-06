@@ -26,7 +26,6 @@ function AppHeader({
         setIsDropdownOpen(false);
     };
 
-    // Nova função para lidar com o clique em "Serviços"
     const handleServicosClick = (e) => {
         e.preventDefault();
         alert('Função em desenvolvimento');
@@ -47,21 +46,23 @@ function AppHeader({
     const isFuncionarioOuAdmin = userData?.cargo &&
         (userData.cargo === 'FUNCIONARIO' || userData.cargo === 'GESTOR');
 
-    const isAdmin = userData?.cargo === 'GESTOR';
+    // Verificar se é admin/gestor (incluindo diferentes variações)
+    const cargoLower = userData?.cargo?.toLowerCase();
+    const isAdmin = userData?.cargo === 'GESTOR' || 
+                   userData?.cargo === 'ADMINISTRADOR' || 
+                   cargoLower === 'gestor' || 
+                   cargoLower === 'administrador';
 
     const handleProdutosClick = (e) => {
         e.preventDefault();
 
-        // Redireciona baseado no tipo de usuário
         if (!isLoggedIn) {
-            // Se não está logado, vai para produtos do cliente
             onNavigateToProdutos('cliente');
         } else if (userData?.cargo === 'GESTOR') {
             onNavigateToProdutos('gestor');
         } else if (userData?.cargo === 'FUNCIONARIO') {
             onNavigateToProdutos('funcionario');
         } else {
-            // Cliente logado
             onNavigateToProdutos('cliente');
         }
     };
@@ -102,18 +103,32 @@ function AppHeader({
                                 </a>
                             </li>
                             {isAdmin && (
-                                <li>
-                                    <a
-                                        href="#"
-                                        className="nav-link"
-                                        onClick={(e) => {
-                                            e.preventDefault();
-                                            window.dispatchEvent(new CustomEvent('navigate', { detail: 'funcionario-cadastro-admin' }));
-                                        }}
-                                    >
-                                        Cadastrar Funcionário
-                                    </a>
-                                </li>
+                                <>
+                                    <li>
+                                        <a
+                                            href="#"
+                                            className="nav-link"
+                                            onClick={(e) => {
+                                                e.preventDefault();
+                                                window.dispatchEvent(new CustomEvent('navigate', { detail: 'cadastro-funcionario-completo' }));
+                                            }}
+                                        >
+                                            Cadastrar Funcionário
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a
+                                            href="#"
+                                            className="nav-link"
+                                            onClick={(e) => {
+                                                e.preventDefault();
+                                                window.dispatchEvent(new CustomEvent('navigate', { detail: 'listar-funcionarios' }));
+                                            }}
+                                        >
+                                            Gerenciar Funcionários
+                                        </a>
+                                    </li>
+                                </>
                             )}
                             <li><a href="#" className="nav-link" onClick={handleServicosClick}>Serviços</a></li>
                         </>

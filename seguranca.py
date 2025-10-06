@@ -54,7 +54,7 @@ async def pegar_id_do_usuario_logado(token: str = Depends(oauth2_scheme)) -> int
 def decodifica_token(token: str) -> Optional[dict]:
     try:
         print(f"=== DECODIFICANDO TOKEN ===")
-        print(f"Token recebido: {token[:20]}...")  # Mostra apenas os primeiros 20 caracteres
+        print(f"Token recebido: {token[:20]}...") 
         
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITMO])
         print(f"✅ Token decodificado com sucesso: {payload}")
@@ -92,17 +92,16 @@ async def verificar_permissao_admin(token: str = Depends(oauth2_scheme)) -> int:
             detail="Acesso negado: Apenas funcionários podem realizar esta ação",
         )
     
-    # Sempre busca no banco de dados para garantir que o cargo é o mais atualizado
     repo_funcionario = RepositorioFuncionario()
     funcionario_data = repo_funcionario.procurar_pelo_id(int(user_id))
 
-    # Verificar pelos IDs corretos dos cargos administrativos
-    cargos_admin = [1, 2, 405, 524]  # Todos os IDs que são considerados administradores
+    # Apenas Gestor (ID 1) tem permissões de administrador
+    cargos_admin = [1]  # Apenas Gestor
     
     if not funcionario_data or funcionario_data.get("cargo_id") not in cargos_admin:
         raise HTTPException(
             status_code=403,
-            detail="Acesso negado: Apenas administradores podem realizar esta ação",
+            detail="Acesso negado: Apenas gestores podem realizar esta ação",
         )
 
     return int(user_id)

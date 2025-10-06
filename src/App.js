@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import './App.css';
 import AppHeader from './components/AppHeader';
 import HomePage from './components/HomePage';
@@ -9,11 +9,14 @@ import ResetPasswordScreen from './components/ResetPasswordScreen';
 import Dashboard from './components/Dashboard';
 import HomePageFuncionario from './components/HomePageFuncionario';
 import VisualizarClientes from "./components/VisualizarClientes";
-import VisualizarServicos from "./components/VisualizarServicos"; // nova tela
+import VisualizarServicos from "./components/VisualizarServicos"; 
 import PetCadastroScreen from './components/PetCadastroScreen';
 import MeusPetsScreen from './components/MeusPetsScreen';
 import MeuPerfilScreen from './components/MeuPerfilScreen';
 import FuncionarioCadastroAdminScreen from './components/FuncionarioCadastroAdminScreen';
+import CadastroFuncionarioCompleto from './components/CadastroFuncionarioCompleto';
+import ListarFuncionarios from './components/ListarFuncionarios';
+import GerenciarFuncionarios from './components/GerenciarFuncionarios';
 import CadastrarProdutoScreen from './components/CadastrarProduto';
 import VisualizarProdutosGestor from './components/VisualizarProdutosGestor';
 import VisualizarProdutosFuncionario from './components/VisualizarProdutosFuncionario';
@@ -40,6 +43,16 @@ function App() {
             setUserData(parsedUser);
             navigateToHome(parsedUser);
         }
+
+        const handleNavigate = (event) => {
+            setCurrentScreen(event.detail);
+        };
+
+        window.addEventListener('navigate', handleNavigate);
+        
+        return () => {
+            window.removeEventListener('navigate', handleNavigate);
+        };
     }, []);
 
     const navigateToHome = (user = userData, forced = false) => {
@@ -132,7 +145,8 @@ function App() {
                     onNavigateToCadastrarProduto={() => setCurrentScreen('cadastrarProduto')}
                     onNavigateToVisualizarProdutos={() => {
                         //verifica se é gestor ou funcionario
-                        if (userData?.cargo === 'gestor') {
+                        const cargoLower = userData?.cargo?.toLowerCase();
+                        if (cargoLower === 'gestor' || cargoLower === 'administrador') {
                             setCurrentScreen('visualizar-produtos-gestor');
                         } else {
                             setCurrentScreen('visualizar-produtos-funcionario');
@@ -173,6 +187,16 @@ function App() {
 
             case 'funcionario-cadastro-admin':
                 return <FuncionarioCadastroAdminScreen
+                />;
+
+            case 'cadastro-funcionario-completo':
+                return <CadastroFuncionarioCompleto
+                    onNavigateToHome={() => navigateToHome()}
+                />;
+
+            case 'listar-funcionarios':
+                return <GerenciarFuncionarios
+                    onNavigateToHome={() => navigateToHome()}
                 />;
 
             case 'cadastrarProduto':

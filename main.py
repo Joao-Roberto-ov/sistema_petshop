@@ -21,7 +21,7 @@ async def lifespan(app: FastAPI):
     sync_thread = threading.Thread(target=sync_data.run_sync)
     sync_thread.start()
 
-    yield #a aplicação vai ficar rodando aqui
+    yield  # Aqui a aplicação está rodando
 
     print("Encerrando aplicação.")
 

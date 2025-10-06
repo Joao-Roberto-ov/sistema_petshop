@@ -1,12 +1,7 @@
-// JavaScript para o sistema de cadastro de funcionários
-
-// Configurações da API
 const API_BASE_URL = '/api/funcionarios';
 
-// Elementos do DOM
 let form, alertContainer, modalListaFuncionarios;
 
-// Inicialização
 document.addEventListener('DOMContentLoaded', function() {
     form = document.getElementById('formCadastroFuncionario');
     alertContainer = document.getElementById('alertContainer');
@@ -16,22 +11,18 @@ document.addEventListener('DOMContentLoaded', function() {
     aplicarMascaras();
 });
 
-// Event Listeners
 function inicializarEventListeners() {
-    // Submit do formulário
+
     form.addEventListener('submit', handleSubmitForm);
     
-    // Mudança no select de dias de trabalho
     document.getElementById('diasTrabalho').addEventListener('change', handleDiasTrabalhoChange);
     
-    // Validação em tempo real
     const inputs = form.querySelectorAll('input, select');
     inputs.forEach(input => {
         input.addEventListener('blur', () => validarCampo(input));
         input.addEventListener('input', () => removerClasseInvalida(input));
     });
-    
-    // Checkboxes de dias personalizados
+  
     const checkboxesDias = document.querySelectorAll('#diasPersonalizados input[type="checkbox"]');
     checkboxesDias.forEach(checkbox => {
         checkbox.addEventListener('change', atualizarDiasPersonalizados);
@@ -66,7 +57,6 @@ function aplicarMascaras() {
     });
 }
 
-// Manipular mudança nos dias de trabalho
 function handleDiasTrabalhoChange(e) {
     const diasPersonalizados = document.getElementById('diasPersonalizados');
     if (e.target.value === 'Personalizado') {
@@ -77,7 +67,6 @@ function handleDiasTrabalhoChange(e) {
     }
 }
 
-// Atualizar dias personalizados
 function atualizarDiasPersonalizados() {
     const checkboxes = document.querySelectorAll('#diasPersonalizados input[type="checkbox"]:checked');
     const diasSelecionados = Array.from(checkboxes).map(cb => cb.value);
@@ -87,13 +76,11 @@ function atualizarDiasPersonalizados() {
     }
 }
 
-// Validar campo individual
 function validarCampo(input) {
     const value = input.value.trim();
     let isValid = true;
     let mensagem = '';
     
-    // Validações específicas por campo
     switch (input.name) {
         case 'nome_completo':
             isValid = value.length >= 2;
@@ -136,8 +123,7 @@ function validarCampo(input) {
             mensagem = 'Dias de trabalho são obrigatórios.';
             break;
     }
-    
-    // Aplicar classes de validação
+
     if (input.hasAttribute('required') && !value) {
         isValid = false;
         mensagem = 'Este campo é obrigatório.';
@@ -158,18 +144,15 @@ function validarCampo(input) {
     return isValid;
 }
 
-// Remover classe inválida durante digitação
 function removerClasseInvalida(input) {
     if (input.classList.contains('is-invalid')) {
         input.classList.remove('is-invalid');
     }
 }
 
-// Manipular submit do formulário
 async function handleSubmitForm(e) {
     e.preventDefault();
     
-    // Validar todos os campos
     const inputs = form.querySelectorAll('input[required], select[required]');
     let formValido = true;
     
@@ -179,7 +162,6 @@ async function handleSubmitForm(e) {
         }
     });
     
-    // Validação especial para horários
     const horarioInicio = document.getElementById('horarioInicio').value;
     const horarioFim = document.getElementById('horarioFim').value;
     
@@ -193,14 +175,11 @@ async function handleSubmitForm(e) {
         return;
     }
     
-    // Preparar dados
     const formData = new FormData(form);
     const dados = Object.fromEntries(formData.entries());
     
-    // Ajustar checkbox
     dados.is_ativo = document.getElementById('isAtivo').checked;
-    
-    // Limpar CPF se vazio
+
     if (!dados.cpf || dados.cpf.replace(/\D/g, '').length !== 11) {
         delete dados.cpf;
     }
@@ -213,12 +192,10 @@ async function handleSubmitForm(e) {
     }
 }
 
-// Cadastrar funcionário via API
 async function cadastrarFuncionario(dados) {
     const submitBtn = form.querySelector('button[type="submit"]');
     const originalText = submitBtn.innerHTML;
     
-    // Mostrar loading
     submitBtn.innerHTML = '<span class="loading"></span> Cadastrando...';
     submitBtn.disabled = true;
     
@@ -227,7 +204,7 @@ async function cadastrarFuncionario(dados) {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'Authorization': 'Bearer ' + getAuthToken() // Implementar conforme sistema de auth
+                'Authorization': 'Bearer ' + getAuthToken()
             },
             body: JSON.stringify(dados)
         });
@@ -255,13 +232,11 @@ async function cadastrarFuncionario(dados) {
             mostrarAlerta(error.message, 'danger');
         }
     } finally {
-        // Restaurar botão
         submitBtn.innerHTML = originalText;
         submitBtn.disabled = false;
     }
 }
 
-// Listar funcionários
 async function listarFuncionarios() {
     try {
         const response = await fetch(`${API_BASE_URL}/listar`, {
@@ -283,7 +258,6 @@ async function listarFuncionarios() {
     }
 }
 
-// Exibir lista de funcionários no modal
 function exibirListaFuncionarios(funcionarios) {
     const container = document.getElementById('listaFuncionarios');
     
@@ -337,7 +311,6 @@ function exibirListaFuncionarios(funcionarios) {
     container.innerHTML = html;
 }
 
-// Mostrar alerta
 function mostrarAlerta(mensagem, tipo = 'info') {
     const alertId = 'alert-' + Date.now();
     const alertHtml = `
@@ -349,7 +322,6 @@ function mostrarAlerta(mensagem, tipo = 'info') {
     
     alertContainer.innerHTML = alertHtml;
     
-    // Auto-remover após 5 segundos
     setTimeout(() => {
         const alert = document.getElementById(alertId);
         if (alert) {
@@ -358,11 +330,9 @@ function mostrarAlerta(mensagem, tipo = 'info') {
         }
     }, 5000);
     
-    // Scroll para o topo
     window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
-// Obter ícone para alerta
 function getIconeAlerta(tipo) {
     const icones = {
         'success': 'check-circle',
@@ -373,30 +343,24 @@ function getIconeAlerta(tipo) {
     return icones[tipo] || 'info-circle';
 }
 
-// Limpar formulário
 function limparFormulario() {
     form.reset();
     
-    // Remover classes de validação
     const inputs = form.querySelectorAll('.is-valid, .is-invalid');
     inputs.forEach(input => {
         input.classList.remove('is-valid', 'is-invalid');
     });
     
-    // Ocultar dias personalizados
     document.getElementById('diasPersonalizados').style.display = 'none';
     
-    // Marcar funcionário como ativo por padrão
     document.getElementById('isAtivo').checked = true;
     
-    // Focar no primeiro campo
     document.getElementById('nomeCompleto').focus();
 }
 
-// Obter token de autenticação (implementar conforme sistema)
+// Obter token de autenticação
 function getAuthToken() {
     // Por enquanto, retorna um token fictício
-    // Em produção, implementar conforme sistema de autenticação
     return 'token_ficticio_admin';
 }
 

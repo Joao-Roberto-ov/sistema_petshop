@@ -1,20 +1,19 @@
 import React from 'react';
 
-// ATUALIZAÇÃO 1: Adicionada a nova prop "onNavigateToVisualizarServicos"
 function HomePageFuncionario({
     userData,
     onNavigateToVisualizarClientes,
     onNavigateToCadastrarProduto,
     onNavigateToFuncionarioCadastroAdmin,
     onNavigateToVisualizarProdutos,
-    onNavigateToVisualizarServicos, // Nova prop
+    onNavigateToVisualizarServicos, 
     onLogout
 }) {
 
-    // ATUALIZAÇÃO 2: Adicionada uma constante para verificar o cargo de gestor (boa prática do código-fonte)
-    const isGestor = userData?.cargo?.toLowerCase() === 'gestor';
-    // Mantendo a verificação de ADMINISTRADOR, pois parece ser um cargo distinto no seu código
-    const isAdmin = userData?.cargo === 'ADMINISTRADOR';
+    const cargoLower = userData?.cargo?.toLowerCase();
+    const isGestor = cargoLower === 'gestor';
+    const isAdmin = userData?.cargo === 'ADMINISTRADOR' || cargoLower === 'administrador';
+    const isAdminOuGestor = isGestor || isAdmin;
 
     const services = [
         {
@@ -23,23 +22,28 @@ function HomePageFuncionario({
             description: "Gerencie e visualize todos os clientes cadastrados no sistema.",
             onClick: onNavigateToVisualizarClientes
         },
-        // ATUALIZAÇÃO 3: Adicionado o card de "Gerenciar Serviços" para gestores
-        ...(isGestor ? [{
+        ...(isAdminOuGestor ? [{
             icon: '🛠',
             title: "Gerenciar Serviços",
             description: "Adicione, edite ou remova os serviços oferecidos pela PetLife.",
             onClick: onNavigateToVisualizarServicos
         }] : []),
-        ...(isAdmin ? [{
-            icon: '➕',
+        ...(isAdminOuGestor ? [{
+            icon: '👨‍💼',
             title: "Cadastrar Funcionário",
-            description: "Adicione novos funcionários ao sistema (exclusivo para administradores).",
-            onClick: onNavigateToFuncionarioCadastroAdmin
+            description: "Adicione novos funcionários ao sistema com informações completas.",
+            onClick: () => window.dispatchEvent(new CustomEvent('navigate', { detail: 'cadastro-funcionario-completo' }))
+        }] : []),
+        ...(isAdminOuGestor ? [{
+            icon: '👥',
+            title: "Gerenciar Funcionários",
+            description: "Visualize e gerencie todos os funcionários cadastrados no sistema.",
+            onClick: () => window.dispatchEvent(new CustomEvent('navigate', { detail: 'listar-funcionarios' }))
         }] : []),
         {
             icon: '🛒',
-            title: isGestor ? "Gerenciar Produtos" : "Consultar Produtos",
-            description: isGestor
+            title: isAdminOuGestor ? "Gerenciar Produtos" : "Consultar Produtos",
+            description: isAdminOuGestor
                 ? "Cadastre e edite produtos do sistema."
                 : "Consulte disponibilidade e preços de produtos.",
             onClick: onNavigateToVisualizarProdutos
@@ -99,7 +103,7 @@ function HomePageFuncionario({
                             </button>
                         )}
 
-                        {/* ATUALIZAÇÃO 4: Botões de produtos e serviços agrupados e refatorados */}
+                        {/* Botões de produtos e serviços agrupados e refatorados */}
                         {isGestor ? (
                             <>
                                 <button className="btn btn-outline-white hover-lift" onClick={onNavigateToCadastrarProduto}>

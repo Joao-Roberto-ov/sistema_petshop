@@ -5,7 +5,8 @@ import '../App.css';
 const CARGOS = {
     GESTOR: 1,
     FUNCIONARIO: 2,
-    ADMINISTRADOR: 3
+    VETERINARIO: 3,
+    ATENDENTE: 4,
 };
 
 function FuncionarioCadastroAdminScreen({ onNavigateToHome }) {
@@ -183,9 +184,10 @@ function FuncionarioCadastroAdminScreen({ onNavigateToHome }) {
                             required
                         >
                             <option value="">Selecione um cargo</option>
+                            <option value={CARGOS.VETERINARIO}>Veterinário</option>
+                            <option value={CARGOS.ATENDENTE}>Atendente</option>
                             <option value={CARGOS.GESTOR}>Gestor</option>
                             <option value={CARGOS.FUNCIONARIO}>Funcionário</option>
-                            <option value={CARGOS.ADMINISTRADOR}>Administrador</option>
                         </select>
                     </div>
 

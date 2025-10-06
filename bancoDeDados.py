@@ -91,8 +91,13 @@ def criar_tabelas():
             Senha TEXT NOT NULL,
             Telefone VARCHAR(20)NOT NULL,
             Endereco VARCHAR(400) DEFAULT 'Não informado',
+            Cargo_funcao VARCHAR(100) NOT NULL,
+            Horario_inicio TIME NOT NULL,
+            Horario_fim TIME NOT NULL,
+            Dias_trabalho TEXT NOT NULL,
             Cargo_id INT NOT NULL REFERENCES Cargos(Id),
-            Is_ativo BOOLEAN DEFAULT TRUE
+            Is_ativo BOOLEAN DEFAULT TRUE,
+            Data_cadastro TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
         );""")
 
         curs.execute("""CREATE TABLE IF NOT EXISTS Pets (
