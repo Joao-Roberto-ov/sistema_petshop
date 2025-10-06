@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import axios from '../api/axios';
 
-function LoginScreen({ onLogin, onNavigateToSignup, setUserData }) {
+function LoginScreen({ onLogin, onNavigateToSignup, onNavigateToForgotPassword, setUserData }) {
     const [formData, setFormData] = useState({ email: '', senha: '' });
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
@@ -10,7 +10,7 @@ function LoginScreen({ onLogin, onNavigateToSignup, setUserData }) {
         e.preventDefault();
         setLoading(true);
         setError('');
-
+         console.log("Enviando para o login:", formData);
         try {
             const response = await axios.post('/login', formData);
             const user = response.data.user;
@@ -61,6 +61,11 @@ function LoginScreen({ onLogin, onNavigateToSignup, setUserData }) {
                         {loading ? 'Entrando...' : 'Entrar'}
                     </button>
                 </form>
+                <div className="forgot-password-link">
+                    <a href="#" onClick={(e) => { e.preventDefault(); onNavigateToForgotPassword(); }}>
+                        Esqueci minha senha
+                    </a>
+                </div>
                 <div className="login-footer">
                     Não tem uma conta? <a href="#" onClick={(e) => { e.preventDefault(); onNavigateToSignup(); }}>Cadastre-se</a>
                 </div>

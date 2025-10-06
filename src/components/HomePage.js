@@ -1,6 +1,6 @@
 import React from 'react';
 
-function HomePage({ onNavigateToLogin, onNavigateToSignup, isLoggedIn, userData, onLogout, onNavigateToDashboard }) {
+function HomePage({ onNavigateToLogin, onNavigateToSignup, onNavigateToProdutos, isLoggedIn, userData, onLogout, onNavigateToDashboard }) {
     const handlePlaceholderClick = (feature) => {
         alert(`A funcionalidade "${feature}" será implementada em breve!`);
     };
@@ -19,7 +19,7 @@ function HomePage({ onNavigateToLogin, onNavigateToSignup, isLoggedIn, userData,
     ];
 
     const testimonials = [
-        { name: "Ana P.", pet: "Toby, Golden Retriever", text: "O atendimento na PetLife é incrível! O Dr. Ricardo foi super atencioso com o Toby e o banho ficou impecável. Recomendo de olhos fechados!" },
+        { name: "Ana P.", pet: "Toby, Golden Retriever", text: "O atendimento na PetLife é incrível! O Dr. Ricardo foi super atencioso com o Toby e o banho ficou impecável. Recomendo de olhos fechos!" },
         { name: "Carlos S.", pet: "Mimi, Gata SRD", text: "Levei a Mimi para vacinar e a equipe foi muito paciente e carinhosa. O sistema de agendamento online facilitou muito minha vida." },
         { name: "Juliana M.", pet: "Fred, Bulldog Francês", text: "A melhor pet shop da cidade! Encontro tudo que preciso para o Fred, e a equipe está sempre pronta para ajudar com as melhores indicações." }
     ];
@@ -38,7 +38,8 @@ function HomePage({ onNavigateToLogin, onNavigateToSignup, isLoggedIn, userData,
                     </p>
                     <div className="hero-buttons">
                         <button className="btn btn-outline-white hover-lift" onClick={() => handlePlaceholderClick('Agendamento')}>📅 Agendar Serviço</button>
-                        <button className="btn btn-outline-white hover-lift" onClick={() => handlePlaceholderClick('Produtos')}>🛒 Ver Produtos</button>
+                        {/* ATUALIZAÇÃO 2: O onClick foi alterado para usar a nova prop */}
+                        <button className="btn btn-outline-white hover-lift" onClick={onNavigateToProdutos}>🛒 Ver Produtos</button>
                         {isLoggedIn && <button className="btn btn-outline-white hover-lift" onClick={onNavigateToDashboard}>📊 Meu Dashboard</button>}
                     </div>
                 </div>
