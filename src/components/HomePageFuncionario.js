@@ -5,6 +5,8 @@ function HomePageFuncionario({
     onNavigateToVisualizarClientes,
     onNavigateToCadastrarProduto,
     onNavigateToFuncionarioCadastroAdmin,
+    onNavigateToCadastroFuncionarioCompleto,
+    onNavigateToGerenciarFuncionarios,
     onNavigateToVisualizarProdutos,
     onNavigateToVisualizarServicos, 
     onLogout
@@ -32,13 +34,13 @@ function HomePageFuncionario({
             icon: '👨‍💼',
             title: "Cadastrar Funcionário",
             description: "Adicione novos funcionários ao sistema com informações completas.",
-            onClick: () => window.dispatchEvent(new CustomEvent('navigate', { detail: 'cadastro-funcionario-completo' }))
+            onClick: onNavigateToCadastroFuncionarioCompleto
         }] : []),
         ...(isAdminOuGestor ? [{
             icon: '👥',
             title: "Gerenciar Funcionários",
             description: "Visualize e gerencie todos os funcionários cadastrados no sistema.",
-            onClick: () => window.dispatchEvent(new CustomEvent('navigate', { detail: 'listar-funcionarios' }))
+            onClick: onNavigateToGerenciarFuncionarios
         }] : []),
         {
             icon: '🛒',

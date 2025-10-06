@@ -129,9 +129,22 @@ function CadastroFuncionarioCompleto({ onNavigateToHome }) {
 
         try {
             const token = localStorage.getItem('token');
+            
+            // Mapear cargo_id para cargo_funcao (nome do cargo)
+            const cargoNomes = {
+                1: 'Gestor',
+                2: 'Funcionário',
+                3: 'Veterinário',
+                4: 'Atendente'
+            };
+            
+            const cargoIdInt = parseInt(cargoId);
+            const cargoFuncaoValue = cargoNomes[cargoIdInt] || 'Funcionário';
+            
             const dadosFuncionario = {
                 nome: nome.trim(),
-                cargo_id: parseInt(cargoId),
+                cargo_id: cargoIdInt,
+                cargo_funcao: cargoFuncaoValue, // Adiciona o nome do cargo
                 email: email.trim(),
                 telefone: telefone.replace(/\D/g, ''), // Remove formatação
                 cpf: cpf ? cpf.replace(/\D/g, '') : null, // Remove formatação
@@ -142,6 +155,12 @@ function CadastroFuncionarioCompleto({ onNavigateToHome }) {
                 senha: senha,
                 is_ativo: isAtivo
             };
+
+            // DEBUG: Verificar o que está sendo enviado
+            console.log('=== DADOS DO FUNCIONÁRIO ===');
+            console.log('cargo_id:', cargoIdInt);
+            console.log('cargo_funcao:', cargoFuncaoValue);
+            console.log('Objeto completo:', dadosFuncionario);
 
             // Cadastro no banco de dados (AC2)
             const response = await axios.post('/funcionario/cadastrar', dadosFuncionario, {

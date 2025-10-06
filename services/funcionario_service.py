@@ -170,7 +170,8 @@ class ServicosFuncionario:
                 is_ativo=funcionario_data.is_ativo,
                 horario_inicio=funcionario_data.horario_inicio,
                 horario_fim=funcionario_data.horario_fim,
-                dias_trabalho=funcionario_data.dias_trabalho
+                dias_trabalho=funcionario_data.dias_trabalho,
+                cargo_funcao=funcionario_data.cargo_funcao
             )
             
             return {
