@@ -147,6 +147,7 @@ class FuncionarioCadastroPorAdmin(BaseModel):
 class FuncionarioCadastro(BaseModel):
     nome: str = Field(..., min_length=1, description="Nome completo é obrigatório")
     cargo_id: int = Field(..., description="ID do cargo é obrigatório")
+    cargo_funcao: str = Field(..., min_length=1, description="Nome do cargo (ex: Gestor, Veterinário)")
     email: EmailStr
     telefone: str = Field(..., min_length=1, description="Telefone é obrigatório")
     cpf: Optional[str] = None

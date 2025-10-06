@@ -80,7 +80,7 @@ class RepositorioFuncionario:
             if cursor: cursor.close()
             if conn: encerra_conexao(conn)
 
-    def cadastrar_funcionario(self, nome, email, senha_hash, telefone, endereco, cpf, cargo_id, is_ativo=True, horario_inicio=None, horario_fim=None, dias_trabalho=None):
+    def cadastrar_funcionario(self, nome, email, senha_hash, telefone, endereco, cpf, cargo_id, is_ativo=True, horario_inicio=None, horario_fim=None, dias_trabalho=None, cargo_funcao=None):
         """
         Insere um novo funcionário com horários de trabalho
         """
@@ -92,11 +92,11 @@ class RepositorioFuncionario:
             cursor = conn.cursor()
             sql = """
                 INSERT INTO Funcionarios
-                (nome, email, senha, telefone, endereco, cpf, horario_inicio, horario_fim, dias_trabalho, cargo_id, is_ativo)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                (nome, email, senha, telefone, endereco, cpf, horario_inicio, horario_fim, dias_trabalho, cargo_id, cargo_funcao, is_ativo)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                 RETURNING id
             """
-            cursor.execute(sql, (nome, email, senha_hash, telefone, endereco, cpf, horario_inicio, horario_fim, dias_trabalho, cargo_id, is_ativo))
+            cursor.execute(sql, (nome, email, senha_hash, telefone, endereco, cpf, horario_inicio, horario_fim, dias_trabalho, cargo_id, cargo_funcao, is_ativo))
             user_id = cursor.fetchone()[0]
             conn.commit()
             return user_id

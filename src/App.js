@@ -143,8 +143,9 @@ function App() {
                     onNavigateToVisualizarServicos={() => setCurrentScreen('visualizarServicos')}
                     onNavigateToFuncionarioCadastroAdmin={() => setCurrentScreen("funcionario-cadastro-admin")}
                     onNavigateToCadastrarProduto={() => setCurrentScreen('cadastrarProduto')}
+                    onNavigateToCadastroFuncionarioCompleto={() => setCurrentScreen('cadastro-funcionario-completo')}
+                    onNavigateToGerenciarFuncionarios={() => setCurrentScreen('listar-funcionarios')}
                     onNavigateToVisualizarProdutos={() => {
-                        //verifica se é gestor ou funcionario
                         const cargoLower = userData?.cargo?.toLowerCase();
                         if (cargoLower === 'gestor' || cargoLower === 'administrador') {
                             setCurrentScreen('visualizar-produtos-gestor');
@@ -173,7 +174,6 @@ function App() {
             case 'visualizarClientes':
                 return <VisualizarClientes onBack={() => navigateToHome()} />;
             case 'visualizarServicos':
-                // verifica se o usuário é gestor
                 if (!userData?.cargo || userData.cargo.toLowerCase() !== 'gestor') {
                     return (
                         <div className="container" style={{ padding: '2rem' }}>

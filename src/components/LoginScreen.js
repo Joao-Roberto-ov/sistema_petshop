@@ -10,7 +10,7 @@ function LoginScreen({ onLogin, onNavigateToSignup, onNavigateToForgotPassword, 
         e.preventDefault();
         setLoading(true);
         setError('');
-         console.log("Enviando para o login:", formData);
+
         try {
             const response = await axios.post('/login', formData);
             const user = response.data.user;
@@ -55,7 +55,7 @@ function LoginScreen({ onLogin, onNavigateToSignup, onNavigateToForgotPassword, 
                     </div>
                     <div className="form-group">
                         <label className="form-label">Senha <span className="required">*</span></label>
-                        <input type="password" className="form-input" placeholder="Sua senha" value={formData.senha} onChange={(e) => setFormData({...formData, senha: e.target.value})} required />
+                        <input type="password" className="form-input" placeholder="Sua senha" value={formData.senha} onChange={(e) => setFormData({...formData, senha: e.target.value})} required autoComplete="new-password" />
                     </div>
                     <button type="submit" className="btn-submit" disabled={loading}>
                         {loading ? 'Entrando...' : 'Entrar'}
