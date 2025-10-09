@@ -70,7 +70,9 @@ async def rota_buscar_todos(service: ServicosCliente = Depends(pegar_servicos_cl
     Retorna a lista de todos os clientes cadastrados.
     """
     try:
+        print("=== INICIANDO BUSCA DE CLIENTES ===")
         clientes = service.buscar_todos()
+        print(f"=== CLIENTES ENCONTRADOS: {len(clientes)} ===")
         return clientes
     except Exception as e:
         raise HTTPException(status_code=500, detail="Erro ao buscar clientes.")

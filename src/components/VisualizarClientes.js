@@ -1,12 +1,30 @@
 import React, { useEffect, useState } from 'react';
 import axios from '../api/axios';
 
+// Ícones SVG para os botões da tabela
+const IconEdit = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+    </svg>
+);
+
+const IconToggle = ({ isActive }) => (
+    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        {isActive ? (
+            <path d="M18 6 6 18M6 6l12 12"/>
+        ) : (
+            <path d="M20 6 9 17l-5-5"/>
+        )}
+    </svg>
+);
+
 function VisualizarClientes({ onBack }) {
     const [clientes, setClientes] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [showForm, setShowForm] = useState(false);
-    const [editingId, setEditingId] = useState(null); // ID do cliente sendo editado
+    const [editingId, setEditingId] = useState(null);
 
     // Formulário
     const [formData, setFormData] = useState({
@@ -32,9 +50,7 @@ function VisualizarClientes({ onBack }) {
                 headers: { Authorization: `Bearer ${token}` }
             });
 
-            // Ordena por id
             const clientesOrdenados = response.data.sort((a, b) => a.id - b.id);
-
             setClientes(clientesOrdenados);
         } catch (err) {
             setError(err.response?.data?.detail || 'Erro ao buscar clientes.');
@@ -42,7 +58,6 @@ function VisualizarClientes({ onBack }) {
             setLoading(false);
         }
     };
-
 
     const handleFormSubmit = async (e) => {
         e.preventDefault();
@@ -60,13 +75,11 @@ function VisualizarClientes({ onBack }) {
             const token = localStorage.getItem('token');
 
             if (editingId) {
-                // Edição de cliente existente
                 await axios.put(`/funcionario/editar-cliente/${editingId}`, dadosParaEnviar, {
                     headers: { Authorization: `Bearer ${token}` }
                 });
                 setFormSuccess(`Cliente '${formData.nome}' atualizado com sucesso!`);
             } else {
-                // Cadastro de novo cliente
                 const response = await axios.post('/funcionario/cadastrar-cliente', {
                     ...dadosParaEnviar,
                     cpf: formData.cpf.replace(/\D/g, '') || null
@@ -79,7 +92,7 @@ function VisualizarClientes({ onBack }) {
             setFormData({ nome: '', email: '', telefone: '', cpf: '', endereco: '' });
             setEditingId(null);
             setShowForm(false);
-            fetchClientes(); // Atualiza lista de clientes
+            fetchClientes();
         } catch (err) {
             let mensagemErro = 'Erro ao processar formulário.';
             if (err.response?.data) {
@@ -91,6 +104,36 @@ function VisualizarClientes({ onBack }) {
             setFormError(mensagemErro);
         } finally {
             setFormLoading(false);
+        }
+    };
+
+    const handleToggleStatus = async (clienteId, newStatus) => {
+        if (!window.confirm(`Tem certeza que deseja ${newStatus ? 'ativar' : 'desativar'} este cliente?`)) {
+            return;
+        }
+        
+        try {
+            const token = localStorage.getItem('token');
+            const url = `http://localhost:8000/api/admin/clientes/${clienteId}/status?is_ativo=${newStatus}`;
+            
+            const response = await axios.put(url, {}, {
+                headers: { 
+                    Authorization: `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+            
+            fetchClientes();
+            alert(`Cliente ${newStatus ? 'ativado' : 'desativado'} com sucesso!`);
+            
+        } catch (err) {
+            if (err.response?.status === 401) {
+                alert('Sessão expirada. Faça login novamente.');
+            } else {
+                const errorMsg = err.response?.data?.detail || 'Erro ao alterar status do cliente.';
+                setError(errorMsg);
+                alert(errorMsg);
+            }
         }
     };
 
@@ -108,117 +151,317 @@ function VisualizarClientes({ onBack }) {
         setFormError('');
     };
 
-    if (loading) return <p className="container">Carregando clientes...</p>;
-    if (error) return <p className="container">{error}</p>;
+    if (loading) {
+        return (
+            <div className="login-container">
+                <div className="login-card" style={{ textAlign: 'center' }}>
+                    <h2>Carregando clientes...</h2>
+                </div>
+            </div>
+        );
+    }
+
+    if (error && clientes.length === 0) {
+        return (
+            <div className="login-container">
+                <div className="login-card">
+                    <div className="error-message">{error}</div>
+                    <button className="btn-submit" onClick={onBack}>Voltar</button>
+                </div>
+            </div>
+        );
+    }
 
     return (
-        <section className="section" style={{ backgroundColor: '#f8f8f8', padding: '2rem' }}>
-            <div className="container">
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem' }}>
-                    <h2>Clientes Cadastrados</h2>
-                    <div>
-                        <button className="btn btn-secondary hover-lift" onClick={() => {
-                            setShowForm(!showForm);
-                            if (!showForm) setEditingId(null);
-                        }}>
-                            {showForm ? 'Cancelar' : 'Cadastrar Novo Cliente'}
+        <>
+            <section className="hero">
+                <div className="container">
+                    <h1 className="animate-fade-in-up">Gerenciar Clientes</h1>
+                    <p className="animate-fade-in-up">
+                        Visualize, edite e gerencie todos os clientes cadastrados no sistema.
+                    </p>
+                    <div className="hero-buttons">
+                        <button 
+                            className="btn btn-outline-white hover-lift" 
+                            onClick={() => {
+                                setShowForm(!showForm);
+                                if (!showForm) {
+                                    setEditingId(null);
+                                    setFormData({ nome: '', email: '', telefone: '', cpf: '', endereco: '' });
+                                    setFormError('');
+                                    setFormSuccess('');
+                                }
+                            }}
+                        >
+                            {showForm ? '❌ Cancelar' : '➕ Cadastrar Novo Cliente'}
                         </button>
-                        <button className="btn btn-secondary hover-lift" onClick={onBack} style={{ marginLeft: '0.5rem' }}>
-                            Voltar
+                        <button className="btn btn-outline-white hover-lift" onClick={onBack}>
+                            ← Voltar
                         </button>
                     </div>
                 </div>
+            </section>
 
-                {showForm && (
-                    <div style={{ marginBottom: '2rem', padding: '1rem', background: '#fff', boxShadow: '0 2px 5px rgba(0,0,0,0.1)', borderRadius: '5px' }}>
-                        {formError && <div style={{ color: 'red', marginBottom: '0.5rem' }}>{formError}</div>}
-                        {formSuccess && <div style={{ color: 'green', marginBottom: '0.5rem' }}>{formSuccess}</div>}
-                        <form onSubmit={handleFormSubmit}>
-                            <div style={{ marginBottom: '0.5rem' }}>
-                                <input
-                                    type="text"
-                                    placeholder="Nome completo *"
-                                    value={formData.nome}
-                                    onChange={e => setFormData({ ...formData, nome: e.target.value })}
-                                    required
-                                    style={{ width: '100%', padding: '0.5rem', borderRadius: '5px', border: '1px solid #ccc' }}
-                                />
+            {showForm && (
+                <section className="section bg-light">
+                    <div className="container">
+                        <div className="login-card" style={{ maxWidth: '800px', margin: '0 auto' }}>
+                            <div className="login-header">
+                                <h2>{editingId ? 'Editar Cliente' : 'Cadastrar Novo Cliente'}</h2>
+                                <p>Preencha os dados abaixo</p>
                             </div>
-                            <div style={{ marginBottom: '0.5rem' }}>
-                                <input
-                                    type="email"
-                                    placeholder="Email *"
-                                    value={formData.email}
-                                    onChange={e => setFormData({ ...formData, email: e.target.value })}
-                                    required
-                                    style={{ width: '100%', padding: '0.5rem', borderRadius: '5px', border: '1px solid #ccc' }}
-                                />
-                            </div>
-                            <div style={{ marginBottom: '0.5rem' }}>
-                                <input
-                                    type="tel"
-                                    placeholder="Telefone"
-                                    value={formData.telefone}
-                                    onChange={e => setFormData({ ...formData, telefone: e.target.value })}
-                                    style={{ width: '100%', padding: '0.5rem', borderRadius: '5px', border: '1px solid #ccc' }}
-                                />
-                            </div>
-                            <div style={{ marginBottom: '0.5rem' }}>
-                                <input
-                                    type="text"
-                                    placeholder="Endereço (opcional)"
-                                    value={formData.endereco}
-                                    onChange={e => setFormData({ ...formData, endereco: e.target.value })}
-                                    style={{ width: '100%', padding: '0.5rem', borderRadius: '5px', border: '1px solid #ccc' }}
-                                />
-                            </div>
-                            <button
-                                type="submit"
-                                disabled={formLoading}
-                                style={{
-                                    padding: '0.5rem 1rem',
-                                    background: formLoading ? '#6c757d' : '#007bff',
-                                    color: '#fff',
-                                    border: 'none',
-                                    borderRadius: '5px',
-                                    cursor: formLoading ? 'not-allowed' : 'pointer',
-                                    fontWeight: 'bold'
-                                }}
-                            >
-                                {formLoading ? (editingId ? 'Atualizando...' : 'Cadastrando...') : (editingId ? 'Atualizar Cliente' : 'Cadastrar Cliente')}
-                            </button>
-                        </form>
+
+                            {formError && <div className="error-message">{formError}</div>}
+                            {formSuccess && <div className="success-message">{formSuccess}</div>}
+
+                            <form onSubmit={handleFormSubmit}>
+                                <div className="form-group">
+                                    <label className="form-label">
+                                        Nome Completo <span className="required">*</span>
+                                    </label>
+                                    <input
+                                        type="text"
+                                        className="form-input"
+                                        placeholder="Digite o nome completo"
+                                        value={formData.nome}
+                                        onChange={e => setFormData({ ...formData, nome: e.target.value })}
+                                        required
+                                    />
+                                </div>
+
+                                <div className="form-group">
+                                    <label className="form-label">
+                                        Email <span className="required">*</span>
+                                    </label>
+                                    <input
+                                        type="email"
+                                        className="form-input"
+                                        placeholder="Digite o email"
+                                        value={formData.email}
+                                        onChange={e => setFormData({ ...formData, email: e.target.value })}
+                                        required
+                                    />
+                                </div>
+
+                                <div className="form-group">
+                                    <label className="form-label">Telefone</label>
+                                    <input
+                                        type="tel"
+                                        className="form-input"
+                                        placeholder="Digite o telefone"
+                                        value={formData.telefone}
+                                        onChange={e => setFormData({ ...formData, telefone: e.target.value })}
+                                    />
+                                </div>
+
+                                <div className="form-group">
+                                    <label className="form-label">Endereço</label>
+                                    <input
+                                        type="text"
+                                        className="form-input"
+                                        placeholder="Digite o endereço"
+                                        value={formData.endereco}
+                                        onChange={e => setFormData({ ...formData, endereco: e.target.value })}
+                                    />
+                                </div>
+
+                                {!editingId && (
+                                    <div className="form-group">
+                                        <label className="form-label">CPF</label>
+                                        <input
+                                            type="text"
+                                            className="form-input"
+                                            placeholder="Digite o CPF"
+                                            value={formData.cpf}
+                                            onChange={e => setFormData({ ...formData, cpf: e.target.value })}
+                                        />
+                                    </div>
+                                )}
+
+                                <button 
+                                    type="submit" 
+                                    className="btn-submit"
+                                    disabled={formLoading}
+                                >
+                                    {formLoading 
+                                        ? (editingId ? 'Atualizando...' : 'Cadastrando...') 
+                                        : (editingId ? 'Atualizar Cliente' : 'Cadastrar Cliente')
+                                    }
+                                </button>
+                            </form>
+                        </div>
                     </div>
-                )}
+                </section>
+            )}
 
-                <table style={{ width: '100%', borderCollapse: 'collapse', background: '#fff', boxShadow: '0 2px 5px rgba(0,0,0,0.1)', borderRadius: '5px' }}>
-                    <thead style={{ backgroundColor: '#007bff', color: '#fff' }}>
-                        <tr>
-                            <th style={{ padding: '10px', textAlign: 'left' }}>Nome</th>
-                            <th style={{ padding: '10px', textAlign: 'left' }}>Email</th>
-                            <th style={{ padding: '10px', textAlign: 'left' }}>Telefone</th>
-                            <th style={{ padding: '10px', textAlign: 'left' }}>Endereço</th>
-                            <th style={{ padding: '10px', textAlign: 'left' }}>CPF</th>
-                            <th style={{ padding: '10px', textAlign: 'left' }}>Ações</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {clientes.map(cliente => (
-                            <tr key={cliente.id} style={{ borderBottom: '1px solid #ddd' }}>
-                                <td style={{ padding: '10px' }}>{cliente.nome}</td>
-                                <td style={{ padding: '10px' }}>{cliente.email}</td>
-                                <td style={{ padding: '10px' }}>{cliente.telefone || '-'}</td>
-                                <td style={{ padding: '10px' }}>{cliente.endereco || '-'}</td>
-                                <td style={{ padding: '10px' }}>{cliente.cpf || '-'}</td>
-                                <td style={{ padding: '10px' }}>
-                                    <button className="btn btn-primary" onClick={() => handleEditClick(cliente)}>Editar</button>
-                                </td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
-            </div>
-        </section>
+            <section className="section">
+                <div className="container">
+                    <div className="text-center" style={{marginBottom: '2rem'}}>
+                        <h2 className="section-title">Clientes Cadastrados</h2>
+                        <p className="section-description">
+                            Total de {clientes.length} cliente{clientes.length !== 1 ? 's' : ''} cadastrado{clientes.length !== 1 ? 's' : ''}
+                        </p>
+                    </div>
+
+                    {/* Tabela modernizada */}
+                    <div style={{
+                        background: 'white',
+                        borderRadius: '16px',
+                        boxShadow: '0 4px 20px rgba(0, 0, 0, 0.1)',
+                        overflow: 'hidden'
+                    }}>
+                        <div style={{ overflowX: 'auto' }}>
+                            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                                <thead style={{
+                                    background: 'linear-gradient(135deg, #4a9b8e 0%, #3d8b7e 100%)',
+                                    color: 'white'
+                                }}>
+                                    <tr>
+                                        <th style={{ padding: '1rem', textAlign: 'left', fontWeight: '600', fontSize: '1rem' }}>Nome</th>
+                                        <th style={{ padding: '1rem', textAlign: 'left', fontWeight: '600', fontSize: '1rem' }}>Email</th>
+                                        <th style={{ padding: '1rem', textAlign: 'left', fontWeight: '600', fontSize: '1rem' }}>Telefone</th>
+                                        <th style={{ padding: '1rem', textAlign: 'left', fontWeight: '600', fontSize: '1rem' }}>Endereço</th>
+                                        <th style={{ padding: '1rem', textAlign: 'left', fontWeight: '600', fontSize: '1rem' }}>CPF</th>
+                                        <th style={{ padding: '1rem', textAlign: 'center', fontWeight: '600', fontSize: '1rem' }}>Status</th>
+                                        <th style={{ padding: '1rem', textAlign: 'center', fontWeight: '600', fontSize: '1rem' }}>Ações</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {clientes.map((cliente, index) => (
+                                        <tr 
+                                            key={cliente.id} 
+                                            style={{ 
+                                                borderBottom: index === clientes.length - 1 ? 'none' : '1px solid #ecf0f1',
+                                                transition: 'background 0.3s ease'
+                                            }}
+                                            onMouseEnter={(e) => e.currentTarget.style.background = '#f8f9fa'}
+                                            onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                                        >
+                                            <td style={{ 
+                                                padding: '1rem', 
+                                                fontWeight: '600', 
+                                                color: '#2c3e50' 
+                                            }}>
+                                                {cliente.nome}
+                                            </td>
+                                            <td style={{ 
+                                                padding: '1rem', 
+                                                color: '#7f8c8d' 
+                                            }}>
+                                                {cliente.email}
+                                            </td>
+                                            <td style={{ 
+                                                padding: '1rem', 
+                                                color: '#7f8c8d' 
+                                            }}>
+                                                {cliente.telefone || '—'}
+                                            </td>
+                                            <td style={{ 
+                                                padding: '1rem', 
+                                                color: '#7f8c8d' 
+                                            }}>
+                                                {cliente.endereco || '—'}
+                                            </td>
+                                            <td style={{ 
+                                                padding: '1rem', 
+                                                color: '#7f8c8d' 
+                                            }}>
+                                                {cliente.cpf || '—'}
+                                            </td>
+                                            <td style={{ padding: '1rem', textAlign: 'center' }}>
+                                                <span style={{
+                                                    padding: '0.25rem 0.75rem',
+                                                    borderRadius: '20px',
+                                                    fontSize: '0.875rem',
+                                                    fontWeight: '500',
+                                                    backgroundColor: cliente.is_ativo ? '#d1fae5' : '#fee2e2',
+                                                    color: cliente.is_ativo ? '#065f46' : '#991b1b'
+                                                }}>
+                                                    {cliente.is_ativo ? 'Ativo' : 'Inativo'}
+                                                </span>
+                                            </td>
+                                            <td style={{ padding: '1rem', textAlign: 'center' }}>
+                                                <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center' }}>
+                                                    <button 
+                                                        style={{
+                                                            background: 'linear-gradient(135deg, #3498db 0%, #2980b9 100%)',
+                                                            color: 'white',
+                                                            border: 'none',
+                                                            padding: '0.5rem',
+                                                            borderRadius: '6px',
+                                                            cursor: 'pointer',
+                                                            transition: 'all 0.3s ease',
+                                                            display: 'flex',
+                                                            alignItems: 'center',
+                                                            justifyContent: 'center',
+                                                            width: '36px',
+                                                            height: '36px'
+                                                        }}
+                                                        onMouseEnter={(e) => {
+                                                            e.target.style.background = 'linear-gradient(135deg, #2980b9 0%, #1f5f8b 100%)';
+                                                            e.target.style.transform = 'translateY(-1px)';
+                                                            e.target.style.boxShadow = '0 4px 12px rgba(52, 152, 219, 0.3)';
+                                                        }}
+                                                        onMouseLeave={(e) => {
+                                                            e.target.style.background = 'linear-gradient(135deg, #3498db 0%, #2980b9 100%)';
+                                                            e.target.style.transform = 'translateY(0)';
+                                                            e.target.style.boxShadow = 'none';
+                                                        }}
+                                                        onClick={() => handleEditClick(cliente)}
+                                                        title="Editar cliente"
+                                                    >
+                                                        <IconEdit />
+                                                    </button>
+                                                    <button 
+                                                        style={{
+                                                            background: cliente.is_ativo 
+                                                                ? 'linear-gradient(135deg, #e74c3c 0%, #c0392b 100%)' 
+                                                                : 'linear-gradient(135deg, #27ae60 0%, #229954 100%)',
+                                                            color: 'white',
+                                                            border: 'none',
+                                                            padding: '0.5rem',
+                                                            borderRadius: '6px',
+                                                            cursor: 'pointer',
+                                                            transition: 'all 0.3s ease',
+                                                            display: 'flex',
+                                                            alignItems: 'center',
+                                                            justifyContent: 'center',
+                                                            width: '36px',
+                                                            height: '36px'
+                                                        }}
+                                                        onMouseEnter={(e) => {
+                                                            if (cliente.is_ativo) {
+                                                                e.target.style.background = 'linear-gradient(135deg, #c0392b 0%, #922b21 100%)';
+                                                                e.target.style.boxShadow = '0 4px 12px rgba(231, 76, 60, 0.3)';
+                                                            } else {
+                                                                e.target.style.background = 'linear-gradient(135deg, #229954 0%, #1e7e34 100%)';
+                                                                e.target.style.boxShadow = '0 4px 12px rgba(39, 174, 96, 0.3)';
+                                                            }
+                                                            e.target.style.transform = 'translateY(-1px)';
+                                                        }}
+                                                        onMouseLeave={(e) => {
+                                                            e.target.style.background = cliente.is_ativo 
+                                                                ? 'linear-gradient(135deg, #e74c3c 0%, #c0392b 100%)' 
+                                                                : 'linear-gradient(135deg, #27ae60 0%, #229954 100%)';
+                                                            e.target.style.transform = 'translateY(0)';
+                                                            e.target.style.boxShadow = 'none';
+                                                        }}
+                                                        onClick={() => handleToggleStatus(cliente.id, !cliente.is_ativo)}
+                                                        title={cliente.is_ativo ? 'Desativar cliente' : 'Ativar cliente'}
+                                                    >
+                                                        <IconToggle isActive={cliente.is_ativo} />
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </>
     );
 }
 

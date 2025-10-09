@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import axios from '../api/axios';
 
-function LoginScreen({ onLogin, onNavigateToSignup, setUserData }) {
+function LoginScreen({ onLogin, onNavigateToSignup, onNavigateToForgotPassword, setUserData }) {
     const [formData, setFormData] = useState({ email: '', senha: '' });
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
@@ -55,12 +55,17 @@ function LoginScreen({ onLogin, onNavigateToSignup, setUserData }) {
                     </div>
                     <div className="form-group">
                         <label className="form-label">Senha <span className="required">*</span></label>
-                        <input type="password" className="form-input" placeholder="Sua senha" value={formData.senha} onChange={(e) => setFormData({...formData, senha: e.target.value})} required />
+                        <input type="password" className="form-input" placeholder="Sua senha" value={formData.senha} onChange={(e) => setFormData({...formData, senha: e.target.value})} required autoComplete="new-password" />
                     </div>
                     <button type="submit" className="btn-submit" disabled={loading}>
                         {loading ? 'Entrando...' : 'Entrar'}
                     </button>
                 </form>
+                <div className="forgot-password-link">
+                    <a href="#" onClick={(e) => { e.preventDefault(); onNavigateToForgotPassword(); }}>
+                        Esqueci minha senha
+                    </a>
+                </div>
                 <div className="login-footer">
                     Não tem uma conta? <a href="#" onClick={(e) => { e.preventDefault(); onNavigateToSignup(); }}>Cadastre-se</a>
                 </div>

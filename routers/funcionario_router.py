@@ -1,11 +1,13 @@
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.security import OAuth2PasswordBearer
-from seguranca import verifica_token
+from seguranca import verifica_token, verificar_permissao_admin
 from services.funcionario_service import ServicosFuncionario
 from services.cliente_service import ServicosCliente
-from services.venda_service import ServicosVenda
-from modelos import FuncionarioModel, ClienteCadastroPorFuncionario, ClienteEdicaoPorFuncionario, CriarVenda
+from modelos import FuncionarioModel, ClienteCadastroPorFuncionario, ClienteEdicaoPorFuncionario, FuncionarioCadastro, FuncionarioUpdate, CriarVenda
 from util.cargos import Cargo
+from typing import Annotated
+from modelos import UsuarioLogin
+from services.funcionario_service import ServicosFuncionario
 
 router = APIRouter(prefix="/api/funcionario", tags=["Funcionario"])
 dupla_autenticacao = OAuth2PasswordBearer(tokenUrl="/login")
@@ -31,23 +33,16 @@ async def pegar_id_do_funcionario(token: str = Depends(dupla_autenticacao)) -> i
     return int(user_id)
 
 @router.post("/cadastrar-cliente", status_code=201)
-
 async def cadastrar_cliente_por_funcionario(
     dados_cliente: ClienteCadastroPorFuncionario,
-    funcionario_id: int = Depends(pegar_id_do_funcionario),
+    admin_id: Annotated[int, Depends(verificar_permissao_admin)],
     service: ServicosCliente = Depends(pegar_servicos_cliente),
     service_funcionario: ServicosFuncionario = Depends(pegar_servicos_funcionario)
 ):
-    #verifica se o funcionário é gestor
-    funcionario = service_funcionario.buscar_pelo_id(funcionario_id)
-
-    if not funcionario or funcionario.get("cargo_id") != Cargo.GESTOR.value:
-        raise HTTPException(status_code=403, detail="Acesso negado. Apenas gestores podem realizar esta ação.")
-
     try:
         resultado = service.cadastrar_por_funcionario(dados_cliente)
         return {
-            "Aviso": f"Cliente '{dados_cliente.nome}' cadastrado com sucesso!",
+            "Aviso": f"Cliente \'{dados_cliente.nome}\' cadastrado com sucesso!",
             "senha_temporaria": resultado["senha_temporaria"]
         }
     except HTTPException as e:
@@ -63,15 +58,10 @@ async def cadastrar_cliente_por_funcionario(
 async def editar_cliente_por_funcionario(
     cliente_id: int,
     dados_edicao: ClienteEdicaoPorFuncionario,
-    funcionario_id: int = Depends(pegar_id_do_funcionario),
+    admin_id: Annotated[int, Depends(verificar_permissao_admin)],
     service: ServicosCliente = Depends(pegar_servicos_cliente),
     service_funcionario: ServicosFuncionario = Depends(pegar_servicos_funcionario)
 ):
-    # Apenas gestores podem editar
-    funcionario = service_funcionario.buscar_pelo_id(funcionario_id)
-    if not funcionario or funcionario.get("cargo_id") != Cargo.GESTOR.value:
-        raise HTTPException(status_code=403, detail="Acesso negado.")
-
     service.editar_cliente(
         id=cliente_id,
         nome=dados_edicao.nome,
@@ -80,7 +70,163 @@ async def editar_cliente_por_funcionario(
         endereco=dados_edicao.endereco
     )
 
-    return {"Aviso": f"Cliente '{dados_edicao.nome or cliente_id}' editado com sucesso!"}
+    return {"Aviso": f"Cliente \'{dados_edicao.nome or cliente_id}\' editado com sucesso!"}
+
+
+
+@router.post("/login")
+async def login_funcionario(
+    dados_login: UsuarioLogin, 
+    service: ServicosFuncionario = Depends(pegar_servicos_funcionario)
+):
+    return service.login(dados_login)
+
+@router.post("/cadastrar", status_code=201)
+async def cadastrar_funcionario(
+    dados_funcionario: FuncionarioCadastro,
+    admin_id: Annotated[int, Depends(verificar_permissao_admin)],
+    service: ServicosFuncionario = Depends(pegar_servicos_funcionario)
+):
+    """
+    Cadastra um novo funcionário (AC1: formulário com campos obrigatórios)
+    Requer permissão de administrador
+    """
+    try:
+        resultado = service.cadastrar_funcionario_completo(dados_funcionario)
+        return {
+            "success": True,
+            "data": resultado,
+            "message": resultado["message"]
+        }
+    except HTTPException as e:
+        raise e
+    except Exception as e:
+        import traceback
+        print("Erro interno em /cadastrar:", e)
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail="Ocorreu um erro interno.")
+
+@router.get("/listar")
+async def listar_funcionarios(
+    admin_id: Annotated[int, Depends(verificar_permissao_admin)],
+    service: ServicosFuncionario = Depends(pegar_servicos_funcionario)
+):
+    """
+    Lista todos os funcionários cadastrados (AC2: disponível para consultas)
+    Requer permissão de administrador
+    """
+    try:
+        funcionarios = service.listar_funcionarios()
+        return {
+            "success": True,
+            "data": funcionarios,
+            "total": len(funcionarios)
+        }
+    except HTTPException as e:
+        raise e
+    except Exception as e:
+        import traceback
+        print("Erro interno em /listar:", e)
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail="Ocorreu um erro interno.")
+
+@router.get("/{funcionario_id}")
+async def buscar_funcionario(
+    funcionario_id: int,
+    admin_id: Annotated[int, Depends(verificar_permissao_admin)],
+    service: ServicosFuncionario = Depends(pegar_servicos_funcionario)
+):
+    """
+    Busca um funcionário específico por ID (AC2: disponível para consultas)
+    Requer permissão de administrador
+    """
+    try:
+        funcionario = service.buscar_funcionario_por_id(funcionario_id)
+        return {
+            "success": True,
+            "data": funcionario
+        }
+    except HTTPException as e:
+        raise e
+    except Exception as e:
+        import traceback
+        print("Erro interno em /buscar:", e)
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail="Ocorreu um erro interno.")
+
+@router.put("/{funcionario_id}")
+async def atualizar_funcionario(
+    funcionario_id: int,
+    dados_atualizacao: FuncionarioUpdate,
+    admin_id: Annotated[int, Depends(verificar_permissao_admin)],
+    service: ServicosFuncionario = Depends(pegar_servicos_funcionario)
+):
+    """
+    Atualiza dados de um funcionário existente
+    Requer permissão de administrador
+    """
+    try:
+        resultado = service.atualizar_funcionario(funcionario_id, dados_atualizacao)
+        return {
+            "success": True,
+            "data": resultado,
+            "message": resultado["message"]
+        }
+    except HTTPException as e:
+        raise e
+    except Exception as e:
+        import traceback
+        print("Erro interno em /atualizar:", e)
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail="Ocorreu um erro interno.")
+
+@router.put("/{funcionario_id}/desativar")
+async def desativar_funcionario_rota(
+    funcionario_id: int,
+    admin_id: Annotated[int, Depends(verificar_permissao_admin)],
+    service: ServicosFuncionario = Depends(pegar_servicos_funcionario)
+):
+    """
+    Desativa um funcionário, alterando seu status is_ativo para False.
+    Requer permissão de administrador
+    """
+    try:
+        resultado = service.desativar_funcionario(funcionario_id)
+        return {
+            "success": True,
+            "message": resultado["message"]
+        }
+    except HTTPException as e:
+        raise e
+    except Exception as e:
+        import traceback
+        print("Erro interno em /desativar:", e)
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail="Ocorreu um erro interno.")
+
+@router.put("/{funcionario_id}/ativar")
+async def ativar_funcionario_rota(
+    funcionario_id: int,
+    admin_id: Annotated[int, Depends(verificar_permissao_admin)],
+    service: ServicosFuncionario = Depends(pegar_servicos_funcionario)
+):
+    """
+    Ativa um funcionário, alterando seu status is_ativo para True.
+    Requer permissão de administrador
+    """
+    try:
+        resultado = service.ativar_funcionario(funcionario_id)
+        return {
+            "success": True,
+            "message": resultado["message"]
+        }
+    except HTTPException as e:
+        raise e
+    except Exception as e:
+        import traceback
+        print("Erro interno em /ativar:", e)
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail="Ocorreu um erro interno.")
 
 # --- Rota para registrar venda ---
 @router.post("/registrar-venda", status_code=201)

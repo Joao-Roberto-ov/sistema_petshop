@@ -7,11 +7,42 @@ function PetCadastroScreen({ onNavigateToHome }) {
     const [success, setSuccess] = useState('');
     const [loading, setLoading] = useState(false);
 
+    //capitaliza primeira letra de cada palavra
+    const capitalizeName = (name) => {
+        if (!name) return '';
+        return name.toLowerCase().split(' ').map(word =>
+            word.charAt(0).toUpperCase() + word.slice(1)
+        ).join(' ');
+    };
+
+    const handleInputChange = (e) => {
+        const { name, value } = e.target;
+
+        if (name === 'nome') {
+            setFormData({...formData, [name]: capitalizeName(value)});
+        } else {
+            setFormData({...formData, [name]: value});
+        }
+    };
+
     const handleSubmit = async (e) => {
         e.preventDefault();
         setLoading(true);
         setError('');
         setSuccess('');
+
+        //validaçao de idade e peso negativos
+        if (parseInt(formData.idade) < 0) {
+            setError('A idade não pode ser negativa.');
+            setLoading(false);
+            return;
+        }
+
+        if (formData.peso && parseFloat(formData.peso) < 0) {
+            setError('O peso não pode ser negativo.');
+            setLoading(false);
+            return;
+        }
 
         try {
             const token = localStorage.getItem('token');
@@ -52,23 +83,46 @@ function PetCadastroScreen({ onNavigateToHome }) {
                 <form onSubmit={handleSubmit}>
                     <div className="form-group">
                         <label className="form-label">Nome *</label>
-                        <input type="text" className="form-input" value={formData.nome} onChange={(e) => setFormData({...formData, nome: e.target.value})} required />
+                        <input
+                            type="text"
+                            name="nome"
+                            className="form-input"
+                            value={formData.nome}
+                            onChange={handleInputChange}
+                            required
+                        />
                     </div>
                     <div className="form-group">
                         <label className="form-label">Tipo (ex: Cachorro, Gato) *</label>
-                        <input type="text" className="form-input" value={formData.tipo} onChange={(e) => setFormData({...formData, tipo: e.target.value})} required />
+                        <input type="text" name="tipo" className="form-input" value={formData.tipo} onChange={handleInputChange} required />
                     </div>
                     <div className="form-group">
                         <label className="form-label">Raça *</label>
-                        <input type="text" className="form-input" value={formData.raca} onChange={(e) => setFormData({...formData, raca: e.target.value})} required />
+                        <input type="text" name="raca" className="form-input" value={formData.raca} onChange={handleInputChange} required />
                     </div>
                     <div className="form-group">
                         <label className="form-label">Idade (anos) *</label>
-                        <input type="number" className="form-input" value={formData.idade} onChange={(e) => setFormData({...formData, idade: e.target.value})} required />
+                        <input
+                            type="number"
+                            name="idade"
+                            className="form-input"
+                            value={formData.idade}
+                            onChange={handleInputChange}
+                            min="0"
+                            required
+                        />
                     </div>
                     <div className="form-group">
                         <label className="form-label">Peso (kg) (Opcional)</label>
-                        <input type="number" step="0.1" className="form-input" value={formData.peso} onChange={(e) => setFormData({...formData, peso: e.target.value})} />
+                        <input
+                            type="number"
+                            name="peso"
+                            step="0.1"
+                            className="form-input"
+                            value={formData.peso}
+                            onChange={handleInputChange}
+                            min="0"
+                        />
                     </div>
                     <button type="submit" className="btn-submit" disabled={loading}>
                         {loading ? 'Cadastrando...' : 'Cadastrar Pet'}

@@ -5,13 +5,30 @@ function getFirstName(fullName) {
     return fullName.trim().split(' ')[0];
 }
 
-function AppHeader({ onNavigateToLogin, onNavigateToSignup, isLoggedIn, userData, onLogout, onNavigateToDashboard, onNavigateToHome, onNavigateToPetCadastro, onNavigateToMeusPets, onNavigateToMeuPerfil }) {
+function AppHeader({
+    onNavigateToLogin,
+    onNavigateToSignup,
+    isLoggedIn,
+    userData,
+    onLogout,
+    onNavigateToDashboard,
+    onNavigateToHome,
+    onNavigateToPetCadastro,
+    onNavigateToMeusPets,
+    onNavigateToMeuPerfil,
+    onNavigateToProdutos
+}) {
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
     const dropdownRef = useRef(null);
 
     const handlePlaceholderClick = (feature) => {
         alert(`A funcionalidade "${feature}" será implementada em breve!`);
         setIsDropdownOpen(false);
+    };
+
+    const handleServicosClick = (e) => {
+        e.preventDefault();
+        alert('Função em desenvolvimento');
     };
 
     useEffect(() => {
@@ -26,6 +43,30 @@ function AppHeader({ onNavigateToLogin, onNavigateToSignup, isLoggedIn, userData
         };
     }, [dropdownRef]);
 
+    const isFuncionarioOuAdmin = userData?.cargo &&
+        (userData.cargo === 'FUNCIONARIO' || userData.cargo === 'GESTOR');
+
+    // Verificar se é admin/gestor (incluindo diferentes variações)
+    const cargoLower = userData?.cargo?.toLowerCase();
+    const isAdmin = userData?.cargo === 'GESTOR' || 
+                   userData?.cargo === 'ADMINISTRADOR' || 
+                   cargoLower === 'gestor' || 
+                   cargoLower === 'administrador';
+
+    const handleProdutosClick = (e) => {
+        e.preventDefault();
+
+        if (!isLoggedIn) {
+            onNavigateToProdutos('cliente');
+        } else if (userData?.cargo === 'GESTOR') {
+            onNavigateToProdutos('gestor');
+        } else if (userData?.cargo === 'FUNCIONARIO') {
+            onNavigateToProdutos('funcionario');
+        } else {
+            onNavigateToProdutos('cliente');
+        }
+    };
+
     return (
         <header className="header">
             <nav className="nav container">
@@ -36,14 +77,78 @@ function AppHeader({ onNavigateToLogin, onNavigateToSignup, isLoggedIn, userData
 
                 <ul className="nav-menu">
                     <li><a href="#" className="nav-link" onClick={(e) => { e.preventDefault(); onNavigateToHome(); }}>Início</a></li>
-                    {isLoggedIn && (
+
+                    {/* Links para Cliente Logado */}
+                    {isLoggedIn && !isFuncionarioOuAdmin && (
                         <>
                             <li><a href="#" className="nav-link" onClick={(e) => { e.preventDefault(); onNavigateToDashboard(); }}>Dashboard</a></li>
                             <li><a href="#" className="nav-link" onClick={(e) => { e.preventDefault(); onNavigateToMeusPets(); }}>Meus Pets</a></li>
+                            <li><a href="#" className="nav-link" onClick={handleServicosClick}>Serviços</a></li>
                         </>
                     )}
-                    <li><a href="#" className="nav-link" onClick={(e) => { e.preventDefault(); handlePlaceholderClick('Agendamento'); }}>Agendamento</a></li>
-                    <li><a href="#" className="nav-link" onClick={(e) => { e.preventDefault(); handlePlaceholderClick('Produtos'); }}>Produtos</a></li>
+
+                    {/* Links para Funcionário/Gestor Logado */}
+                    {isLoggedIn && isFuncionarioOuAdmin && (
+                        <>
+                            <li>
+                                <a
+                                    href="#"
+                                    className="nav-link"
+                                    onClick={(e) => {
+                                        e.preventDefault();
+                                        window.dispatchEvent(new CustomEvent('navigate', { detail: 'visualizarClientes' }));
+                                    }}
+                                >
+                                    Clientes
+                                </a>
+                            </li>
+                            {isAdmin && (
+                                <>
+                                    <li>
+                                        <a
+                                            href="#"
+                                            className="nav-link"
+                                            onClick={(e) => {
+                                                e.preventDefault();
+                                                window.dispatchEvent(new CustomEvent('navigate', { detail: 'cadastro-funcionario-completo' }));
+                                            }}
+                                        >
+                                            Cadastrar Funcionário
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a
+                                            href="#"
+                                            className="nav-link"
+                                            onClick={(e) => {
+                                                e.preventDefault();
+                                                window.dispatchEvent(new CustomEvent('navigate', { detail: 'listar-funcionarios' }));
+                                            }}
+                                        >
+                                            Gerenciar Funcionários
+                                        </a>
+                                    </li>
+                                </>
+                            )}
+                            <li><a href="#" className="nav-link" onClick={handleServicosClick}>Serviços</a></li>
+                        </>
+                    )}
+
+                    {/* Botão de Produtos - Sempre Visível */}
+                    <li>
+                        <a
+                            href="#"
+                            className="nav-link"
+                            onClick={handleProdutosClick}
+                        >
+                            Produtos
+                        </a>
+                    </li>
+
+                    {/* Link de Serviços - Visível apenas para deslogados */}
+                    {!isLoggedIn && (
+                        <li><a href="#" className="nav-link" onClick={(e) => { e.preventDefault(); handlePlaceholderClick('Serviços'); }}>Serviços</a></li>
+                    )}
                 </ul>
 
                 <div className="nav-buttons">
@@ -51,16 +156,57 @@ function AppHeader({ onNavigateToLogin, onNavigateToSignup, isLoggedIn, userData
                         <div className="user-menu" ref={dropdownRef}>
                             <button className="user-menu-button" onClick={() => setIsDropdownOpen(!isDropdownOpen)}>
                                 {`Olá, ${getFirstName(userData?.nome)}`}
+                                {isFuncionarioOuAdmin && (
+                                    <span style={{
+                                        marginLeft: '0.5rem',
+                                        fontSize: '0.75rem',
+                                        padding: '0.2rem 0.5rem',
+                                        backgroundColor: '#4a9b8e',
+                                        borderRadius: '12px',
+                                        color: 'white'
+                                    }}>
+                                        {userData.cargo}
+                                    </span>
+                                )}
                             </button>
 
                             {isDropdownOpen && (
                                 <ul className="dropdown-menu">
-                                    <li>
-                                        <a href="#" onClick={(e) => { e.preventDefault(); onNavigateToMeuPerfil(); setIsDropdownOpen(false); }}>
-                                            <span className="icon">👤</span> Meu Perfil
-                                        </a>
-                                    </li>
-                                    <li className="dropdown-divider"></li>
+                                    {!isFuncionarioOuAdmin && (
+                                        <>
+                                            <li>
+                                                <a href="#" onClick={(e) => { e.preventDefault(); onNavigateToMeuPerfil(); setIsDropdownOpen(false); }}>
+                                                    <span className="icon">👤</span> Meu Perfil
+                                                </a>
+                                            </li>
+                                            <li className="dropdown-divider"></li>
+                                        </>
+                                    )}
+                                    {isFuncionarioOuAdmin && (
+                                        <>
+                                            <li>
+                                                <a href="#" onClick={(e) => {
+                                                    e.preventDefault();
+                                                    window.dispatchEvent(new CustomEvent('navigate', { detail: 'visualizarClientes' }));
+                                                    setIsDropdownOpen(false);
+                                                }}>
+                                                    <span className="icon">👥</span> Gerenciar Clientes
+                                                </a>
+                                            </li>
+                                            {isAdmin && (
+                                                <li>
+                                                    <a href="#" onClick={(e) => {
+                                                        e.preventDefault();
+                                                        window.dispatchEvent(new CustomEvent('navigate', { detail: 'funcionario-cadastro-admin' }));
+                                                        setIsDropdownOpen(false);
+                                                    }}>
+                                                        <span className="icon">➕</span> Cadastrar Funcionário
+                                                    </a>
+                                                </li>
+                                            )}
+                                            <li className="dropdown-divider"></li>
+                                        </>
+                                    )}
                                     <li>
                                         <a href="#" onClick={(e) => { e.preventDefault(); onLogout(); setIsDropdownOpen(false); }}>
                                             <span className="icon">↪</span> Sair

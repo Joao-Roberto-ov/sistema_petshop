@@ -1,24 +1,26 @@
 import secrets
-from modelos import UsuarioLogin # <--- CORRIGIDO AQUI
+from modelos import UsuarioLogin, RedefinirSenhaRequest
 from fastapi import HTTPException
 from psycopg2 import IntegrityError
 from seguranca import cria_hash_senha, verifica_senha, cria_token_de_acesso
 from repositories.cliente_repository import RepositorioCliente
-from modelos import (ClienteCadastro, UsuarioLogin, ClienteUpdate,
+from modelos import (ClienteCadastro, ClienteUpdate,
                      PasswordResetRequest, PasswordResetConfirm, ForgotPasswordRequest)
 from services.email_service import EmailService
 import random
 import string
 from datetime import datetime, timedelta, timezone
+from passlib.context import CryptContext
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 class ServicosCliente:
     def __init__(self):
         self.repo = RepositorioCliente()
-        self.email_service = EmailService()  # CORREÇÃO: Inicializar o EmailService
+        self.email_service = EmailService()
 
     def gerar_senha_temporaria(self):
         chars = string.ascii_letters + string.digits + "!@#$%"
-        return ''.join(secrets.choice(chars) for _ in range(8))
+        return "".join(secrets.choice(chars) for _ in range(8))
 
     def cadastrar_por_funcionario(self, dados_cliente):
         try:
@@ -70,31 +72,73 @@ class ServicosCliente:
                 raise HTTPException(status_code=400, detail="Erro de integridade dos dados.")
 
     def login(self, dados_login_clientes: UsuarioLogin):
-        resultado = self.repo.buscar_pelo_email(dados_login_clientes.email)
+        try:
+            print("=== ServicosCliente.login() iniciado ===")
+            print(f"Buscando cliente com email: {dados_login_clientes.email}")
 
-        if not resultado:
-            raise HTTPException(status_code=401, detail="E-mail ou senha inválidos. 2")
+            resultado = self.repo.buscar_pelo_email(dados_login_clientes.email)
+            print(f"Resultado da busca por email: {resultado}")
 
-        user_id, senha_hashed_do_banco = resultado
+            if not resultado:
+                print("=== CLIENTE NÃO ENCONTRADO ===")
+                raise HTTPException(status_code=401, detail="E-mail ou senha inválidos.")
 
-        if not verifica_senha(dados_login_clientes.senha, senha_hashed_do_banco):
-            raise HTTPException(status_code=401, detail="E-mail ou senha inválidos. 3")
+            user_id, senha_hashed_do_banco, is_ativo = resultado
 
-        dados_usuario = self.buscar_pelo_id(user_id)
+            if not is_ativo:
+                print("=== CONTA DESATIVADA ===")
+                raise HTTPException(status_code=403, detail="Sua conta está desativada. Por favor, entre em contato com o suporte.")
+            print(f"Cliente encontrado - ID: {user_id}")
+            print(f"Senha hash do banco: {senha_hashed_do_banco[:20]}...")
 
-        if not dados_usuario:
-            raise HTTPException(status_code=404, detail="Usuário não encontrado após verificação.")
+            print("Verificando senha...")
+            if not verifica_senha(dados_login_clientes.senha, senha_hashed_do_banco):
+                print("=== SENHA INCORRETA ===")
+                raise HTTPException(status_code=401, detail="E-mail ou senha inválidos.")
 
-        token = cria_token_de_acesso(data={"sub": str(user_id)})
+            print("Buscando dados completos do cliente...")
+            dados_usuario = self.buscar_pelo_id(user_id)
+            print(f"Dados do cliente: {dados_usuario}")
 
-        return {
-            "access_token": token,
-            "token_type": "bearer",
-            "user": dados_usuario
-        }
+            if not dados_usuario:
+                print("=== DADOS DO CLIENTE NÃO ENCONTRADOS ===")
+                raise HTTPException(status_code=404, detail="Usuário não encontrado após verificação.")
+
+
+
+            print("Criando token JWT...")
+            token = cria_token_de_acesso(data={"sub": str(user_id), "tipo": "cliente"})
+            print("=== TOKEN CRIADO COM SUCESSO ===")
+
+            return {
+                "access_token": token,
+                "token_type": "bearer",
+                "user": dados_usuario
+            }
+
+        except HTTPException:
+            print("=== HTTPException relançada ===")
+            raise  # Re-raise HTTPExceptions
+        except Exception as e:
+            print(f"=== ERRO CRÍTICO NO LOGIN: {str(e)} ===")
+            import traceback
+            traceback.print_exc()
+            raise HTTPException(status_code=500, detail=f"Erro interno no login: {str(e)}")
 
     def buscar_todos(self):
-        return self.repo.buscar_todos()
+        try:
+            print("=== ServicosCliente.buscar_todos() chamado ===")
+            clientes = self.repo.buscar_todos()
+            print(f"=== Repositório retornou: {len(clientes)} clientes ===")
+            print(f"=== Tipo dos dados: {type(clientes)} ===")
+            if clientes:
+                print(f"=== Primeiro cliente: {clientes[0]} ===")
+            return clientes
+        except Exception as e:
+            print(f"=== ERRO em ServicosCliente.buscar_todos: {str(e)} ===")
+            import traceback
+            traceback.print_exc()
+            raise HTTPException(status_code=500, detail=f"Erro interno ao buscar clientes: {str(e)}")
 
     def buscar_pelo_id(self, user_id: int):
         user_data = self.repo.procurar_pelo_id(user_id)
@@ -106,8 +150,9 @@ class ServicosCliente:
             "nome": user_data[1],
             "email": user_data[2],
             "telefone": user_data[3],
-            "endereco": user_data[4] if user_data[4] else "Não informado",
-            "cpf": user_data[5] if len(user_data) > 5 else None  # CORREÇÃO: Verificar se CPF existe
+            "endereco": user_data[4] if len(user_data) > 4 and user_data[4] else 'Não informado',
+            "cpf": user_data[5] if len(user_data) > 5 and user_data[5] else None,
+            "is_ativo": user_data[6] if len(user_data) > 6 else True  #retorna o valor real de is_ativo, ou true como padrão
         }
 
 
@@ -121,17 +166,17 @@ class ServicosCliente:
             cpf: str | None = None,
             funcionario_id: int | None = None
     ):
-        # Buscar dados atuais para histórico
+        #busca os dados atuais para o historico
         cliente_atual = self.repo.procurar_pelo_id(id)
         if not cliente_atual:
             raise HTTPException(status_code=404, detail="Cliente não encontrado.")
 
-        # Verificar email duplicado
+        # verrificar se tem email duplicado (excluindo o proprio cliente)
         cliente_email = self.repo.buscar_pelo_email(email)
         if cliente_email and cliente_email[0] != id:
             raise HTTPException(status_code=400, detail="Já existe um cliente com este email.")
 
-        # Verificar CPF duplicado
+        #verifica se existe um CPF duplicado (excluindo o do cliente logado)
         if cpf:
             cliente_cpf = self.repo.procurar_por_cpf(cpf)
             if cliente_cpf and cliente_cpf[0] != id:
@@ -147,13 +192,13 @@ class ServicosCliente:
             campos_modificados.append(("telefone", cliente_atual[3], telefone))
         if cliente_atual[4] != endereco:
             campos_modificados.append(("endereco", cliente_atual[4], endereco))
-        if (len(cliente_atual) > 5 and cliente_atual[5] != cpf):
+        if len(cliente_atual) > 5 and cliente_atual[5] != cpf:
             campos_modificados.append(("cpf", cliente_atual[5], cpf))
 
-        # Atualizar cliente
+        #atualiza o cliente
         self.repo.editar_cliente(id, nome, email, telefone, endereco, cpf)
 
-        # Registrar histórico
+        #registra histórico
         for campo, antigo, novo in campos_modificados:
             self.repo.registrar_historico(
                 cliente_id=id,
@@ -167,7 +212,7 @@ class ServicosCliente:
 
     def solicitar_alteracao_senha(self, user_id: int, request_data: PasswordResetRequest):
         user_db = self.repo.buscar_pelo_id_com_senha(user_id)
-        if not user_db: 
+        if not user_db:
             raise HTTPException(status_code=404, detail="Usuário não encontrado.")
 
         user_email = user_db[2]
@@ -191,7 +236,7 @@ class ServicosCliente:
 
     def confirmar_alteracao_senha(self, user_id: int, confirm_data: PasswordResetConfirm):
         resultado_busca = self.repo.buscar_codigo_reset(user_id, confirm_data.codigo_verificacao)
-        if not resultado_busca: 
+        if not resultado_busca:
             raise HTTPException(status_code=400, detail="Código de verificação inválido.")
 
         _, expiracao_salva = resultado_busca
@@ -211,7 +256,7 @@ class ServicosCliente:
     def atualizar_perfil(self, user_id: int, dados_update: ClienteUpdate):
         try:
             dados_atuais_dict = self.buscar_pelo_id(user_id)
-            if not dados_atuais_dict: 
+            if not dados_atuais_dict:
                 raise HTTPException(status_code=404, detail="Usuário não encontrado.")
 
             campos_para_atualizar = {}
@@ -232,7 +277,7 @@ class ServicosCliente:
                 campos_modificados.append(
                     {"campo": "CPF", "antigo": dados_atuais_dict.get('cpf') or "Não informado", "novo": dados_update.cpf})
 
-            # Verificação de dados duplicados
+            #verificação de dados duplicados
             if not campos_para_atualizar:
                 raise HTTPException(status_code=400,
                                     detail="Nenhuma informação foi alterada. Forneça um novo valor para atualizar.")
@@ -249,11 +294,11 @@ class ServicosCliente:
                 raise HTTPException(status_code=500, detail=f"Erro ao atualizar o perfil: {str(e)}")
         
         except HTTPException:
-            raise  # Re-raise HTTPExceptions
+            raise
         except Exception as e:
             raise HTTPException(status_code=500, detail=f"Erro interno do servidor: {str(e)}")
 
-    # NOVO MÉTODO: Fluxo de "Esqueci a Senha"
+    #metodo do fluxo de "Esqueci a Senha"
     def esqueci_minha_senha(self, request_data: ForgotPasswordRequest):
         """
         Inicia o fluxo de recuperação de senha para um usuário que não está logado.
@@ -261,27 +306,93 @@ class ServicosCliente:
         try:
             user_db = self.repo.buscar_cliente_pelo_email(request_data.email)
             if not user_db:
-                raise HTTPException(status_code=200,
-                                    detail="Se um usuário com este e-mail existir, um link de redefinição será enviado.")
+                #mensagem generica para evitar enumeraçao dos users
+                print(f"Tentativa de redefinição de senha para e-mail não cadastrado: {request_data.email}")
+                return {"message": "Se um usuário com este e-mail existir, um link de redefinição será enviado."}
 
             user_id, _, user_email = user_db
-            # Usa o mesmo mecanismo de código, mas poderia usar um token JWT mais longo
-            codigo = ''.join(random.choices(string.digits, k=6))
-            expiracao = datetime.now(timezone.utc) + timedelta(minutes=15)  # Duração maior
+            token = secrets.token_urlsafe(32) # Gera um token seguro
+            expiracao = datetime.now(timezone.utc) + timedelta(minutes=15) # AC4: Token expira em 15 minutos
 
-            self.repo.salvar_codigo_reset(user_id, codigo, expiracao)
-            # Um e-mail diferente seria enviado aqui, com um link
-            self.email_service.enviar_link_redefinicao(user_email, codigo)  # Supondo que o email_service tenha este método
+            #armazena o token no banco de dados associado ao cliente
+            self.repo.salvar_token_redefinicao(user_id, token, expiracao)
 
+            # AC1: envia o e-mail com o link de redefinição
+            # AC2: email não revela a senha atual
+            # AC4: link deve ser de uso unico e com prazo de expiraçao
+            # AC5: link deve direcionar para a pagina de redefiniçao de senha
+            link_redefinicao = f"http://localhost:3000/reset-password?token={token}&email={user_email}"
+            self.email_service.enviar_link_redefinicao(user_email, link_redefinicao)
             return {"message": "Se um usuário com este e-mail existir, um link de redefinição será enviado."}
         except HTTPException:
             raise
         except Exception as e:
             raise HTTPException(status_code=500, detail=f"Erro interno do servidor: {str(e)}")
 
-    def buscar_clientes_por_nome(self, nome: str):
+    def redefinir_senha_publica(self, request_data: RedefinirSenhaRequest):
+
+        #gbusca o token e o email associado no banco de dados
+        token_info = self.repo.buscar_token_redefinicao(request_data.token)
+
+        if not token_info:
+            raise HTTPException(status_code=400, detail="Token inválido ou expirado.")
+
+        user_id, email_associado, expiracao_token = token_info
+
+        if datetime.now(timezone.utc) > expiracao_token:
+            self.repo.invalidar_token_redefinicao(request_data.token) #invalida o token expirado
+            raise HTTPException(status_code=400, detail="Token inválido ou expirado.")
+
+        # Hash da nova senha antes de salvar
+        senha_hashed = cria_hash_senha(request_data.nova_senha)
+        self.repo.atualizar_cliente(user_id, {'senha': senha_hashed})
+        self.repo.invalidar_token_redefinicao(request_data.token) #invalida o token apos o uso
+
+        return {"message": "Senha redefinida com sucesso!"}
+
+    def desativar_cliente(self, cliente_id: int, is_ativo: bool):
+        try:
+            print(f"=== DESATIVAR CLIENTE ===")
+            print(f"Cliente ID: {cliente_id}")
+            print(f"Novo status: {is_ativo}")
+
+            cliente_existente = self.repo.procurar_pelo_id(cliente_id)
+            print(f"Cliente encontrado: {cliente_existente}")
+
+            if not cliente_existente:
+                print(f"Cliente {cliente_id} não encontrado")
+                raise HTTPException(status_code=404, detail="Cliente não encontrado.")
+
+            print(f"Cliente encontrado: {cliente_existente[1]} (ID: {cliente_existente[0]})")
+
+            # TESTE: Verificar se o método existe
+            print(f"Métodos disponíveis no repo: {[method for method in dir(self.repo) if not method.startswith('_')]}")
+
+            self.repo.atualizar_status_cliente(cliente_id, is_ativo)
+            print(f"Status do cliente atualizado para: {'Ativo' if is_ativo else 'Inativo'}")
+
+            return {"message": f"Cliente {'ativado' if is_ativo else 'desativado'} com sucesso."}
+
+        except HTTPException:
+            raise
+        except Exception as e:
+            print(f"Erro ao alterar status do cliente: {str(e)}")
+            import traceback
+            traceback.print_exc()
+            raise HTTPException(status_code=500, detail=f"Erro ao alterar status do cliente: {str(e)}")
+    def editar_cliente(self, id: int, nome: str = None, email: str = None, telefone: str = None, endereco: str = None):
         """
-        Retorna clientes cujo nome contenha a string fornecida (case-insensitive)
+        Edita as informações de um cliente existente.
+        Usado por funcionários administradores.
         """
-        clientes = self.repo.buscar_clientes_por_nome(nome)
-        return [{"id": c[0], "nome": c[1]} for c in clientes]
+        try:
+            self.repo.editar_cliente(
+                id=id,
+                nome=nome,
+                email=email,
+                telefone=telefone,
+                endereco=endereco
+            )
+            return {"message": "Cliente editado com sucesso!"}
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Erro ao editar cliente: {str(e)}")

@@ -148,3 +148,70 @@ class RepositorioPet:
         finally:
             if cursor: cursor.close()
             if conn: encerra_conexao(conn)
+    def buscar_todos_pets_com_cliente(self):
+        """
+        Busca todos os pets do sistema com informações do cliente para gestores.
+        """
+        conn = None
+        cursor = None
+
+        try:
+            conn = conectar()
+            cursor = conn.cursor()
+            sql = """
+                SELECT p.id, p.nome, p.tipo, p.raca, p.idade, p.peso, p.cliente_id, c.nome as cliente_nome
+                FROM Pets p
+                INNER JOIN Clientes c ON p.cliente_id = c.id
+                ORDER BY p.nome, c.nome
+            """
+            cursor.execute(sql)
+            return cursor.fetchall()
+
+        finally:
+            if cursor: cursor.close()
+            if conn: encerra_conexao(conn)
+
+    def verificar_pet_existe(self, pet_id: int):
+        """
+        Verifica se um pet existe no sistema.
+        """
+        conn = None
+        cursor = None
+
+        try:
+            conn = conectar()
+            cursor = conn.cursor()
+            sql = "SELECT id FROM Pets WHERE id = %s"
+            cursor.execute(sql, (pet_id,))
+            return cursor.fetchone() is not None
+
+        finally:
+            if cursor: cursor.close()
+            if conn: encerra_conexao(conn)
+
+    def buscar_dados_atuais_pet(self, pet_id: int):
+        """
+        Busca dados atuais do pet incluindo cliente_id para gestores.
+        """
+        conn = None
+        cursor = None
+
+        try:
+            conn = conectar()
+            cursor = conn.cursor()
+            sql = "SELECT nome, tipo, raca, cliente_id FROM Pets WHERE id = %s"
+            cursor.execute(sql, (pet_id,))
+            resultado = cursor.fetchone()
+
+            if resultado:
+                return {
+                    "nome": resultado[0], 
+                    "tipo": resultado[1], 
+                    "raca": resultado[2],
+                    "cliente_id": resultado[3]
+                }
+            return None
+
+        finally:
+            if cursor: cursor.close()
+            if conn: encerra_conexao(conn)

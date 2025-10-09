@@ -35,7 +35,9 @@ function MeusPetsScreen({ onNavigateToPetCadastro }) {
                 const response = await axios.get('/pets', {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
-                setPets(response.data);
+                // Filtrar apenas pets ativos para exibir na tela do cliente
+                const petsAtivos = response.data.filter(pet => pet.is_active !== false);
+                setPets(petsAtivos);
             } catch (err) {
                 setError('Não foi possível buscar os pets. Tente novamente mais tarde.');
             } finally {
@@ -62,7 +64,7 @@ function MeusPetsScreen({ onNavigateToPetCadastro }) {
                     <IconPaw />
                     <h2 className="no-pets-title">Nenhum companheiro por aqui ainda</h2>
                     <p className="no-pets-text">Que tal cadastrar seu primeiro pet? É rápido e fácil!</p>
-                    <button className="btn-add-pet-main" onClick={onNavigateToPetCadastro}>
+                    <button className="btn-add-pet" onClick={onNavigateToPetCadastro}>
                         <IconPlus /> Cadastrar Primeiro Pet
                     </button>
                 </div>
