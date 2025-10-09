@@ -54,4 +54,4 @@ app.include_router(servico_router.router)
 app.include_router(venda_router.router)
 app.include_router(admin_router.router, prefix="/api")
 app.include_router(admin_pet_router.router, prefix="/api")
-app.include_router(produto_router.
+app.include_router(produto_router.router)

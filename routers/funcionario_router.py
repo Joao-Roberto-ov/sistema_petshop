@@ -8,6 +8,7 @@ from util.cargos import Cargo
 from typing import Annotated
 from modelos import UsuarioLogin
 from services.funcionario_service import ServicosFuncionario
+from services.venda_service import ServicosVenda
 
 router = APIRouter(prefix="/api/funcionario", tags=["Funcionario"])
 dupla_autenticacao = OAuth2PasswordBearer(tokenUrl="/login")

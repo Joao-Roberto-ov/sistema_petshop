@@ -1,0 +1,11 @@
+fastapi
+passlib[bcrypt]==1.7.4
+bcrypt==4.0.1
+psycopg2-binary
+pydantic
+pydantic[email]
+python-dotenv
+python-jose[cryptography]
+sendgrid
+uvicorn
+requests
