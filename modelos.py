@@ -121,21 +121,15 @@ class ServicoModel(BaseModel):
     preco: float = Field(..., gt=0, description="Preço do serviço em reais")
     criador_id: Optional[int] = None
 
-class ItemVenda(BaseModel):
-    tipo: str  # "produto" ou "servico"
+class CriarItemVenda(BaseModel):
+    tipo: str
     id_item: int
     nome: str
     quantidade: int
     preco_unitario: float
 
 class CriarVenda(BaseModel):
-    funcionario_id: int
-    cliente_id: Optional[int] = None
-    itens: List[ItemVenda]
-    forma_pagamento: str  # "dinheiro", "cartao", "pix"
-
-class VendaResponse(BaseModel):
-    id: int
-    total: float
+    cliente_id: int
     forma_pagamento: str
-    status_pagamento: str  # "pendente", "pago"
+    status_pagamento: str = "pendente"
+    itens: List[CriarItemVenda]
