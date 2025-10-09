@@ -21,6 +21,7 @@ import CadastrarProdutoScreen from './components/CadastrarProduto';
 import VisualizarProdutosGestor from './components/VisualizarProdutosGestor';
 import VisualizarProdutosFuncionario from './components/VisualizarProdutosFuncionario';
 import VisualizarProdutosCliente from './components/VisualizarProdutosCliente';
+import VisualizarPetsGestor from './components/VisualizarPetsGestor';
 
 function App() {
     const [currentScreen, setCurrentScreen] = useState('home');
@@ -145,6 +146,7 @@ function App() {
                     onNavigateToCadastrarProduto={() => setCurrentScreen('cadastrarProduto')}
                     onNavigateToCadastroFuncionarioCompleto={() => setCurrentScreen('cadastro-funcionario-completo')}
                     onNavigateToGerenciarFuncionarios={() => setCurrentScreen('listar-funcionarios')}
+                    onNavigateToVisualizarPets={() => setCurrentScreen('visualizar-pets-gestor')}
                     onNavigateToVisualizarProdutos={() => {
                         const cargoLower = userData?.cargo?.toLowerCase();
                         if (cargoLower === 'gestor' || cargoLower === 'administrador') {
@@ -173,6 +175,9 @@ function App() {
 
             case 'visualizarClientes':
                 return <VisualizarClientes onBack={() => navigateToHome()} />;
+            
+            case 'visualizar-pets-gestor':
+                return <VisualizarPetsGestor onBack={() => navigateToHome()} />;
             case 'visualizarServicos':
                 if (!userData?.cargo || userData.cargo.toLowerCase() !== 'gestor') {
                     return (

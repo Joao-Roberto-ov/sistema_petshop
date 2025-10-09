@@ -1294,3 +1294,24 @@ body {
     color: #3d8b7e;
 }
 
+
+
+.gerenciar-pets-container {
+    min-height: 100vh;
+    background: linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.5)), url("imagens/background-pets.png");
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 2rem;
+}
+
+.gerenciar-pets-content {
+    width: 100%;
+    max-width: 1200px; /* Ou a largura máxima desejada para o conteúdo */
+    margin-top: 2rem; /* Espaçamento do topo */
+    margin-bottom: 2rem; /* Espaçamento da base */
+}
+

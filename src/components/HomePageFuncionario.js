@@ -8,7 +8,8 @@ function HomePageFuncionario({
     onNavigateToCadastroFuncionarioCompleto,
     onNavigateToGerenciarFuncionarios,
     onNavigateToVisualizarProdutos,
-    onNavigateToVisualizarServicos, 
+    onNavigateToVisualizarServicos,
+    onNavigateToVisualizarPets,
     onLogout
 }) {
 
@@ -41,6 +42,12 @@ function HomePageFuncionario({
             title: "Gerenciar Funcionários",
             description: "Visualize e gerencie todos os funcionários cadastrados no sistema.",
             onClick: onNavigateToGerenciarFuncionarios
+        }] : []),
+        ...(isAdminOuGestor ? [{
+            icon: '🐾',
+            title: "Gerenciar Pets",
+            description: "Visualize e edite as informações de todos os pets cadastrados no sistema.",
+            onClick: onNavigateToVisualizarPets
         }] : []),
         {
             icon: '🛒',

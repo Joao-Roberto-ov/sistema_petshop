@@ -1,316 +1,115 @@
 import React, { useState, useEffect } from 'react';
 import axios from '../api/axios';
+import PetCard from './PetCard';
+import PetHistoryModal from './PetHistoryModal';
+import './MeusPetsScreen.css'; // O CSS correspondente está abaixo
 
-const PasswordStrengthMeter = ({ checks }) => {
-    const checkItems = [
-        { key: 'length', text: 'Pelo menos 8 caracteres' },
-        { key: 'case', text: 'Letras maiúsculas e minúsculas' },
-        { key: 'number', text: 'Pelo menos um número' },
-        { key: 'special', text: 'Pelo menos um caractere especial' },
-    ];
+// --- Ícones SVG para um visual mais limpo ---
+const IconPlus = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <line x1="12" y1="5" x2="12" y2="19"></line>
+        <line x1="5" y1="12" x2="19" y2="12"></line>
+    </svg>
+ );
 
-    return (
-        <div className="password-tooltip">
-            <p>A nova senha deve atender aos critérios:</p>
-            <ul>
-                {checkItems.map(item => (
-                    <li key={item.key} className={checks[item.key] ? 'valid' : 'invalid'}>
-                        {checks[item.key] ? '✓' : '✗'} {item.text}
-                    </li>
-                ))}
-            </ul>
-        </div>
-    );
-};
+const IconPaw = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="icon-paw">
+        <path d="M11.5 21a.5.5 0 0 1-.5-.5v-4.34a1.5 1.5 0 0 0-1.5-1.5h-2.34a.5.5 0 0 1-.5-.5v-2.34a.5.5 0 0 1 .5-.5H9.5a1.5 1.5 0 0 0 1.5-1.5V7.5a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 .5.5v2.34a1.5 1.5 0 0 0 1.5 1.5h2.34a.5.5 0 0 1 .5.5v2.34a.5.5 0 0 1-.5.5h-2.34a1.5 1.5 0 0 0-1.5 1.5V20.5a.5.5 0 0 1-.5.5h-1z"/>
+        <path d="M7.5 8.5a1 1 0 1 0-2 0 1 1 0 0 0 2 0zM16.5 8.5a1 1 0 1 0-2 0 1 1 0 0 0 2 0zM12 5.5a1 1 0 1 0-2 0 1 1 0 0 0 2 0z"/>
+    </svg>
+ );
 
-const PWD_FLOW = { IDLE: 'IDLE', ENTERING_PASSWORDS: 'ENTERING_PASSWORDS', CODE_SENT: 'CODE_SENT', LOCKED: 'LOCKED' };
 
-function MeuPerfilScreen({ onNavigateToHome, onNavigateToForgotPassword }) {
-    const [profileData, setProfileData] = useState({ telefone: '', endereco: '', cpf: '' });
-    const [passwordData, setPasswordData] = useState({ senha_atual: '', nova_senha: '', codigo_verificacao: '' });
-    const [passwordFlowState, setPasswordFlowState] = useState(PWD_FLOW.IDLE);
-    const [passwordAttempts, setPasswordAttempts] = useState(0);
-
+function MeusPetsScreen({ onNavigateToPetCadastro }) {
+    const [pets, setPets] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
-    const [success, setSuccess] = useState('');
-
-    const [isPasswordFocused, setIsPasswordFocused] = useState(false);
-    const [passwordChecks, setPasswordChecks] = useState({
-        length: false,
-        case: false,
-        number: false,
-        special: false,
-    });
+    const [selectedPet, setSelectedPet] = useState(null);
 
     useEffect(() => {
-        const validatePassword = (password) => {
-            const checks = {
-                length: password.length >= 8,
-                case: /(?=.*[a-z])(?=.*[A-Z])/.test(password),
-                number: /(?=.*\d)/.test(password),
-                special: /[!@#$%^&*(),.?":{}|<>]/.test(password),
-            };
-            setPasswordChecks(checks);
-        };
-        validatePassword(passwordData.nova_senha);
-    }, [passwordData.nova_senha]);
-
-    const isNewPasswordValid = Object.values(passwordChecks).every(Boolean);
-
-    useEffect(() => {
-        const fetchUserData = async () => {
+        const fetchPets = async () => {
             setLoading(true);
+            setError('');
             try {
                 const token = localStorage.getItem('token');
-                const response = await axios.get('/users/me', { headers: { 'Authorization': `Bearer ${token}` } });
-                setProfileData({
-                    telefone: response.data.telefone || '',
-                    endereco: response.data.endereco || '',
-                    cpf: response.data.cpf || ''
+                const response = await axios.get('/pets', {
+                    headers: { 'Authorization': `Bearer ${token}` }
                 });
+                // Filtrar apenas pets ativos para exibir na tela do cliente
+                const petsAtivos = response.data.filter(pet => pet.ativo !== false);
+                setPets(petsAtivos);
             } catch (err) {
-                setError('Não foi possível carregar seus dados.');
+                setError('Não foi possível buscar os pets. Tente novamente mais tarde.');
             } finally {
                 setLoading(false);
             }
         };
-        fetchUserData();
+        fetchPets();
     }, []);
 
-    //formatar telefone
-    const formatPhone = (value) => {
-        if (!value) return '';
-        let digits = value.replace(/\D/g, '');
-        if (digits.length > 11) digits = digits.slice(0, 11);
-
-        if (digits.length > 6) {
-            return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`;
-        } else if (digits.length > 2) {
-            return `(${digits.slice(0, 2)}) ${digits.slice(2)}`;
-        }
-        return digits ? `(${digits}` : '';
+    const handleUpdatePet = (updatedPet) => {
+        setPets(pets.map(pet => (pet.id === updatedPet.id ? updatedPet : pet)));
     };
 
-    //formata CPF
-    const formatCPF = (value) => {
-        if (!value) return '';
-        let digits = value.replace(/\D/g, '');
-        if (digits.length > 11) digits = digits.slice(0, 11);
-
-        if (digits.length > 9) {
-            return `${digits.slice(0, 3)}.${digits.slice(3, 6)}.${digits.slice(6, 9)}-${digits.slice(9)}`;
-        } else if (digits.length > 6) {
-            return `${digits.slice(0, 3)}.${digits.slice(3, 6)}.${digits.slice(6)}`;
-        } else if (digits.length > 3) {
-            return `${digits.slice(0, 3)}.${digits.slice(3)}`;
+    const renderContent = () => {
+        if (loading) {
+            return <div className="message loading-message">Carregando seus pets...</div>;
         }
-        return digits;
-    };
-
-    const handleProfileChange = (e) => {
-        const { name, value } = e.target;
-
-        if (name === 'telefone') {
-            setProfileData({ ...profileData, [name]: formatPhone(value) });
-        } else if (name === 'cpf') {
-            setProfileData({ ...profileData, [name]: formatCPF(value) });
-        } else {
-            setProfileData({ ...profileData, [name]: value });
+        if (error) {
+            return <div className="message error-message">{error}</div>;
         }
-    };
-
-    const handlePasswordChange = (e) => setPasswordData({ ...passwordData, [e.target.name]: e.target.value });
-
-    const handleProfileSubmit = async (e) => {
-        e.preventDefault();
-        setLoading(true); setError(''); setSuccess('');
-        try {
-            const token = localStorage.getItem('token');
-            await axios.put('/users/me', profileData, { headers: { 'Authorization': `Bearer ${token}` } });
-            setSuccess('Dados do perfil atualizados com sucesso!');
-        } catch (err) {
-            setError(err.response?.data?.detail || 'Erro ao atualizar o perfil.');
-        } finally {
-            setLoading(false);
+        if (pets.length === 0) {
+            return (
+                <div className="no-pets-container">
+                    <IconPaw />
+                    <h2 className="no-pets-title">Nenhum companheiro por aqui ainda</h2>
+                    <p className="no-pets-text">Que tal cadastrar seu primeiro pet? É rápido e fácil!</p>
+                    <button className="btn-add-pet" onClick={onNavigateToPetCadastro}>
+                        <IconPlus /> Cadastrar Primeiro Pet
+                    </button>
+                </div>
+            );
         }
+        return (
+            <div className="pets-grid">
+                {pets.map(pet => (
+                    <PetCard
+                        key={pet.id}
+                        pet={pet}
+                        onViewHistory={() => setSelectedPet(pet)}
+                        onPetUpdated={handleUpdatePet}
+                    />
+                ))}
+            </div>
+        );
     };
-
-    const handleRequestCode = async () => {
-        if (!isNewPasswordValid) {
-            setError('A nova senha não atende a todos os requisitos de segurança.');
-            return;
-        }
-        setLoading(true); setError(''); setSuccess('');
-        try {
-            const token = localStorage.getItem('token');
-            await axios.post('/users/me/request-password-change', {
-                senha_atual: passwordData.senha_atual,
-                nova_senha: passwordData.nova_senha
-            }, { headers: { 'Authorization': `Bearer ${token}` } });
-            setSuccess('Código enviado para seu e-mail! Verifique sua caixa de entrada.');
-            setPasswordFlowState(PWD_FLOW.CODE_SENT);
-            setPasswordAttempts(0);
-        } catch (err) {
-            const errorDetail = err.response?.data?.detail;
-            if (Array.isArray(errorDetail)) {
-                setError(errorDetail[0].msg);
-            } else {
-                setError(errorDetail || 'Erro ao solicitar o código.');
-            }
-
-            if (err.response && err.response.status === 401) {
-                const newAttempts = passwordAttempts + 1;
-                setPasswordAttempts(newAttempts);
-                if (newAttempts >= 3) {
-                    setError('Você errou a senha atual 3 vezes. Para sua segurança, use a opção "Esqueci minha senha".');
-                    setPasswordFlowState(PWD_FLOW.LOCKED);
-                }
-            }
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const handleConfirmPasswordChange = async () => {
-        setLoading(true); setError(''); setSuccess('');
-        try {
-            const token = localStorage.getItem('token');
-            await axios.post('/users/me/confirm-password-change', {
-                nova_senha: passwordData.nova_senha,
-                codigo_verificacao: passwordData.codigo_verificacao
-            }, { headers: { 'Authorization': `Bearer ${token}` } });
-            setSuccess('Senha alterada com sucesso!');
-            setPasswordData({ senha_atual: '', nova_senha: '', codigo_verificacao: '' });
-            setPasswordFlowState(PWD_FLOW.IDLE);
-        } catch (err) {
-            setError(err.response?.data?.detail || 'Erro ao confirmar a alteração.');
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const handleForgotPassword = () => {
-        onNavigateToForgotPassword();
-    };
-
-    const renderPasswordSection = () => {
-        switch (passwordFlowState) {
-            case PWD_FLOW.IDLE:
-                return <button type="button" className="btn-submit" style={{backgroundColor: '#6c757d'}} onClick={() => { setPasswordFlowState(PWD_FLOW.ENTERING_PASSWORDS); setPasswordAttempts(0); setError(''); setSuccess(''); }}>Alterar Senha</button>;
-
-            case PWD_FLOW.LOCKED:
-                return (
-                    <>
-                        <p>Por segurança, a alteração de senha por aqui foi bloqueada.</p>
-                        <button type="button" className="btn-submit" onClick={handleForgotPassword}>
-                            Esqueci Minha Senha
-                        </button>
-                        <button type="button" className="btn-submit" style={{backgroundColor: '#aaa', marginTop: '0.5rem'}} onClick={() => setPasswordFlowState(PWD_FLOW.IDLE)}>Voltar</button>
-                    </>
-                );
-
-            case PWD_FLOW.ENTERING_PASSWORDS:
-                return (
-                    <>
-                        <div className="form-group">
-                            <label className="form-label">Senha Atual</label>
-                            <input type="password" name="senha_atual" className="form-input" value={passwordData.senha_atual} onChange={handlePasswordChange} required />
-                        </div>
-                        <div className="form-group" style={{ position: 'relative' }}>
-                            <label className="form-label">Nova Senha</label>
-                            <input
-                                type="password"
-                                name="nova_senha"
-                                className="form-input"
-                                value={passwordData.nova_senha}
-                                onChange={handlePasswordChange}
-                                onFocus={() => setIsPasswordFocused(true)}
-                                onBlur={() => setIsPasswordFocused(false)}
-                                required
-                            />
-                            {isPasswordFocused && passwordData.nova_senha && <PasswordStrengthMeter checks={passwordChecks} />}
-                        </div>
-                        <button
-                            type="button"
-                            className="btn-submit"
-                            onClick={handleRequestCode}
-                            disabled={loading || !isNewPasswordValid || !passwordData.senha_atual}
-                        >
-                            {loading ? 'Enviando...' : 'Enviar Código de Verificação'}
-                        </button>
-                        <button type="button" className="btn-submit" style={{backgroundColor: '#aaa', marginTop: '0.5rem'}} onClick={() => setPasswordFlowState(PWD_FLOW.IDLE)}>Cancelar</button>
-                    </>
-                );
-
-            case PWD_FLOW.CODE_SENT:
-                return (
-                    <>
-                        <p>Um código foi enviado para seu e-mail. Insira-o abaixo para confirmar a alteração.</p>
-                        <div className="form-group">
-                            <label className="form-label">Código de Verificação</label>
-                            <input type="text" name="codigo_verificacao" className="form-input" value={passwordData.codigo_verificacao} onChange={handlePasswordChange} required maxLength="6" />
-                        </div>
-                        <button type="button" className="btn-submit" onClick={handleConfirmPasswordChange} disabled={loading}>
-                            {loading ? 'Confirmando...' : 'Confirmar e Alterar Senha'}
-                        </button>
-                        <button type="button" className="btn-submit" style={{backgroundColor: '#6c757d', marginTop: '0.5rem'}} onClick={handleRequestCode} disabled={loading}>
-                            {loading ? 'Reenviando...' : 'Reenviar Código'}
-                        </button>
-                    </>
-                );
-            default: return null;
-        }
-    };
-
-    if (loading && !profileData.telefone) return <div className="loading-message">Carregando perfil...</div>;
 
     return (
-        <div className="login-container">
-            <div className="login-card" style={{maxWidth: '700px'}}>
-                <div className="login-header"><h1>Meu Perfil</h1></div>
-                {error && <div className="error-message">{error}</div>}
-                {success && <div className="success-message">{success}</div>}
-
-                <form onSubmit={handleProfileSubmit}>
-                    <p>Atualize suas informações pessoais.</p>
-                    <div className="form-group">
-                        <label className="form-label">Telefone</label>
-                        <input
-                            type="tel"
-                            name="telefone"
-                            className="form-input"
-                            value={profileData.telefone}
-                            onChange={handleProfileChange}
-                            placeholder="(00) 00000-0000"
-                        />
+        <div className="meus-pets-container">
+            <div className="content-wrapper">
+                <div className="header">
+                    <div className="header-text">
+                        <h1>Meus Pets</h1>
+                        <p>Gerencie as informações e o histórico dos seus companheiros.</p>
                     </div>
-                    <div className="form-group">
-                        <label className="form-label">Endereço</label>
-                        <input type="text" name="endereco" className="form-input" value={profileData.endereco} onChange={handleProfileChange} />
-                    </div>
-                    <div className="form-group">
-                        <label className="form-label">CPF</label>
-                        <input
-                            type="text"
-                            name="cpf"
-                            className="form-input"
-                            value={profileData.cpf}
-                            onChange={handleProfileChange}
-                            placeholder="000.000.000-00"
-                        />
-                    </div>
-                    <button type="submit" className="btn-submit" disabled={loading}>{loading ? 'Salvando...' : 'Salvar Dados do Perfil'}</button>
-                </form>
-                
-                <hr style={{margin: '2rem 0'}} />
+                    {pets.length > 0 && (
+                        <button className="btn-add-pet" onClick={onNavigateToPetCadastro}>
+                            <IconPlus /> Cadastrar Novo Pet
+                        </button>
+                    )}
+                </div>
 
-                <div className="password-section">{renderPasswordSection()}</div>
+                {renderContent()}
 
-                <div className="login-footer" style={{marginTop: '2rem'}}><a href="#" onClick={(e) => { e.preventDefault(); onNavigateToHome(); }}>Voltar para o Início</a></div>
+                {selectedPet && (
+                    <PetHistoryModal
+                        pet={selectedPet}
+                        onClose={() => setSelectedPet(null)}
+                    />
+                )}
             </div>
         </div>
     );
 }
 
-export default MeuPerfilScreen;
+export default MeusPetsScreen;
