@@ -6,7 +6,7 @@ import os
 import threading
 from bancoDeDados import criar_tabelas
 import sync_data
-from routers import cliente_router, pet_router, login_router, funcionario_router, admin_router, produto_router, servico_router
+from routers import cliente_router, pet_router, login_router, funcionario_router, admin_router, produto_router, servico_router, admin_pet_router
 
 basedir = os.path.abspath(os.path.dirname(__file__))
 frontend_dir = os.path.join(basedir, "build")
@@ -52,5 +52,6 @@ app.include_router(login_router.router)
 app.include_router(pet_router.router)
 app.include_router(servico_router.router)
 app.include_router(admin_router.router, prefix="/api")
+app.include_router(admin_pet_router.router, prefix="/api")
 app.include_router(produto_router.router)
 app.mount("/", StaticFiles(directory=frontend_dir, html=True), name="static")
