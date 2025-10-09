@@ -155,6 +155,7 @@ class ServicosCliente:
             "is_ativo": user_data[6] if len(user_data) > 6 else True  #retorna o valor real de is_ativo, ou true como padrão
         }
 
+
     def editar_cliente(
             self,
             id: int,

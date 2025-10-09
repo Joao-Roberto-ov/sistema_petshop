@@ -3,7 +3,7 @@ from fastapi.security import OAuth2PasswordBearer
 from seguranca import verifica_token, verificar_permissao_admin
 from services.funcionario_service import ServicosFuncionario
 from services.cliente_service import ServicosCliente
-from modelos import FuncionarioModel, ClienteCadastroPorFuncionario, ClienteEdicaoPorFuncionario, FuncionarioCadastro, FuncionarioUpdate
+from modelos import FuncionarioModel, ClienteCadastroPorFuncionario, ClienteEdicaoPorFuncionario, FuncionarioCadastro, FuncionarioUpdate, CriarVenda
 from util.cargos import Cargo
 from typing import Annotated
 from modelos import UsuarioLogin
@@ -18,6 +18,9 @@ def pegar_servicos_funcionario():
 def pegar_servicos_cliente():
     from services.cliente_service import ServicosCliente
     return ServicosCliente()
+
+def pegar_servico_venda():
+    return ServicosVenda()
 
 async def pegar_id_do_funcionario(token: str = Depends(dupla_autenticacao)) -> int:
     user_id = verifica_token(token)
@@ -224,3 +227,29 @@ async def ativar_funcionario_rota(
         print("Erro interno em /ativar:", e)
         traceback.print_exc()
         raise HTTPException(status_code=500, detail="Ocorreu um erro interno.")
+
+# --- Rota para registrar venda ---
+@router.post("/registrar-venda", status_code=201)
+async def registrar_venda_por_funcionario(
+    dados_venda: CriarVenda,
+    funcionario_id: int = Depends(pegar_id_do_funcionario),
+    service_venda: ServicosVenda = Depends(pegar_servico_venda)
+):
+    """
+    Permite que o funcionário autenticado registre uma venda.
+    """
+    try:
+        resultado = service_venda.registrar_venda(dados_venda, funcionario_id)
+        return {
+            "Aviso": "Venda registrada com sucesso.",
+            "Detalhes": resultado
+        }
+
+    except HTTPException as e:
+        raise e
+
+    except Exception as e:
+        import traceback
+        print("Erro interno em /registrar-venda:", e)
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail="Ocorreu um erro interno ao registrar a venda.")

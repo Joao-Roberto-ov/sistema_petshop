@@ -448,3 +448,10 @@ class RepositorioCliente:
             if cursor: cursor.close()
             if conn: self.encerra_conexao(conn)
 
+    def buscar_clientes_por_nome(self, nome: str):
+        with self.conn.cursor() as cur:
+            cur.execute(
+                "SELECT id, nome FROM clientes WHERE LOWER(nome) LIKE LOWER(%s) ORDER BY nome",
+                (f"%{nome}%",)
+            )
+            return cur.fetchall()

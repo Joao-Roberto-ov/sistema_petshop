@@ -1,5 +1,5 @@
 from pydantic import BaseModel, EmailStr, validator, Field
-from typing import Optional, Literal
+from typing import Optional, List, Literal
 from datetime import datetime
 
 class UsuarioLogin(BaseModel):
@@ -264,3 +264,16 @@ class ServicoModel(BaseModel):
     duracao: int = Field(..., gt=0, description="Duração padrão em minutos")
     preco: float = Field(..., gt=0, description="Preço do serviço em reais")
     criador_id: Optional[int] = None
+
+class CriarItemVenda(BaseModel):
+    tipo: str
+    id_item: int
+    nome: str
+    quantidade: int
+    preco_unitario: float
+
+class CriarVenda(BaseModel):
+    cliente_id: int
+    forma_pagamento: str
+    status_pagamento: str = "pendente"
+    itens: List[CriarItemVenda]
