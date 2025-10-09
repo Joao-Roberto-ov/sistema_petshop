@@ -23,3 +23,4 @@ services/__pycache__/servico_service.cpython-313.pyc
 services/__pycache__/venda_service.cpython-313.pyc
 util/__pycache__/cargos.cpython-313.pyc
 package-lock.json
+__pycache__/sync_data.cpython-313.pyc
