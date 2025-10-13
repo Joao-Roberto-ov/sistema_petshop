@@ -2,7 +2,7 @@ from fastapi import APIRouter, HTTPException
 from modelos import CriarVenda
 from services.venda_service import ServicosVenda
 
-router = APIRouter(prefix="/vendas", tags=["Vendas"])
+router = APIRouter(prefix="/api/vendas", tags=["Vendas"])
 servico = ServicosVenda()
 
 

@@ -10,6 +10,7 @@ function HomePageFuncionario({
     onNavigateToVisualizarProdutos,
     onNavigateToVisualizarServicos,
     onNavigateToVisualizarPets,
+    onNavigateToRegistrarVenda,
     onLogout
 }) {
 
@@ -24,6 +25,12 @@ function HomePageFuncionario({
             title: "Visualizar Clientes",
             description: "Gerencie e visualize todos os clientes cadastrados no sistema.",
             onClick: onNavigateToVisualizarClientes
+        },
+        {
+            icon: '🛒',
+            title: "Registrar Venda",
+            description: "...",
+            onClick: onNavigateToRegistrarVenda
         },
         ...(isAdminOuGestor ? [{
             icon: '🛠',

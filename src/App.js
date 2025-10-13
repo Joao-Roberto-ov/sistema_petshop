@@ -22,6 +22,7 @@ import VisualizarProdutosGestor from './components/VisualizarProdutosGestor';
 import VisualizarProdutosFuncionario from './components/VisualizarProdutosFuncionario';
 import VisualizarProdutosCliente from './components/VisualizarProdutosCliente';
 import VisualizarPetsGestor from './components/VisualizarPetsGestor';
+import RegistrarVenda from './components/RegistrarVenda';
 
 function App() {
     const [currentScreen, setCurrentScreen] = useState('home');
@@ -147,6 +148,7 @@ function App() {
                     onNavigateToCadastroFuncionarioCompleto={() => setCurrentScreen('cadastro-funcionario-completo')}
                     onNavigateToGerenciarFuncionarios={() => setCurrentScreen('listar-funcionarios')}
                     onNavigateToVisualizarPets={() => setCurrentScreen('visualizar-pets-gestor')}
+                    onNavigateToRegistrarVenda={() => setCurrentScreen('registrar-venda')}
                     onNavigateToVisualizarProdutos={() => {
                         const cargoLower = userData?.cargo?.toLowerCase();
                         if (cargoLower === 'gestor' || cargoLower === 'administrador') {
@@ -158,6 +160,10 @@ function App() {
                     onLogout={handleLogout}
                 />;
 
+            case 'registrar-venda':
+                return <RegistrarVenda
+                    onBack={() => navigateToHome()}
+                />;
             case 'visualizar-produtos-gestor':
                 return <VisualizarProdutosGestor
                     onBack={() => navigateToHome()}
@@ -241,6 +247,7 @@ function App() {
                     else if (tipo === 'funcionario') setCurrentScreen('visualizar-produtos-funcionario');
                     else setCurrentScreen('visualizar-produtos-cliente');
                 }}
+                onNavigateToCadastrarProduto={()=> setCurrentScreen('registrar-venda')}
             />
             <main>
                 {renderScreen()}
