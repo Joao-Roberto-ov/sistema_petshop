@@ -1,3 +1,5 @@
+// joao-roberto-ov/sistema_petshop/sistema_petshop-dev/src/App.js
+
 import React, { useEffect, useState } from 'react';
 import './App.css';
 import AppHeader from './components/AppHeader';
@@ -9,7 +11,7 @@ import ResetPasswordScreen from './components/ResetPasswordScreen';
 import Dashboard from './components/Dashboard';
 import HomePageFuncionario from './components/HomePageFuncionario';
 import VisualizarClientes from "./components/VisualizarClientes";
-import VisualizarServicos from "./components/VisualizarServicos"; 
+import VisualizarServicos from "./components/VisualizarServicos";
 import PetCadastroScreen from './components/PetCadastroScreen';
 import MeusPetsScreen from './components/MeusPetsScreen';
 import MeuPerfilScreen from './components/MeuPerfilScreen';
@@ -22,6 +24,7 @@ import VisualizarProdutosGestor from './components/VisualizarProdutosGestor';
 import VisualizarProdutosFuncionario from './components/VisualizarProdutosFuncionario';
 import VisualizarProdutosCliente from './components/VisualizarProdutosCliente';
 import VisualizarPetsGestor from './components/VisualizarPetsGestor';
+import RegistrarVenda from './components/RegistrarVenda';
 
 function App() {
     const [currentScreen, setCurrentScreen] = useState('home');
@@ -50,7 +53,7 @@ function App() {
         };
 
         window.addEventListener('navigate', handleNavigate);
-        
+
         return () => {
             window.removeEventListener('navigate', handleNavigate);
         };
@@ -147,6 +150,7 @@ function App() {
                     onNavigateToCadastroFuncionarioCompleto={() => setCurrentScreen('cadastro-funcionario-completo')}
                     onNavigateToGerenciarFuncionarios={() => setCurrentScreen('listar-funcionarios')}
                     onNavigateToVisualizarPets={() => setCurrentScreen('visualizar-pets-gestor')}
+                    onNavigateToRegistrarVenda={() => setCurrentScreen('registrar-venda')}
                     onNavigateToVisualizarProdutos={() => {
                         const cargoLower = userData?.cargo?.toLowerCase();
                         if (cargoLower === 'gestor' || cargoLower === 'administrador') {
@@ -158,6 +162,10 @@ function App() {
                     onLogout={handleLogout}
                 />;
 
+            case 'registrar-venda':
+                return <RegistrarVenda
+                    onBack={() => navigateToHome()}
+                />;
             case 'visualizar-produtos-gestor':
                 return <VisualizarProdutosGestor
                     onBack={() => navigateToHome()}
@@ -175,7 +183,7 @@ function App() {
 
             case 'visualizarClientes':
                 return <VisualizarClientes onBack={() => navigateToHome()} />;
-            
+
             case 'visualizar-pets-gestor':
                 return <VisualizarPetsGestor onBack={() => navigateToHome()} />;
             case 'visualizarServicos':
@@ -241,11 +249,12 @@ function App() {
                     else if (tipo === 'funcionario') setCurrentScreen('visualizar-produtos-funcionario');
                     else setCurrentScreen('visualizar-produtos-cliente');
                 }}
+                onNavigateToCadastrarProduto={()=> setCurrentScreen('cadastrarProduto')}
             />
             <main>
                 {renderScreen()}
             </main>
         </div>
-    );
+    )
 }
 export default App;

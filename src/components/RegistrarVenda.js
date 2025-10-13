@@ -1,77 +1,88 @@
-import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import React, { useEffect, useState } from "react";
+import axios from "axios";
 
 function RegistrarVenda({ onBack }) {
   const [clientes, setClientes] = useState([]);
-  const [buscaCliente, setBuscaCliente] = useState('');
-  const [clienteSelecionado, setClienteSelecionado] = useState(null);
-
   const [produtos, setProdutos] = useState([]);
   const [servicos, setServicos] = useState([]);
-  const [carrinho, setCarrinho] = useState([]);
+  const [buscaCliente, setBuscaCliente] = useState("");
+  const [clienteSelecionado, setClienteSelecionado] = useState(null);
+  const [itens, setItens] = useState([]);
+  const [formaPagamento, setFormaPagamento] = useState("Dinheiro");
+  const [statusPagamento, setStatusPagamento] = useState("pendente");
 
-  const [formaPagamento, setFormaPagamento] = useState('');
-  const [statusPagamento, setStatusPagamento] = useState('pendente');
-
-  // Busca inicial de produtos e serviços
   useEffect(() => {
-    axios.get('/api/produtos')
-      .then(res => setProdutos(res.data))
-      .catch(err => console.error('Erro ao buscar produtos:', err));
-
-    axios.get('/api/servicos')
-      .then(res => setServicos(res.data))
-      .catch(err => console.error('Erro ao buscar serviços:', err));
-
-    axios.get('/api/cliente/getAll')
-      .then(res => setClientes(res.data))
-      .catch(err => console.error('Erro ao buscar clientes:', err));
+    buscarClientes();
+    buscarProdutos();
+    buscarServicos();
   }, []);
 
-  // Filtrar clientes
-  const clientesFiltrados = clientes.filter(c =>
-    c.nome.toLowerCase().includes(buscaCliente.toLowerCase())
+  const buscarClientes = async () => {
+    try {
+      const res = await axios.get("http://localhost:8000/api/users");
+      setClientes(res.data);
+    } catch (error) {
+      console.error("Erro ao buscar clientes:", error);
+    }
+  };
+
+  const buscarProdutos = async () => {
+    try {
+      const res = await axios.get("http://localhost:8000/api/produtos/listar");
+      setProdutos(res.data);
+    } catch (error) {
+      console.error("Erro ao buscar produtos:", error);
+    }
+  };
+
+  const buscarServicos = async () => {
+    try {
+      const res = await axios.get("http://localhost:8000/api/servicos");
+      setServicos(res.data);
+    } catch (error) {
+      console.error("Erro ao buscar serviços:", error);
+    }
+  };
+
+  const adicionarItem = (tipo, item) => {
+    const jaExiste = itens.find(
+      (i) => i.id_item === item.id && i.tipo === tipo
+    );
+    if (jaExiste) {
+      const atualizados = itens.map((i) =>
+        i.id_item === item.id && i.tipo === tipo
+          ? { ...i, quantidade: i.quantidade + 1 }
+          : i
+      );
+      setItens(atualizados);
+    } else {
+      setItens([
+        ...itens,
+        {
+          tipo,
+          id_item: item.id,
+          nome: item.nome,
+          quantidade: 1,
+          preco_unitario: item.preco_venda || item.preco || 0,
+        },
+      ]);
+    }
+  };
+
+  const removerItem = (index) => {
+    const novos = [...itens];
+    novos.splice(index, 1);
+    setItens(novos);
+  };
+
+  const total = itens.reduce(
+    (acc, i) => acc + i.quantidade * i.preco_unitario,
+    0
   );
 
-  // Adicionar item ao carrinho
-  const adicionarAoCarrinho = (tipo, item) => {
-    const existente = carrinho.find(i => i.tipo === tipo && i.id_item === item.id);
-    if (existente) {
-      setCarrinho(carrinho.map(i =>
-        i === existente ? { ...i, quantidade: i.quantidade + 1 } : i
-      ));
-    } else {
-      setCarrinho([...carrinho, {
-        tipo,
-        id_item: item.id,
-        nome: item.nome,
-        quantidade: 1,
-        preco_unitario: item.preco
-      }]);
-    }
-  };
-
-  // Remover item do carrinho
-  const removerDoCarrinho = (index) => {
-    const novo = [...carrinho];
-    novo.splice(index, 1);
-    setCarrinho(novo);
-  };
-
-  // Enviar venda
   const registrarVenda = async () => {
     if (!clienteSelecionado) {
-      alert('Selecione um cliente antes de registrar a venda.');
-      return;
-    }
-
-    if (!formaPagamento) {
-      alert('Escolha uma forma de pagamento.');
-      return;
-    }
-
-    if (carrinho.length === 0) {
-      alert('Adicione pelo menos um item ao carrinho.');
+      alert("Selecione um cliente!");
       return;
     }
 
@@ -79,191 +90,281 @@ function RegistrarVenda({ onBack }) {
       cliente_id: clienteSelecionado.id,
       forma_pagamento: formaPagamento,
       status_pagamento: statusPagamento,
-      itens: carrinho
+      itens,
     };
 
     try {
-      await axios.post('/api/funcionario/registrar-venda', venda);
-      alert('Venda registrada com sucesso!');
-      setCarrinho([]);
+      await axios.post("http://localhost:8000/api/funcionario/registrar-venda", venda, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+      });
+      alert("Venda registrada com sucesso!");
+      setItens([]);
       setClienteSelecionado(null);
-      setFormaPagamento('');
-      setStatusPagamento('pendente');
-    } catch (err) {
-      console.error(err);
-      alert('Erro ao registrar venda.');
+    } catch (error) {
+      console.error("Erro ao registrar venda:", error);
+      alert("Erro ao registrar venda");
     }
   };
 
-  return (
-    <div className="container mt-4">
-      <h2>Registrar Venda</h2>
-      <button className="btn btn-secondary mb-3" onClick={onBack}>Voltar</button>
+  // ==================== ESTILOS ====================
+  const styles = {
+    container: {
+      display: "flex",
+      flexDirection: "row",
+      justifyContent: "center",
+      alignItems: "flex-start",
+      gap: "20px",
+      backgroundColor: "#f3f3f3",
+      padding: "40px",
+      minHeight: "100vh",
+      maxWidth: "1400px",
+      margin: "0 auto",
+      width: "100%",
+    },
+    painelEsquerdo: {
+      flex: 2,
+      backgroundColor: "#fff",
+      padding: "20px",
+      borderRadius: "12px",
+      boxShadow: "0 4px 10px rgba(0,0,0,0.1)",
+    },
+    painelDireito: {
+      flex: 1,
+      backgroundColor: "#fff",
+      padding: "20px",
+      borderRadius: "12px",
+      boxShadow: "0 4px 10px rgba(0,0,0,0.1)",
+      display: "flex",
+      flexDirection: "column",
+      justifyContent: "space-between",
+    },
+    title: {
+      fontSize: "22px",
+      fontWeight: "bold",
+      marginBottom: "15px",
+      textAlign: "center",
+    },
+    horizontalScroll: {
+      display: "flex",
+      overflowX: "auto",
+      gap: "10px",
+      padding: "10px 0",
+    },
+    cardItem: {
+      flex: "0 0 auto",
+      border: "1px solid #ddd",
+      borderRadius: "10px",
+      padding: "10px",
+      backgroundColor: "#fafafa",
+      minWidth: "150px",
+      textAlign: "center",
+      boxShadow: "0 2px 5px rgba(0,0,0,0.05)",
+    },
+    buttonAdd: {
+      backgroundColor: "#4CAF50",
+      color: "#fff",
+      border: "none",
+      borderRadius: "6px",
+      padding: "5px 10px",
+      cursor: "pointer",
+      marginTop: "5px",
+    },
+    listaCarrinho: {
+      flex: 1,
+      overflowY: "auto",
+      marginBottom: "15px",
+      border: "1px solid #eee",
+      borderRadius: "8px",
+      padding: "10px",
+    },
+    itemCarrinho: {
+      display: "flex",
+      justifyContent: "space-between",
+      alignItems: "center",
+      marginBottom: "10px",
+      padding: "8px",
+      borderBottom: "1px solid #eee",
+    },
+    btnRemover: {
+      backgroundColor: "#f44336",
+      color: "#fff",
+      border: "none",
+      borderRadius: "5px",
+      padding: "5px 8px",
+      cursor: "pointer",
+    },
+    select: {
+      width: "100%",
+      padding: "10px",
+      borderRadius: "8px",
+      border: "1px solid #ccc",
+      marginBottom: "10px",
+    },
+    buttonAction: {
+      width: "100%",
+      padding: "12px",
+      border: "none",
+      borderRadius: "8px",
+      backgroundColor: "#2196F3",
+      color: "#fff",
+      fontWeight: "bold",
+      cursor: "pointer",
+      marginTop: "10px",
+    },
+    inputBusca: {
+      width: "100%",
+      padding: "10px",
+      borderRadius: "8px",
+      border: "1px solid #ccc",
+      marginBottom: "10px",
+    },
+    listaClientes: {
+      maxHeight: "150px",
+      overflowY: "auto",
+      border: "1px solid #eee",
+      borderRadius: "8px",
+      marginBottom: "20px",
+      backgroundColor: "#fafafa",
+    },
+    clienteItem: {
+      padding: "8px",
+      cursor: "pointer",
+    },
+    total: {
+      textAlign: "right",
+      fontWeight: "bold",
+      fontSize: "18px",
+      marginTop: "10px",
+    },
+  };
 
-      {/* Seleção de Cliente */}
-      <div className="card p-3 mb-4">
-        <h5>Selecionar Cliente</h5>
+  // ==================== JSX ====================
+  return (
+    <div style={styles.container}>
+      {/* Painel esquerdo */}
+      <div style={styles.painelEsquerdo}>
+        <h2 style={styles.title}>Registrar Venda</h2>
+
         <input
           type="text"
-          className="form-control mb-2"
           placeholder="Buscar cliente..."
+          style={styles.inputBusca}
           value={buscaCliente}
-          onChange={e => setBuscaCliente(e.target.value)}
+          onChange={(e) => setBuscaCliente(e.target.value)}
         />
-        <ul className="list-group">
-          {clientesFiltrados.map(cliente => (
-            <li
-              key={cliente.id}
-              className={`list-group-item ${clienteSelecionado?.id === cliente.id ? 'active' : ''}`}
-              onClick={() => setClienteSelecionado(cliente)}
-              style={{ cursor: 'pointer' }}
-            >
-              {cliente.nome}
-            </li>
+
+        <div style={styles.listaClientes}>
+          {clientes
+            .filter((c) =>
+              c.nome.toLowerCase().includes(buscaCliente.toLowerCase())
+            )
+            .map((c) => (
+              <div
+                key={c.id}
+                style={{
+                  ...styles.clienteItem,
+                  backgroundColor:
+                    clienteSelecionado?.id === c.id ? "#d0f0d0" : "transparent",
+                }}
+                onClick={() => setClienteSelecionado(c)}
+              >
+                {c.nome}
+              </div>
+            ))}
+        </div>
+
+        <h3>Serviços</h3>
+        <div style={styles.horizontalScroll}>
+          {servicos.map((s) => (
+            <div key={s.id} style={styles.cardItem}>
+              <strong>{s.nome}</strong>
+              <p>R$ {s.preco}</p>
+              <button
+                style={styles.buttonAdd}
+                onClick={() => adicionarItem("servico", s)}
+              >
+                Adicionar
+              </button>
+            </div>
           ))}
-        </ul>
-        {clienteSelecionado && (
-          <div className="mt-2 alert alert-info">
-            Cliente selecionado: <strong>{clienteSelecionado.nome}</strong>
+        </div>
+
+        <h3>Produtos</h3>
+        <div style={styles.horizontalScroll}>
+          {produtos.map((p) => (
+            <div key={p.id} style={styles.cardItem}>
+              <strong>{p.nome}</strong>
+              <p>R$ {p.preco_venda}</p>
+              <button
+                style={styles.buttonAdd}
+                onClick={() => adicionarItem("produto", p)}
+              >
+                Adicionar
+              </button>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Painel direito */}
+      <div style={styles.painelDireito}>
+        <div>
+          <h3 style={styles.title}>Carrinho</h3>
+          <div style={styles.listaCarrinho}>
+            {itens.length === 0 && <p>Nenhum item adicionado.</p>}
+            {itens.map((i, index) => (
+              <div key={index} style={styles.itemCarrinho}>
+                <span>
+                  {i.nome} ({i.quantidade}x)
+                </span>
+                <span>R$ {(i.quantidade * i.preco_unitario).toFixed(2)}</span>
+                <button
+                  style={styles.btnRemover}
+                  onClick={() => removerItem(index)}
+                >
+                  X
+                </button>
+              </div>
+            ))}
           </div>
-        )}
-      </div>
 
-      {/* Tabelas de Produtos e Serviços */}
-      <div className="row">
-        <div className="col-md-6">
-          <h5>Produtos</h5>
-          <table className="table table-bordered">
-            <thead>
-              <tr>
-                <th>Nome</th>
-                <th>Preço (R$)</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody>
-              {produtos.map(prod => (
-                <tr key={prod.id}>
-                  <td>{prod.nome}</td>
-                  <td>{prod.preco}</td>
-                  <td>
-                    <button
-                      className="btn btn-sm btn-success"
-                      onClick={() => adicionarAoCarrinho('produto', prod)}
-                    >
-                      Adicionar
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+          <div style={styles.total}>Total: R$ {total.toFixed(2)}</div>
 
-        <div className="col-md-6">
-          <h5>Serviços</h5>
-          <table className="table table-bordered">
-            <thead>
-              <tr>
-                <th>Nome</th>
-                <th>Preço (R$)</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody>
-              {servicos.map(serv => (
-                <tr key={serv.id}>
-                  <td>{serv.nome}</td>
-                  <td>{serv.preco}</td>
-                  <td>
-                    <button
-                      className="btn btn-sm btn-success"
-                      onClick={() => adicionarAoCarrinho('servico', serv)}
-                    >
-                      Adicionar
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      {/* Carrinho */}
-      <div className="card p-3 mt-4">
-        <h5>Carrinho</h5>
-        {carrinho.length === 0 ? (
-          <p>Nenhum item adicionado.</p>
-        ) : (
-          <table className="table table-striped">
-            <thead>
-              <tr>
-                <th>Tipo</th>
-                <th>Nome</th>
-                <th>Qtd</th>
-                <th>Preço Unit.</th>
-                <th>Total</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody>
-              {carrinho.map((item, index) => (
-                <tr key={index}>
-                  <td>{item.tipo}</td>
-                  <td>{item.nome}</td>
-                  <td>{item.quantidade}</td>
-                  <td>R$ {item.preco_unitario}</td>
-                  <td>R$ {(item.quantidade * item.preco_unitario).toFixed(2)}</td>
-                  <td>
-                    <button
-                      className="btn btn-sm btn-danger"
-                      onClick={() => removerDoCarrinho(index)}
-                    >
-                      Remover
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-      </div>
-
-      {/* Pagamento */}
-      <div className="card p-3 mt-4">
-        <h5>Pagamento</h5>
-        <div className="mb-2">
-          <label>Forma de Pagamento:</label>
           <select
-            className="form-select"
             value={formaPagamento}
-            onChange={e => setFormaPagamento(e.target.value)}
+            onChange={(e) => setFormaPagamento(e.target.value)}
+            style={styles.select}
           >
-            <option value="">Selecione...</option>
-            <option value="dinheiro">Dinheiro</option>
-            <option value="cartao_credito">Cartão de Crédito</option>
-            <option value="cartao_debito">Cartão de Débito</option>
-            <option value="pix">PIX</option>
+            <option>Dinheiro</option>
+            <option>Cartão de crédito</option>
+            <option>Cartão de débito</option>
+            <option>Pix</option>
           </select>
-        </div>
 
-        <div className="mb-2">
-          <label>Status do Pagamento:</label>
           <select
-            className="form-select"
             value={statusPagamento}
-            onChange={e => setStatusPagamento(e.target.value)}
+            onChange={(e) => setStatusPagamento(e.target.value)}
+            style={styles.select}
           >
             <option value="pendente">Pendente</option>
-            <option value="concluido">Concluído</option>
+            <option value="pago">Pago</option>
           </select>
         </div>
-      </div>
 
-      <button className="btn btn-primary mt-3" onClick={registrarVenda}>
-        Registrar Venda
-      </button>
+        <div>
+          <button style={styles.buttonAction} onClick={registrarVenda}>
+            Registrar Venda
+          </button>
+          <button
+            style={{ ...styles.buttonAction, backgroundColor: "#777" }}
+            onClick={onBack}
+          >
+            Voltar
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

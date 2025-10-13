@@ -1,3 +1,5 @@
+// joao-roberto-ov/sistema_petshop/sistema_petshop-dev/src/components/HomePageFuncionario.js
+
 import React from 'react';
 
 function HomePageFuncionario({
@@ -10,6 +12,7 @@ function HomePageFuncionario({
     onNavigateToVisualizarProdutos,
     onNavigateToVisualizarServicos,
     onNavigateToVisualizarPets,
+    onNavigateToRegistrarVenda,
     onLogout
 }) {
 
@@ -24,6 +27,12 @@ function HomePageFuncionario({
             title: "Visualizar Clientes",
             description: "Gerencie e visualize todos os clientes cadastrados no sistema.",
             onClick: onNavigateToVisualizarClientes
+        },
+        {
+            icon: '🛒',
+            title: "Registrar Venda",
+            description: "...",
+            onClick: onNavigateToRegistrarVenda // CORREÇÃO: Garante que a função seja chamada no clique
         },
         ...(isAdminOuGestor ? [{
             icon: '🛠',
