@@ -43,7 +43,7 @@ async def cadastrar_cliente_por_funcionario(
     try:
         resultado = service.cadastrar_por_funcionario(dados_cliente)
         return {
-            "Aviso": f"Cliente \'{dados_cliente.nome}\' cadastrado com sucesso!",
+            "Aviso": f"Cliente '{dados_cliente.nome}' cadastrado com sucesso!",
             "senha_temporaria": resultado["senha_temporaria"]
         }
     except HTTPException as e:
@@ -68,12 +68,11 @@ async def editar_cliente_por_funcionario(
         nome=dados_edicao.nome,
         email=dados_edicao.email,
         telefone=dados_edicao.telefone,
-        endereco=dados_edicao.endereco
+        endereco=dados_edicao.endereco,
+        cpf=dados_edicao.cpf
     )
 
-    return {"Aviso": f"Cliente \'{dados_edicao.nome or cliente_id}\' editado com sucesso!"}
-
-
+    return {"Aviso": f"Cliente '{dados_edicao.nome or cliente_id}' editado com sucesso!"}
 
 @router.post("/login")
 async def login_funcionario(

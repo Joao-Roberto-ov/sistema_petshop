@@ -16,20 +16,11 @@ function AppHeader({
     onNavigateToPetCadastro,
     onNavigateToMeusPets,
     onNavigateToMeuPerfil,
-    onNavigateToProdutos
+    onNavigateToProdutos,
+    onNavigateToServicosCliente
 }) {
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
     const dropdownRef = useRef(null);
-
-    const handlePlaceholderClick = (feature) => {
-        alert(`A funcionalidade "${feature}" será implementada em breve!`);
-        setIsDropdownOpen(false);
-    };
-
-    const handleServicosClick = (e) => {
-        e.preventDefault();
-        alert('Função em desenvolvimento');
-    };
 
     useEffect(() => {
         function handleClickOutside(event) {
@@ -46,7 +37,6 @@ function AppHeader({
     const isFuncionarioOuAdmin = userData?.cargo &&
         (userData.cargo === 'FUNCIONARIO' || userData.cargo === 'GESTOR');
 
-    // Verificar se é admin/gestor (incluindo diferentes variações)
     const cargoLower = userData?.cargo?.toLowerCase();
     const isAdmin = userData?.cargo === 'GESTOR' || 
                    userData?.cargo === 'ADMINISTRADOR' || 
@@ -67,6 +57,11 @@ function AppHeader({
         }
     };
 
+    const handleServicosClick = (e) => {
+        e.preventDefault();
+        onNavigateToServicosCliente();
+    };
+
     return (
         <header className="header">
             <nav className="nav container">
@@ -83,6 +78,7 @@ function AppHeader({
                         <>
                             <li><a href="#" className="nav-link" onClick={(e) => { e.preventDefault(); onNavigateToDashboard(); }}>Dashboard</a></li>
                             <li><a href="#" className="nav-link" onClick={(e) => { e.preventDefault(); onNavigateToMeusPets(); }}>Meus Pets</a></li>
+                            {/* CORREÇÃO: Chamando a função correta */}
                             <li><a href="#" className="nav-link" onClick={handleServicosClick}>Serviços</a></li>
                         </>
                     )}
@@ -130,6 +126,7 @@ function AppHeader({
                                     </li>
                                 </>
                             )}
+                            {/* CORREÇÃO: Chamando a função correta */}
                             <li><a href="#" className="nav-link" onClick={handleServicosClick}>Serviços</a></li>
                         </>
                     )}
@@ -147,7 +144,8 @@ function AppHeader({
 
                     {/* Link de Serviços - Visível apenas para deslogados */}
                     {!isLoggedIn && (
-                        <li><a href="#" className="nav-link" onClick={(e) => { e.preventDefault(); handlePlaceholderClick('Serviços'); }}>Serviços</a></li>
+                        /* CORREÇÃO: Chamando a função correta */
+                        <li><a href="#" className="nav-link" onClick={handleServicosClick}>Serviços</a></li>
                     )}
                 </ul>
 

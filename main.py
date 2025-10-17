@@ -2,14 +2,12 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 import os
 import threading
 from bancoDeDados import criar_tabelas
 import sync_data
 from routers import cliente_router, pet_router, login_router, funcionario_router, admin_router, produto_router, servico_router, admin_pet_router, venda_router
-
-basedir = os.path.abspath(os.path.dirname(__file__))
-frontend_dir = os.path.join(basedir, "build")
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -21,7 +19,7 @@ async def lifespan(app: FastAPI):
     sync_thread = threading.Thread(target=sync_data.run_sync)
     sync_thread.start()
 
-    yield  # Aqui a aplicação está rodando
+    yield
 
     print("Encerrando aplicação.")
 
@@ -35,17 +33,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-@app.get("/routes")
-async def list_routes():
-    routes = []
-    for route in app.routes:
-        if hasattr(route, "methods") and hasattr(route, "path"):
-            routes.append({
-                "path": route.path,
-                "methods": list(route.methods)
-            })
-    return routes
-
+app.mount("/static", StaticFiles(directory="build/static"), name="static")
 app.include_router(cliente_router.router)
 app.include_router(funcionario_router.router)
 app.include_router(login_router.router)
@@ -55,3 +43,11 @@ app.include_router(venda_router.router)
 app.include_router(admin_router.router, prefix="/api")
 app.include_router(admin_pet_router.router, prefix="/api")
 app.include_router(produto_router.router)
+
+@app.get("/icone_petshop.ico", include_in_schema=False)
+async def favicon():
+    return FileResponse("build/icone_petshop.ico")
+
+@app.get("/{full_path:path}")
+async def serve_react_app(full_path: str):
+    return FileResponse("build/index.html")

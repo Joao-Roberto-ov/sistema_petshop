@@ -1,5 +1,3 @@
-// joao-roberto-ov/sistema_petshop/sistema_petshop-dev/src/App.js
-
 import React, { useEffect, useState } from 'react';
 import './App.css';
 import AppHeader from './components/AppHeader';
@@ -25,6 +23,7 @@ import VisualizarProdutosFuncionario from './components/VisualizarProdutosFuncio
 import VisualizarProdutosCliente from './components/VisualizarProdutosCliente';
 import VisualizarPetsGestor from './components/VisualizarPetsGestor';
 import RegistrarVenda from './components/RegistrarVenda';
+import VisualizarServicosCliente from './components/VisualizarServicosCliente';
 
 function App() {
     const [currentScreen, setCurrentScreen] = useState('home');
@@ -140,6 +139,11 @@ function App() {
                     onNavigateToForgotPassword={() => setCurrentScreen('forgot-password')}
                 />;
 
+            case 'visualizar-servicos-cliente':
+                return <VisualizarServicosCliente
+                    onBack={() => navigateToHome()}
+                />;
+
             case 'homeFuncionario':
                 return <HomePageFuncionario
                     userData={userData}
@@ -224,6 +228,7 @@ function App() {
                     onNavigateToSignup={() => setCurrentScreen('signup')}
                     onNavigateToDashboard={() => setCurrentScreen('dashboard')}
                     onNavigateToProdutos={() => setCurrentScreen('visualizar-produtos-cliente')}
+                    onNavigateToServicos={() => setCurrentScreen('visualizar-servicos-cliente')} // <-- ADICIONE ESTA LINHA
                     isLoggedIn={isLoggedIn}
                     userData={userData}
                     onLogout={handleLogout}
@@ -244,6 +249,7 @@ function App() {
                 onNavigateToMeusPets={() => setCurrentScreen('meus-pets')}
                 onNavigateToMeuPerfil={() => setCurrentScreen('meu-perfil')}
                 onNavigateToHome={navigateToHome}
+                onNavigateToServicosCliente={() => setCurrentScreen('visualizar-servicos-cliente')}
                 onNavigateToProdutos={(tipo) => {
                     if (tipo === 'gestor') setCurrentScreen('visualizar-produtos-gestor');
                     else if (tipo === 'funcionario') setCurrentScreen('visualizar-produtos-funcionario');
@@ -255,6 +261,6 @@ function App() {
                 {renderScreen()}
             </main>
         </div>
-    )
+    );
 }
 export default App;

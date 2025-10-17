@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import axios from '../api/axios';
 
 function PetCadastroScreen({ onNavigateToHome }) {
-    const [formData, setFormData] = useState({ nome: '', tipo: '', raca: '', idade: '', peso: '' });
+    const [formData, setFormData] = useState({ nome: '', tipo: 'Cão', raca: '', idade: '', peso: '' }); // 'Cão' como valor inicial
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
     const [loading, setLoading] = useState(false);
@@ -63,7 +63,7 @@ function PetCadastroScreen({ onNavigateToHome }) {
             });
 
             setSuccess(`Pet '${formData.nome}' cadastrado com sucesso!`);
-            setFormData({ nome: '', tipo: '', raca: '', idade: '', peso: '' });
+            setFormData({ nome: '', tipo: 'Cão', raca: '', idade: '', peso: '' });
         } catch (err) {
             setError(err.response?.data?.detail || 'Erro ao cadastrar o pet.');
         } finally {
@@ -93,8 +93,17 @@ function PetCadastroScreen({ onNavigateToHome }) {
                         />
                     </div>
                     <div className="form-group">
-                        <label className="form-label">Tipo (ex: Cachorro, Gato) *</label>
-                        <input type="text" name="tipo" className="form-input" value={formData.tipo} onChange={handleInputChange} required />
+                        <label className="form-label">Tipo *</label>
+                        <select
+                            name="tipo"
+                            className="form-input"
+                            value={formData.tipo}
+                            onChange={handleInputChange}
+                            required
+                        >
+                            <option value="Cão">Cão</option>
+                            <option value="Gato">Gato</option>
+                        </select>
                     </div>
                     <div className="form-group">
                         <label className="form-label">Raça *</label>

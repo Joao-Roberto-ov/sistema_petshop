@@ -1,3 +1,5 @@
+// joao-roberto-ov/sistema_petshop/sistema_petshop-dev/src/components/SignupScreen.js
+
 import React, { useState, useEffect } from 'react';
 import axios from '../api/axios';
 
@@ -42,18 +44,26 @@ function SignupScreen({ onNavigateToLogin }) {
         return name.toLowerCase().split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
     };
 
+    // --- FUNÇÃO DE MÁSCARA DE TELEFONE CORRIGIDA ---
     const formatPhone = (value) => {
-        if (!value) return '';
-        let digits = value.replace(/\D/g, '');
-        if (digits.length > 11) digits = digits.slice(0, 11);
+        if (!value) return "";
+        // 1. Remove tudo que não é dígito e limita a 11 caracteres
+        const digits = value.replace(/\D/g, "").slice(0, 11);
 
-        if (digits.length > 6) {
-            return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`;
-        } else if (digits.length > 2) {
-            return `(${digits.slice(0, 2)}) ${digits.slice(2)}`;
+        // 2. Aplica a formatação passo a passo
+        let result = "";
+        if (digits.length > 0) {
+            result = "(" + digits.substring(0, 2);
         }
-        return `(${digits}`;
+        if (digits.length > 2) {
+            result += ") " + digits.substring(2, 7);
+        }
+        if (digits.length > 7) {
+            result += "-" + digits.substring(7, 11);
+        }
+        return result;
     };
+    // --- FIM DA CORREÇÃO ---
 
     const formatCPF = (value) => {
         if (!value) return '';
@@ -104,6 +114,7 @@ function SignupScreen({ onNavigateToLogin }) {
             const dadosParaEnviar = {
                 ...formData,
                 cpf: formData.cpf.replace(/\D/g, '') || null,
+                telefone: formData.telefone.replace(/\D/g, ''),
             };
             await axios.post('/signup', dadosParaEnviar);
             setSuccess('Conta criada com sucesso! Redirecionando para o login...');

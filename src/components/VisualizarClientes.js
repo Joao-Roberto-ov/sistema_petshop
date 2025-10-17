@@ -1,3 +1,5 @@
+// joao-roberto-ov/sistema_petshop/sistema_petshop-dev/src/components/VisualizarClientes.js
+
 import React, { useEffect, useState } from 'react';
 import axios from '../api/axios';
 
@@ -21,10 +23,15 @@ const IconToggle = ({ isActive }) => (
 
 function VisualizarClientes({ onBack }) {
     const [clientes, setClientes] = useState([]);
+    const [clientesFiltrados, setClientesFiltrados] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [showForm, setShowForm] = useState(false);
     const [editingId, setEditingId] = useState(null);
+    const [editingCliente, setEditingCliente] = useState(null);
+
+    const [nomeSearch, setNomeSearch] = useState('');
+    const [cpfSearch, setCpfSearch] = useState('');
 
     // Formulário
     const [formData, setFormData] = useState({
@@ -38,9 +45,81 @@ function VisualizarClientes({ onBack }) {
     const [formError, setFormError] = useState('');
     const [formSuccess, setFormSuccess] = useState('');
 
+    const capitalizeName = (name) => {
+        if (!name) return '';
+        return name.toLowerCase().split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+    };
+
+    // --- FUNÇÃO DE MÁSCARA DE TELEFONE CORRIGIDA ---
+    const formatPhone = (value) => {
+        if (!value) return "";
+        const digits = value.replace(/\D/g, "").slice(0, 11);
+
+        let result = "";
+        if (digits.length > 0) {
+            result = "(" + digits.substring(0, 2);
+        }
+        if (digits.length > 2) {
+            result += ") " + digits.substring(2, 7);
+        }
+        if (digits.length > 7) {
+            result += "-" + digits.substring(7, 11);
+        }
+        return result;
+    };
+    // --- FIM DA CORREÇÃO ---
+
+    const formatCPF = (value) => {
+        if (!value) return '';
+        let digits = value.replace(/\D/g, '');
+        if (digits.length > 11) digits = digits.slice(0, 11);
+
+        if (digits.length > 9) {
+            return `${digits.slice(0, 3)}.${digits.slice(3, 6)}.${digits.slice(6, 9)}-${digits.slice(9)}`;
+        } else if (digits.length > 6) {
+            return `${digits.slice(0, 3)}.${digits.slice(3, 6)}.${digits.slice(6)}`;
+        } else if (digits.length > 3) {
+            return `${digits.slice(0, 3)}.${digits.slice(3)}`;
+        }
+        return digits;
+    };
+
+    const handleInputChange = (e) => {
+        const { name, value } = e.target;
+        let formattedValue = value;
+
+        if (name === 'nome') {
+            formattedValue = capitalizeName(value);
+        } else if (name === 'telefone') {
+            formattedValue = formatPhone(value);
+        } else if (name === 'cpf') {
+            formattedValue = formatCPF(value);
+        }
+
+        setFormData({ ...formData, [name]: formattedValue });
+    };
+
     useEffect(() => {
         fetchClientes();
     }, []);
+
+    useEffect(() => {
+        let filteredData = clientes;
+
+        if (nomeSearch) {
+            const lowercasedFilter = nomeSearch.toLowerCase();
+            filteredData = clientes.filter(cliente =>
+                cliente.nome.toLowerCase().includes(lowercasedFilter)
+            );
+        } else if (cpfSearch) {
+            const searchDigits = cpfSearch.replace(/\D/g, '');
+            filteredData = clientes.filter(cliente =>
+                cliente.cpf && cliente.cpf.replace(/\D/g, '').includes(searchDigits)
+            );
+        }
+
+        setClientesFiltrados(filteredData);
+    }, [nomeSearch, cpfSearch, clientes]);
 
     const fetchClientes = async () => {
         try {
@@ -52,6 +131,7 @@ function VisualizarClientes({ onBack }) {
 
             const clientesOrdenados = response.data.sort((a, b) => a.id - b.id);
             setClientes(clientesOrdenados);
+            setClientesFiltrados(clientesOrdenados);
         } catch (err) {
             setError(err.response?.data?.detail || 'Erro ao buscar clientes.');
         } finally {
@@ -69,8 +149,9 @@ function VisualizarClientes({ onBack }) {
             const dadosParaEnviar = {
                 nome: formData.nome || undefined,
                 email: formData.email || undefined,
-                telefone: formData.telefone || undefined,
-                endereco: formData.endereco || undefined
+                telefone: formData.telefone.replace(/\D/g, '') || undefined,
+                endereco: formData.endereco || undefined,
+                cpf: formData.cpf.replace(/\D/g, '') || undefined
             };
             const token = localStorage.getItem('token');
 
@@ -80,10 +161,7 @@ function VisualizarClientes({ onBack }) {
                 });
                 setFormSuccess(`Cliente '${formData.nome}' atualizado com sucesso!`);
             } else {
-                const response = await axios.post('/funcionario/cadastrar-cliente', {
-                    ...dadosParaEnviar,
-                    cpf: formData.cpf.replace(/\D/g, '') || null
-                }, {
+                const response = await axios.post('/funcionario/cadastrar-cliente', dadosParaEnviar, {
                     headers: { Authorization: `Bearer ${token}` }
                 });
                 setFormSuccess(`Cliente '${formData.nome}' cadastrado com sucesso! Senha temporária: ${response.data.senha_temporaria}`);
@@ -91,6 +169,7 @@ function VisualizarClientes({ onBack }) {
 
             setFormData({ nome: '', email: '', telefone: '', cpf: '', endereco: '' });
             setEditingId(null);
+            setEditingCliente(null);
             setShowForm(false);
             fetchClientes();
         } catch (err) {
@@ -111,21 +190,21 @@ function VisualizarClientes({ onBack }) {
         if (!window.confirm(`Tem certeza que deseja ${newStatus ? 'ativar' : 'desativar'} este cliente?`)) {
             return;
         }
-        
+
         try {
             const token = localStorage.getItem('token');
-            const url = `http://localhost:8000/api/admin/clientes/${clienteId}/status?is_ativo=${newStatus}`;
-            
-            const response = await axios.put(url, {}, {
-                headers: { 
+            const url = `/admin/clientes/${clienteId}/status?is_ativo=${newStatus}`;
+
+            await axios.put(url, {}, {
+                headers: {
                     Authorization: `Bearer ${token}`,
                     'Content-Type': 'application/json'
                 }
             });
-            
+
             fetchClientes();
             alert(`Cliente ${newStatus ? 'ativado' : 'desativado'} com sucesso!`);
-            
+
         } catch (err) {
             if (err.response?.status === 401) {
                 alert('Sessão expirada. Faça login novamente.');
@@ -138,12 +217,13 @@ function VisualizarClientes({ onBack }) {
     };
 
     const handleEditClick = (cliente) => {
+        setEditingCliente(cliente);
         setFormData({
             nome: cliente.nome,
             email: cliente.email,
-            telefone: cliente.telefone || '',
+            telefone: formatPhone(cliente.telefone || ''),
             endereco: cliente.endereco || '',
-            cpf: cliente.cpf || ''
+            cpf: formatCPF(cliente.cpf || '')
         });
         setEditingId(cliente.id);
         setShowForm(true);
@@ -181,12 +261,13 @@ function VisualizarClientes({ onBack }) {
                         Visualize, edite e gerencie todos os clientes cadastrados no sistema.
                     </p>
                     <div className="hero-buttons">
-                        <button 
-                            className="btn btn-outline-white hover-lift" 
+                        <button
+                            className="btn btn-outline-white hover-lift"
                             onClick={() => {
                                 setShowForm(!showForm);
                                 if (!showForm) {
                                     setEditingId(null);
+                                    setEditingCliente(null);
                                     setFormData({ nome: '', email: '', telefone: '', cpf: '', endereco: '' });
                                     setFormError('');
                                     setFormSuccess('');
@@ -221,10 +302,11 @@ function VisualizarClientes({ onBack }) {
                                     </label>
                                     <input
                                         type="text"
+                                        name="nome"
                                         className="form-input"
                                         placeholder="Digite o nome completo"
                                         value={formData.nome}
-                                        onChange={e => setFormData({ ...formData, nome: e.target.value })}
+                                        onChange={handleInputChange}
                                         required
                                     />
                                 </div>
@@ -235,10 +317,11 @@ function VisualizarClientes({ onBack }) {
                                     </label>
                                     <input
                                         type="email"
+                                        name="email"
                                         className="form-input"
                                         placeholder="Digite o email"
                                         value={formData.email}
-                                        onChange={e => setFormData({ ...formData, email: e.target.value })}
+                                        onChange={handleInputChange}
                                         required
                                     />
                                 </div>
@@ -247,10 +330,12 @@ function VisualizarClientes({ onBack }) {
                                     <label className="form-label">Telefone</label>
                                     <input
                                         type="tel"
+                                        name="telefone"
                                         className="form-input"
-                                        placeholder="Digite o telefone"
+                                        placeholder="(00) 00000-0000"
                                         value={formData.telefone}
-                                        onChange={e => setFormData({ ...formData, telefone: e.target.value })}
+                                        onChange={handleInputChange}
+                                        maxLength="15"
                                     />
                                 </div>
 
@@ -258,33 +343,40 @@ function VisualizarClientes({ onBack }) {
                                     <label className="form-label">Endereço</label>
                                     <input
                                         type="text"
+                                        name="endereco"
                                         className="form-input"
                                         placeholder="Digite o endereço"
                                         value={formData.endereco}
-                                        onChange={e => setFormData({ ...formData, endereco: e.target.value })}
+                                        onChange={handleInputChange}
                                     />
                                 </div>
 
-                                {!editingId && (
-                                    <div className="form-group">
-                                        <label className="form-label">CPF</label>
-                                        <input
-                                            type="text"
-                                            className="form-input"
-                                            placeholder="Digite o CPF"
-                                            value={formData.cpf}
-                                            onChange={e => setFormData({ ...formData, cpf: e.target.value })}
-                                        />
-                                    </div>
-                                )}
+                                <div className="form-group">
+                                    <label className="form-label">CPF</label>
+                                    <input
+                                        type="text"
+                                        name="cpf"
+                                        className="form-input"
+                                        placeholder="000.000.000-00"
+                                        value={formData.cpf}
+                                        onChange={handleInputChange}
+                                        maxLength="14"
+                                        disabled={!!(editingId && editingCliente?.cpf)}
+                                    />
+                                    {editingId && editingCliente?.cpf && (
+                                        <small style={{ color: '#6c757d', fontSize: '0.8rem', marginTop: '0.25rem', display: 'block' }}>
+                                            O CPF não pode ser alterado após informado.
+                                        </small>
+                                    )}
+                                </div>
 
-                                <button 
-                                    type="submit" 
+                                <button
+                                    type="submit"
                                     className="btn-submit"
                                     disabled={formLoading}
                                 >
-                                    {formLoading 
-                                        ? (editingId ? 'Atualizando...' : 'Cadastrando...') 
+                                    {formLoading
+                                        ? (editingId ? 'Atualizando...' : 'Cadastrando...')
                                         : (editingId ? 'Atualizar Cliente' : 'Cadastrar Cliente')
                                     }
                                 </button>
@@ -299,11 +391,32 @@ function VisualizarClientes({ onBack }) {
                     <div className="text-center" style={{marginBottom: '2rem'}}>
                         <h2 className="section-title">Clientes Cadastrados</h2>
                         <p className="section-description">
-                            Total de {clientes.length} cliente{clientes.length !== 1 ? 's' : ''} cadastrado{clientes.length !== 1 ? 's' : ''}
+                            Total de {clientesFiltrados.length} cliente{clientesFiltrados.length !== 1 ? 's' : ''} encontrado{clientesFiltrados.length !== 1 ? 's' : ''}
                         </p>
                     </div>
 
-                    {/* Tabela modernizada */}
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', maxWidth: '800px', margin: '0 auto 2rem' }}>
+                        <input
+                            type="text"
+                            className="form-input"
+                            placeholder="Buscar por nome..."
+                            value={nomeSearch}
+                            onChange={(e) => setNomeSearch(e.target.value)}
+                            disabled={!!cpfSearch}
+                            style={{ fontSize: '1rem', padding: '0.75rem' }}
+                        />
+                        <input
+                            type="text"
+                            className="form-input"
+                            placeholder="Buscar por CPF..."
+                            value={cpfSearch}
+                            onChange={(e) => setCpfSearch(formatCPF(e.target.value))}
+                            disabled={!!nomeSearch}
+                            maxLength="14"
+                            style={{ fontSize: '1rem', padding: '0.75rem' }}
+                        />
+                    </div>
+
                     <div style={{
                         background: 'white',
                         borderRadius: '16px',
@@ -327,11 +440,11 @@ function VisualizarClientes({ onBack }) {
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {clientes.map((cliente, index) => (
-                                        <tr 
-                                            key={cliente.id} 
-                                            style={{ 
-                                                borderBottom: index === clientes.length - 1 ? 'none' : '1px solid #ecf0f1',
+                                    {clientesFiltrados.map((cliente, index) => (
+                                        <tr
+                                            key={cliente.id}
+                                            style={{
+                                                borderBottom: index === clientesFiltrados.length - 1 ? 'none' : '1px solid #ecf0f1',
                                                 transition: 'background 0.3s ease'
                                             }}
                                             onMouseEnter={(e) => e.currentTarget.style.background = '#f8f9fa'}

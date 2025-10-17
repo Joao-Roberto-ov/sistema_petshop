@@ -26,7 +26,7 @@ function PetCard({ pet, onViewHistory, onPetUpdated }) {
         if (isEditing) {
             setFormData({
                 nome: pet.nome || '',
-                tipo: pet.tipo || '',
+                tipo: pet.tipo || 'Cão',
                 raca: pet.raca || '',
                 idade: pet.idade || '',
                 peso: pet.peso || '',
@@ -130,13 +130,16 @@ function PetCard({ pet, onViewHistory, onPetUpdated }) {
                             </div>
                             <div className="form-group-edit">
                                 <label>Tipo</label>
-                                <input
+                                <select
                                     name="tipo"
-                                    type="text"
+                                    className="form-input"
                                     value={formData.tipo}
                                     onChange={handleInputChange}
                                     required
-                                />
+                                >
+                                    <option value="Cão">Cão</option>
+                                    <option value="Gato">Gato</option>
+                                </select>
                             </div>
                             <div className="form-group-edit">
                                 <label>Raça</label>

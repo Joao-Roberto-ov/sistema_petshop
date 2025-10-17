@@ -1,0 +1,96 @@
+/* Crie este novo arquivo em: joao-roberto-ov/sistema_petshop/sistema_petshop-dev/src/components/VisualizarServicosCliente.css */
+
+.loading-container, .error-container {
+    text-align: center;
+    padding: 4rem;
+    font-size: 1.2rem;
+    color: #666;
+}
+
+.error-container {
+    color: #e74c3c;
+}
+
+.servicos-lista-container {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+    overflow: hidden;
+}
+
+.servicos-tabela {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.servicos-tabela thead {
+    background-color: #4a9b8e;
+    color: white;
+}
+
+.servicos-tabela th, .servicos-tabela td {
+    padding: 1rem 1.5rem;
+    text-align: left;
+}
+
+.servicos-tabela th {
+    font-weight: 600;
+    font-size: 1rem;
+}
+
+.servicos-tabela tbody tr {
+    border-bottom: 1px solid #f0f0f0;
+    transition: background-color 0.2s ease;
+}
+
+.servicos-tabela tbody tr:last-child {
+    border-bottom: none;
+}
+
+.servicos-tabela tbody tr:hover {
+    background-color: #f8f9fa;
+}
+
+.servicos-tabela td {
+    color: #333;
+}
+
+.servicos-tabela td[data-label="Preço"] {
+    font-weight: 600;
+    color: #16a34a;
+}
+
+/* Responsividade */
+@media screen and (max-width: 768px) {
+    .servicos-tabela thead {
+        display: none;
+    }
+
+    .servicos-tabela, .servicos-tabela tbody, .servicos-tabela tr, .servicos-tabela td {
+        display: block;
+        width: 100%;
+    }
+
+    .servicos-tabela tr {
+        margin-bottom: 1rem;
+        border: 1px solid #eee;
+        border-radius: 8px;
+    }
+
+    .servicos-tabela td {
+        text-align: right;
+        padding-left: 50%;
+        position: relative;
+    }
+
+    .servicos-tabela td::before {
+        content: attr(data-label);
+        position: absolute;
+        left: 1.5rem;
+        width: 45%;
+        padding-right: 1rem;
+        text-align: left;
+        font-weight: 600;
+        color: #4a9b8e;
+    }
+}

@@ -178,7 +178,7 @@ class ServicosCliente:
 
         #verifica se existe um CPF duplicado (excluindo o do cliente logado)
         if cpf:
-            cliente_cpf = self.repo.procurar_por_cpf(cpf)
+            cliente_cpf = self.repo.buscar_pelo_cpf(cpf)
             if cliente_cpf and cliente_cpf[0] != id:
                 raise HTTPException(status_code=400, detail="Já existe um cliente com este CPF.")
 
@@ -380,19 +380,3 @@ class ServicosCliente:
             import traceback
             traceback.print_exc()
             raise HTTPException(status_code=500, detail=f"Erro ao alterar status do cliente: {str(e)}")
-    def editar_cliente(self, id: int, nome: str = None, email: str = None, telefone: str = None, endereco: str = None):
-        """
-        Edita as informações de um cliente existente.
-        Usado por funcionários administradores.
-        """
-        try:
-            self.repo.editar_cliente(
-                id=id,
-                nome=nome,
-                email=email,
-                telefone=telefone,
-                endereco=endereco
-            )
-            return {"message": "Cliente editado com sucesso!"}
-        except Exception as e:
-            raise HTTPException(status_code=500, detail=f"Erro ao editar cliente: {str(e)}")

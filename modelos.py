@@ -115,7 +115,15 @@ class ClienteEdicaoPorFuncionario(BaseModel):
     email: Optional[EmailStr] = None
     telefone: Optional[str] = None
     endereco: Optional[str] = None
+    cpf: Optional[str] = None
 
+    @validator('cpf', pre=True, always=True)
+    def validar_e_limpar_cpf(cls, validador: str) -> Optional[str]:
+        if not validador: return None
+        cpf_numeros = "".join(filter(str.isdigit, validador))
+        if len(cpf_numeros) != 11:
+            raise ValueError('O CPF deve conter 11 dígitos numéricos.')
+        return cpf_numeros
 
 class TokenRedefinicaoSenha(BaseModel):
     email: EmailStr
