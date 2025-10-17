@@ -321,7 +321,7 @@ class ServicosCliente:
             # AC2: email não revela a senha atual
             # AC4: link deve ser de uso unico e com prazo de expiraçao
             # AC5: link deve direcionar para a pagina de redefiniçao de senha
-            link_redefinicao = f"http://localhost:3000/reset-password?token={token}&email={user_email}"
+            link_redefinicao = f"http://petlifes-env.us-east-2.elasticbeanstalk.com:3000/reset-password?token={token}&email={user_email}"
             self.email_service.enviar_link_redefinicao(user_email, link_redefinicao)
             return {"message": "Se um usuário com este e-mail existir, um link de redefinição será enviado."}
         except HTTPException:
