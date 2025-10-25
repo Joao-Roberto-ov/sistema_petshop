@@ -10,10 +10,10 @@ class RepositorioPet:
             conn = conectar()
             cursor = conn.cursor()
             sql = """
-                  INSERT INTO Pets (nome, tipo, raca, idade, peso, cliente_id)
-                  VALUES (%s, %s, %s, %s, %s, %s)
+                  INSERT INTO Pets (nome, tipo, raca, idade, peso, sexo_biologico, observacoes, cliente_id)
+                  VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
                   """
-            cursor.execute(sql, (pet_dados.nome, pet_dados.tipo, pet_dados.raca, pet_dados.idade, pet_dados.peso, cliente_id))
+            cursor.execute(sql, (pet_dados.nome, pet_dados.tipo, pet_dados.raca, pet_dados.idade, pet_dados.peso, pet_dados.sexo_biologico, pet_dados.observacoes, cliente_id))
             conn.commit()
 
         finally:
@@ -68,7 +68,7 @@ class RepositorioPet:
         try:
             conn = conectar()
             cursor = conn.cursor()
-            sql = "SELECT id, nome, tipo, raca, idade, peso FROM Pets WHERE cliente_id = %s ORDER BY nome"
+            sql = "SELECT id, nome, tipo, raca, idade, peso, sexo_biologico, observacoes FROM Pets WHERE cliente_id = %s ORDER BY nome"
             cursor.execute(sql, (cliente_id,))
             return cursor.fetchall()
 
@@ -137,7 +137,7 @@ class RepositorioPet:
                 return cursor.fetchone()
 
             set_clause = ", ".join([f"{key} = %s" for key in update_data.keys()])
-            sql = f"UPDATE Pets SET {set_clause} WHERE id = %s RETURNING id, nome, tipo, raca, idade, peso"
+            sql = f"UPDATE Pets SET {set_clause} WHERE id = %s RETURNING id, nome, tipo, raca, idade, peso, sexo_biologico, observacoes"
             valores = list(update_data.values()) + [pet_id]
             cursor.execute(sql, valores)
             pet_atualizado = cursor.fetchone()
@@ -159,7 +159,7 @@ class RepositorioPet:
             conn = conectar()
             cursor = conn.cursor()
             sql = """
-                SELECT p.id, p.nome, p.tipo, p.raca, p.idade, p.peso, p.cliente_id, c.nome as cliente_nome
+                SELECT p.id, p.nome, p.tipo, p.raca, p.idade, p.peso, p.sexo_biologico, p.observacoes, p.cliente_id, c.nome as cliente_nome
                 FROM Pets p
                 INNER JOIN Clientes c ON p.cliente_id = c.id
                 ORDER BY p.nome, c.nome

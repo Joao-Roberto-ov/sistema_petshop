@@ -68,3 +68,21 @@
     font-size: 0.9rem;
     color: #666;
 }
+
+/* Estilo para as observações do pet no modal */
+.pet-observations-modal {
+    background-color: #f0f9ff; /* Azul claro para destaque */
+    border: 1px solid #bae6fd;
+    padding: 1rem;
+    border-radius: 8px;
+    margin-bottom: 1.5rem;
+    font-size: 0.95rem;
+    line-height: 1.4;
+    color: #0c4a6e;
+}
+
+.pet-observations-modal strong {
+    color: #083344;
+    font-weight: 600;
+    margin-right: 0.5rem;
+}

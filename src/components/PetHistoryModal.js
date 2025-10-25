@@ -40,6 +40,7 @@ function PetHistoryModal({ pet, onClose }) {
             <div className="modal-content" onClick={e => e.stopPropagation()}>
                 <button className="close-button" onClick={onClose}>&times;</button>
                 <h2>Histórico de {pet.nome}</h2>
+	                {pet.observacoes && <p className="pet-observations-modal"><strong>Observações do Pet:</strong> {pet.observacoes}</p>}
                 {loading && <p>Carregando histórico...</p>}
                 {error && <p className="error-message">{error}</p>}
 

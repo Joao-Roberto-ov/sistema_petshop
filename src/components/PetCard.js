@@ -19,31 +19,43 @@ const IconHistoryLog = () => (
 
 function PetCard({ pet, onViewHistory, onPetUpdated }) {
     const [isEditing, setIsEditing] = useState(false);
-    const [formData, setFormData] = useState({ nome: '', tipo: '', raca: '', idade: '', peso: '' });
+    const [formData, setFormData] = useState({
+        nome: '',
+        tipo: 'Cão',
+        raca: '',
+        idade: '',
+        peso: '',
+        sexo_biologico: '',
+        observacoes: ''
+    });
     const [error, setError] = useState('');
+    const [success, setSuccess] = useState('');
 
     useEffect(() => {
         if (isEditing) {
             setFormData({
                 nome: pet.nome || '',
-                tipo: pet.tipo || '',
+                tipo: pet.tipo || 'Cão',
                 raca: pet.raca || '',
                 idade: pet.idade || '',
                 peso: pet.peso || '',
+                sexo_biologico: pet.sexo_biologico || '',
+                observacoes: pet.observacoes || '',
             });
         }
     }, [isEditing, pet]);
 
     const capitalizeName = (name) => {
         if (!name) return '';
-        return name.toLowerCase().split(' ').map(word =>
-            word.charAt(0).toUpperCase() + word.slice(1)
-        ).join(' ');
+        return name
+            .toLowerCase()
+            .split(' ')
+            .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+            .join(' ');
     };
 
     const handleInputChange = (e) => {
         const { name, value } = e.target;
-
         if (name === 'nome') {
             setFormData(prev => ({ ...prev, [name]: capitalizeName(value) }));
         } else {
@@ -54,6 +66,7 @@ function PetCard({ pet, onViewHistory, onPetUpdated }) {
     const handleSave = async (e) => {
         e.preventDefault();
         setError('');
+        setSuccess('');
 
         if (parseInt(formData.idade) < 0) {
             setError('A idade não pode ser negativa.');
@@ -73,15 +86,21 @@ function PetCard({ pet, onViewHistory, onPetUpdated }) {
                 raca: formData.raca,
                 idade: parseInt(formData.idade),
                 peso: formData.peso ? parseFloat(formData.peso) : null,
+                sexo_biologico: formData.sexo_biologico,
+                observacoes: formData.observacoes,
             };
 
             const response = await axios.put(`/pets/${pet.id}`, dataToUpdate, {
-                 headers: { 'Authorization': `Bearer ${token}` }
+                headers: { Authorization: `Bearer ${token}` },
             });
+
             onPetUpdated(response.data);
             setIsEditing(false);
+            setSuccess('Pet atualizado com sucesso!');
+            setTimeout(() => setSuccess(''), 3000);
         } catch (err) {
             setError(err.response?.data?.detail || 'Erro ao salvar.');
+            setTimeout(() => setError(''), 3000);
         }
     };
 
@@ -91,11 +110,14 @@ function PetCard({ pet, onViewHistory, onPetUpdated }) {
             hash = pet.nome.charCodeAt(i) + ((hash << 5) - hash);
         }
         const c = (hash & 0x00FFFFFF).toString(16).toUpperCase();
-        return "#" + "00000".substring(0, 6 - c.length) + c;
+        return '#' + '000000'.substring(0, 6 - c.length) + c;
     };
 
     return (
         <div className="pet-card">
+            {success && <div className="success-message-card">{success}</div>}
+            {error && <div className="error-message-card">{error}</div>}
+
             <div className="pet-card-header">
                 <div className="pet-avatar" style={{ backgroundColor: avatarColor() }}>
                     {pet.nome?.charAt(0).toUpperCase()}
@@ -105,7 +127,15 @@ function PetCard({ pet, onViewHistory, onPetUpdated }) {
                     <p className="pet-species">{pet.tipo || 'Não informado'}</p>
                 </div>
                 <div className="pet-card-actions">
-                    <button className="action-btn" title="Editar Pet" onClick={() => setIsEditing(!isEditing)}>
+                    <button
+                        className="action-btn"
+                        title="Editar Pet"
+                        onClick={() => {
+                            setIsEditing(!isEditing);
+                            setError('');
+                            setSuccess('');
+                        }}
+                    >
                         <IconPencil />
                     </button>
                     <button className="action-btn" title="Ver Histórico" onClick={onViewHistory}>
@@ -119,6 +149,15 @@ function PetCard({ pet, onViewHistory, onPetUpdated }) {
                     <form onSubmit={handleSave} className="pet-edit-form">
                         <div className="form-grid">
                             <div className="form-group-edit">
+                                <label>Sexo</label>
+                                <select name="sexo_biologico" value={formData.sexo_biologico} onChange={handleInputChange} required>
+                                    <option value="">Selecione</option>
+                                    <option value="Macho">Macho</option>
+                                    <option value="Fêmea">Fêmea</option>
+                                </select>
+                            </div>
+
+                            <div className="form-group-edit">
                                 <label>Nome</label>
                                 <input
                                     name="nome"
@@ -128,16 +167,15 @@ function PetCard({ pet, onViewHistory, onPetUpdated }) {
                                     required
                                 />
                             </div>
+
                             <div className="form-group-edit">
                                 <label>Tipo</label>
-                                <input
-                                    name="tipo"
-                                    type="text"
-                                    value={formData.tipo}
-                                    onChange={handleInputChange}
-                                    required
-                                />
+                                <select name="tipo" value={formData.tipo} onChange={handleInputChange} required>
+                                    <option value="Cão">Cão</option>
+                                    <option value="Gato">Gato</option>
+                                </select>
                             </div>
+
                             <div className="form-group-edit">
                                 <label>Raça</label>
                                 <input
@@ -148,6 +186,7 @@ function PetCard({ pet, onViewHistory, onPetUpdated }) {
                                     required
                                 />
                             </div>
+
                             <div className="form-group-edit">
                                 <label>Idade</label>
                                 <input
@@ -159,6 +198,7 @@ function PetCard({ pet, onViewHistory, onPetUpdated }) {
                                     required
                                 />
                             </div>
+
                             <div className="form-group-edit">
                                 <label>Peso (kg)</label>
                                 <input
@@ -170,19 +210,59 @@ function PetCard({ pet, onViewHistory, onPetUpdated }) {
                                     min="0"
                                 />
                             </div>
+
+                            <div className="form-group-edit full-width">
+                                <label>Observações</label>
+                                <textarea
+                                    name="observacoes"
+                                    value={formData.observacoes}
+                                    onChange={handleInputChange}
+                                    rows="3"
+                                    placeholder="Informações adicionais sobre o pet (opcional)"
+                                />
+                            </div>
                         </div>
-                        {error && <small className="error-text">{error}</small>}
+
                         <div className="edit-buttons">
-                            <button type="submit" className="btn-save">Salvar Alterações</button>
-                            <button type="button" className="btn-cancel" onClick={() => { setIsEditing(false); setError(''); }}>Cancelar</button>
+                            <button type="submit" className="btn-save">
+                                Salvar Alterações
+                            </button>
+                            <button
+                                type="button"
+                                className="btn-cancel"
+                                onClick={() => {
+                                    setIsEditing(false);
+                                    setError('');
+                                    setSuccess('');
+                                }}
+                            >
+                                Cancelar
+                            </button>
                         </div>
                     </form>
                 ) : (
                     <div className="pet-info">
-                        <div className="info-item"><span>Raça</span><p>{pet.raca || 'Não informado'}</p></div>
-                        <div className="info-item"><span>Idade</span><p>{pet.idade ? `${pet.idade} anos` : 'Não informado'}</p></div>
-                        <div className="info-item"><span>Peso</span><p>{pet.peso ? `${pet.peso} kg` : 'Não informado'}</p></div>
-                    </div>
+                        <div className="info-item">
+                            <span>Tipo</span>
+                            <p>{pet.tipo || 'Não informado'}</p>
+                        </div>
+                        <div className="info-item">
+                            <span>Sexo</span>
+                            <p>{pet.sexo_biologico || 'Não informado'}</p>
+                        </div>
+                        <div className="info-item">
+                            <span>Raça</span>
+                            <p>{pet.raca || 'Não informado'}</p>
+                        </div>
+                        <div className="info-item">
+                            <span>Idade</span>
+                            <p>{pet.idade ? `${pet.idade} anos` : 'Não informado'}</p>
+                        </div>
+                        <div className="info-item">
+                            <span>Peso</span>
+                            <p>{pet.peso ? `${pet.peso} kg` : 'Não informado'}</p>
+                        </div>
+                        </div>
                 )}
             </div>
         </div>

@@ -1,6 +1,6 @@
 from fastapi import HTTPException
 from psycopg2 import Error
-from modelos import PetCadastro, PetUpdate
+from modelos import PetCadastro, PetUpdate, PetCadastroFuncionario
 from repositories.pet_repository import RepositorioPet
 
 
@@ -26,7 +26,7 @@ class ServicosPet:
         )
         if pet_existente:
             raise HTTPException(status_code=409,
-                                detail="Você já possui um pet cadastrado com o mesmo nome, tipo e raça.")
+                                detail="Você já possui um pet cadastrado com o mesmo nome, espécie e raça.")
 
         try:
             self.repo.cadastrar_pet(pet_dados, cliente_id)
@@ -34,10 +34,28 @@ class ServicosPet:
             print(f"Erro no banco de dados ao cadastrar pet: {e}")
             raise HTTPException(status_code=500, detail="Ocorreu um erro ao cadastrar o pet.")
 
+    def cadastrar_pet_funcionario(self, pet_dados: PetCadastroFuncionario):
+        cliente_id = pet_dados.cliente_id
+        pet_existente = self.repo.buscar_pet_por_dados(
+            cliente_id=cliente_id,
+            nome=pet_dados.nome,
+            tipo=pet_dados.tipo,
+            raca=pet_dados.raca
+        )
+        if pet_existente:
+            raise HTTPException(status_code=409,
+                                detail="O cliente já possui um pet cadastrado com o mesmo nome, espécie e raça.")
+
+        try:
+            # PetCadastroFuncionario herda de PetCadastroBase, então os campos são os mesmos
+            self.repo.cadastrar_pet(pet_dados, cliente_id)
+        except Error as e:
+            print(f"Erro no banco de dados ao cadastrar pet por funcionário: {e}")
+            raise HTTPException(status_code=500, detail="Ocorreu um erro ao cadastrar o pet.")
     def listar_pets_do_cliente(self, cliente_id: int):
         pets_data = self.repo.buscar_pets_por_cliente_id(cliente_id)
         pets = [
-            {"id": p[0], "nome": p[1], "tipo": p[2], "raca": p[3], "idade": p[4], "peso": p[5]}
+            {"id": p[0], "nome": p[1], "tipo": p[2], "raca": p[3], "idade": p[4], "peso": p[5], "sexo_biologico": p[6], "observacoes": p[7]}
             for p in pets_data
         ]
         return pets
@@ -90,7 +108,7 @@ class ServicosPet:
                 raise HTTPException(status_code=404, detail="Pet não encontrado")
 
             pet = {"id": pet_atualizado_data[0], "nome": pet_atualizado_data[1], "tipo": pet_atualizado_data[2],
-                   "raca": pet_atualizado_data[3], "idade": pet_atualizado_data[4], "peso": pet_atualizado_data[5]}
+                   "raca": pet_atualizado_data[3], "idade": pet_atualizado_data[4], "peso": pet_atualizado_data[5], "sexo_biologico": pet_atualizado_data[6], "observacoes": pet_atualizado_data[7]}
             return pet
         except Error as e:
             print(f"Erro no banco de dados ao atualizar pet: {e}")
@@ -111,8 +129,10 @@ class ServicosPet:
                     "raca": p[3], 
                     "idade": p[4], 
                     "peso": p[5],
-                    "cliente_id": p[6],
-                    "cliente_nome": p[7]
+                    "sexo_biologico": p[6],
+                    "observacoes": p[7],
+                    "cliente_id": p[8],
+                    "cliente_nome": p[9]
                 }
                 for p in pets_data
             ]
@@ -166,7 +186,9 @@ class ServicosPet:
                 "tipo": pet_atualizado_data[2],
                 "raca": pet_atualizado_data[3], 
                 "idade": pet_atualizado_data[4], 
-                "peso": pet_atualizado_data[5]
+                "peso": pet_atualizado_data[5],
+                "sexo_biologico": pet_atualizado_data[6],
+                "observacoes": pet_atualizado_data[7]
             }
             return pet
         except Error as e:

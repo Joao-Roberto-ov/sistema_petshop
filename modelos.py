@@ -71,15 +71,23 @@ class FuncionarioModel(BaseModel):
             raise ValueError('O CPF deve conter 11 dígitos numéricos.')
         return cpf_numeros
 
-class PetCadastro(BaseModel):
+class PetCadastroBase(BaseModel):
     nome: str
     tipo: str
     raca: str
     idade: int
     peso: Optional[float] = None
+    sexo_biologico: Optional[Literal["Macho", "Fêmea", "Não Informado"]] = "Não Informado"
+    observacoes: Optional[str] = None
 
-class Pet(PetCadastro):
+class Pet(PetCadastroBase):
     id: int
+    cliente_id: int
+
+class PetCadastro(PetCadastroBase):
+    pass
+
+class PetCadastroFuncionario(PetCadastroBase):
     cliente_id: int
 
 class PetUpdate(BaseModel):
@@ -88,6 +96,8 @@ class PetUpdate(BaseModel):
     raca: Optional[str] = None
     idade: Optional[int] = None
     peso: Optional[float] = None
+    sexo_biologico: Optional[Literal["Macho", "Fêmea", "Não Informado"]] = None
+    observacoes: Optional[str] = None
 
 class HistoricoItem(BaseModel):
     servico_realizado: str
