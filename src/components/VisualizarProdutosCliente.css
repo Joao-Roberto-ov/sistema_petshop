@@ -165,3 +165,215 @@
         width: 100%;
     }
 }
+.carrinho-icone {
+  position: fixed;
+  top: 20px;
+  right: 25px;
+  background: #4a9b8e;
+  color: white;
+  border: none;
+  border-radius: 50%;
+  padding: 0.8rem 1rem;
+  font-size: 1.5rem;
+  cursor: pointer;
+  z-index: 1000;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+}
+
+.carrinho-contador {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  background: #dc2626;
+  color: white;
+  font-size: 0.75rem;
+  font-weight: 600;
+  border-radius: 50%;
+  padding: 0.25rem 0.5rem;
+}
+
+.carrinho-modal {
+  position: fixed;
+  top: 80px;
+  right: 20px;
+  width: 350px;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+  padding: 1.5rem;
+  z-index: 1000;
+  animation: slideIn 0.3s ease;
+}
+
+@keyframes slideIn {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.carrinho-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.carrinho-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75rem;
+}
+
+.carrinho-acoes button {
+  margin: 0 3px;
+  padding: 0.3rem 0.6rem;
+  border: none;
+  background: #f3f4f6;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.btn-finalizar {
+  width: 100%;
+  background: #4a9b8e;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 0.8rem;
+  margin-top: 1rem;
+  cursor: pointer;
+  font-weight: 600;
+  transition: 0.3s;
+}
+
+.btn-finalizar:hover {
+  background: #357f75;
+}
+
+.adicionar-carrinho-btn {
+  background: #4a9b8e;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 0.5rem 1rem;
+  cursor: pointer;
+  transition: 0.3s;
+}
+
+.adicionar-carrinho-btn:hover {
+  background: #357f75;
+}
+/* ==== Carrinho flutuante moderno ==== */
+.carrinho-flutuante {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    z-index: 1000;
+}
+
+.botao-carrinho-flutuante {
+    background: linear-gradient(135deg, #10b981, #059669);
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 70px;
+    height: 70px;
+    font-size: 2rem;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.25);
+    cursor: pointer;
+    transition: transform 0.25s ease, box-shadow 0.25s ease;
+    position: relative;
+}
+
+.botao-carrinho-flutuante:hover {
+    transform: scale(1.1);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35);
+}
+
+/* contador vermelho moderno */
+.contador-carrinho {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    background: #ef4444;
+    color: white;
+    border-radius: 999px;
+    font-size: 0.9rem;
+    font-weight: 700;
+    padding: 2px 7px;
+    box-shadow: 0 0 8px rgba(239, 68, 68, 0.5);
+    animation: pulseCarrinho 1.5s infinite ease-in-out;
+}
+
+/* animação suave no contador */
+@keyframes pulseCarrinho {
+    0%, 100% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.2); opacity: 0.8; }
+}
+
+/* ==== Modal do carrinho ==== */
+.carrinho-modal {
+    position: fixed;
+    bottom: 100px;
+    right: 20px;
+    width: 320px;
+    background: #ffffff;
+    border-radius: 16px;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.25);
+    padding: 1.2rem;
+    animation: slideUp 0.3s ease;
+    z-index: 999;
+    max-height: 75vh;
+    overflow-y: auto;
+}
+
+@keyframes slideUp {
+    from { transform: translateY(30px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+}
+
+.carrinho-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.carrinho-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.8rem;
+}
+
+.carrinho-acoes button {
+    margin-left: 5px;
+    background: #f3f4f6;
+    border: none;
+    padding: 0.4rem 0.6rem;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.carrinho-acoes button:hover {
+    background: #e5e7eb;
+}
+
+.btn-finalizar {
+    background: linear-gradient(135deg, #3b82f6, #2563eb);
+    color: white;
+    font-weight: 600;
+    width: 100%;
+    padding: 0.8rem;
+    border: none;
+    border-radius: 10px;
+    margin-top: 1rem;
+    cursor: pointer;
+    transition: background 0.2s ease, transform 0.2s ease;
+}
+
+.btn-finalizar:hover {
+    background: linear-gradient(135deg, #2563eb, #1d4ed8);
+    transform: scale(1.03);
+}

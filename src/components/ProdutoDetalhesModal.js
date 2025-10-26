@@ -1,7 +1,7 @@
 import React from 'react';
 import './ProdutoDetalhesModal.css';
 
-function ProdutoDetalhesModal({ produto, onClose, imagemPadrao }) {
+function ProdutoDetalhesModal({ produto, onClose, imagemPadrao, onAdicionarAoCarrinho }) {
     if (!produto) return null;
 
     const obterIconeAnimal = (animalAlvo) => {
@@ -9,6 +9,12 @@ function ProdutoDetalhesModal({ produto, onClose, imagemPadrao }) {
         if (animalAlvo === 'Cães') return '🐕 Cães';
         if (animalAlvo === 'Gatos') return '🐈 Gatos';
         return '🐾 Todos os animais';
+    };
+
+    const handleAdicionarAoCarrinho = () => {
+        if (produto.estoque <= 0) return;
+        onAdicionarAoCarrinho(produto);
+        onClose();
     };
 
     return (
@@ -57,6 +63,14 @@ function ProdutoDetalhesModal({ produto, onClose, imagemPadrao }) {
                                 ⚠️ Produto temporariamente indisponível
                             </div>
                         )}
+
+                        <button
+                            className="botao-adicionar-carrinho"
+                            onClick={handleAdicionarAoCarrinho}
+                            disabled={produto.estoque <= 0}
+                        >
+                            🛒 Adicionar ao Carrinho
+                        </button>
                     </div>
                 </div>
             </div>
