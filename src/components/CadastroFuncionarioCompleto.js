@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import axios from '../api/axios';
+import axios from '../api/axios'; //
 import '../App.css';
+import './FuncionarioCompleto.css'; //
 
+// IDs dos Cargos (do backend util/cargos.py)
 const CARGOS = {
     GESTOR: 1,
     FUNCIONARIO: 2,
@@ -10,7 +12,7 @@ const CARGOS = {
 };
 
 function CadastroFuncionarioCompleto({ onNavigateToHome }) {
-    // Estados para os campos do formulário (AC1)
+    // ... (estados existentes: nome, cargoId, email, etc.)
     const [nome, setNome] = useState('');
     const [cargoId, setCargoId] = useState('');
     const [email, setEmail] = useState('');
@@ -23,96 +25,89 @@ function CadastroFuncionarioCompleto({ onNavigateToHome }) {
     const [senha, setSenha] = useState('');
     const [confirmarSenha, setConfirmarSenha] = useState('');
     const [isAtivo, setIsAtivo] = useState(true);
-    
+
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [fieldErrors, setFieldErrors] = useState({});
 
+    // --- NOVOS ESTADOS (REQ 2) ---
+    const [catalogoServicos, setCatalogoServicos] = useState([]);
+    const [especialidades, setEspecialidades] = useState([]); // Guarda os IDs [1, 3, 5]
+    // --- FIM DOS NOVOS ESTADOS ---
+
     const diasSemana = ['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado', 'Domingo'];
 
+    // Busca o catálogo de serviços para o campo de especialidades
     useEffect(() => {
-        const token = localStorage.getItem('token');
-        const userData = JSON.parse(localStorage.getItem('userData'));
-        if (!token || !userData || (userData.cargo !== 'gestor' && userData.cargo !== 'ADMINISTRADOR')) {
-            alert('Acesso negado. Apenas administradores podem acessar esta página.');
-            if (onNavigateToHome) onNavigateToHome();
-        }
-    }, [onNavigateToHome]);
+        const fetchServicos = async () => {
+            try {
+                // /servicos é mapeado para /api/servicos pelo axios.js
+                const response = await axios.get('/servicos');
+                setCatalogoServicos(response.data || []);
+            } catch (err) {
+                console.error("Erro ao buscar catálogo de serviços:", err);
+                setError("Não foi possível carregar a lista de serviços para as especialidades.");
+            }
+        };
 
-    // Função para validar campos obrigatórios (AC3)
+        fetchServicos();
+    }, []); // Executa apenas uma vez
+
+    // ... (função validarCampos permanece a mesma) ...
     const validarCampos = () => {
         const errors = {};
-        
-        if (!nome || !nome.trim()) {
-            errors.nome = 'Nome completo é obrigatório';
-        }
-        
-        if (!cargoId) {
-            errors.cargoId = 'Cargo é obrigatório';
-        }
-        
-        if (!email) {
-            errors.email = 'E-mail é obrigatório';
-        }
-        
-        if (!telefone || !telefone.trim()) {
-            errors.telefone = 'Telefone é obrigatório';
-        }
-        
-        if (!horarioInicio) {
-            errors.horarioInicio = 'Horário de início é obrigatório';
-        }
-        
-        if (!horarioFim) {
-            errors.horarioFim = 'Horário de fim é obrigatório';
-        }
-        
-        if (diasTrabalho.length === 0) {
-            errors.diasTrabalho = 'Pelo menos um dia de trabalho deve ser selecionado';
-        }
-        
-        if (!senha || senha.length < 6) {
-            errors.senha = 'Senha deve ter pelo menos 6 caracteres';
-        }
-        
-        if (senha !== confirmarSenha) {
-            errors.confirmarSenha = 'Senhas não coincidem';
-        }
-
-        if (horarioInicio && horarioFim && horarioInicio >= horarioFim) {
-            errors.horarioFim = 'Horário de fim deve ser posterior ao horário de início';
-        }
+        if (!nome || !nome.trim()) errors.nome = 'Nome completo é obrigatório';
+        if (!cargoId) errors.cargoId = 'Cargo é obrigatório';
+        if (!email) errors.email = 'E-mail é obrigatório';
+        if (!telefone || !telefone.trim()) errors.telefone = 'Telefone é obrigatório';
+        if (!horarioInicio) errors.horarioInicio = 'Horário de início é obrigatório';
+        if (!horarioFim) errors.horarioFim = 'Horário de fim é obrigatório';
+        if (diasTrabalho.length === 0) errors.diasTrabalho = 'Pelo menos um dia de trabalho deve ser selecionado';
+        if (!senha || senha.length < 6) errors.senha = 'Senha deve ter pelo menos 6 caracteres';
+        if (senha !== confirmarSenha) errors.confirmarSenha = 'Senhas não coincidem';
+        if (horarioInicio && horarioFim && horarioInicio >= horarioFim) errors.horarioFim = 'Horário de fim deve ser posterior ao horário de início';
 
         setFieldErrors(errors);
         return Object.keys(errors).length === 0;
     };
 
     const handleDiaTrabalhoChange = (dia) => {
-        setDiasTrabalho(prev => {
-            if (prev.includes(dia)) {
-                return prev.filter(d => d !== dia);
+        setDiasTrabalho(prev => prev.includes(dia) ? prev.filter(d => d !== dia) : [...prev, dia]);
+    };
+
+    // --- NOVOS HANDLERS (REQ 2) ---
+    const handleEspecialidadeChange = (servicoId) => {
+        setEspecialidades(prev => {
+            if (prev.includes(servicoId)) {
+                return prev.filter(id => id !== servicoId); // Desmarca
             } else {
-                return [...prev, dia];
+                return [...prev, servicoId]; // Marca
             }
         });
     };
 
-    // Função para formatar CPF
+    const handleServicosGerais = (e) => {
+        if (e.target.checked) {
+            // Marca todos
+            setEspecialidades(catalogoServicos.map(s => s.id));
+        } else {
+            // Desmarca todos
+            setEspecialidades([]);
+        }
+    };
+    // --- FIM DOS NOVOS HANDLERS ---
+
     const formatarCPF = (value) => {
         const numeros = value.replace(/\D/g, '');
         return numeros.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
     };
-
-    // Função para formatar telefone
     const formatarTelefone = (value) => {
         const numeros = value.replace(/\D/g, '');
-        if (numeros.length <= 10) {
-            return numeros.replace(/(\d{2})(\d{4})(\d{4})/, '($1) $2-$3');
-        } else {
-            return numeros.replace(/(\d{2})(\d{5})(\d{4})/, '($1) $2-$3');
-        }
+        if (numeros.length <= 10) return numeros.replace(/(\d{2})(\d{4})(\d{4})/, '($1) $2-$3');
+        return numeros.replace(/(\d{2})(\d{5})(\d{4})/, '($1) $2-$3');
     };
+
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -120,7 +115,6 @@ function CadastroFuncionarioCompleto({ onNavigateToHome }) {
         setSuccess('');
         setIsLoading(true);
 
-        // Validação dos campos (AC3)
         if (!validarCampos()) {
             setError('Por favor, corrija os erros nos campos destacados.');
             setIsLoading(false);
@@ -129,49 +123,36 @@ function CadastroFuncionarioCompleto({ onNavigateToHome }) {
 
         try {
             const token = localStorage.getItem('token');
-            
-            // Mapear cargo_id para cargo_funcao (nome do cargo)
-            const cargoNomes = {
-                1: 'Gestor',
-                2: 'Funcionário',
-                3: 'Veterinário',
-                4: 'Atendente'
-            };
-            
+            const cargoNomes = { 1: 'Gestor', 2: 'Funcionário', 3: 'Veterinário', 4: 'Atendente' };
             const cargoIdInt = parseInt(cargoId);
             const cargoFuncaoValue = cargoNomes[cargoIdInt] || 'Funcionário';
-            
+
             const dadosFuncionario = {
                 nome: nome.trim(),
                 cargo_id: cargoIdInt,
-                cargo_funcao: cargoFuncaoValue, // Adiciona o nome do cargo
+                cargo_funcao: cargoFuncaoValue,
                 email: email.trim(),
-                telefone: telefone.replace(/\D/g, ''), // Remove formatação
-                cpf: cpf ? cpf.replace(/\D/g, '') : null, // Remove formatação
+                telefone: telefone.replace(/\D/g, ''),
+                cpf: cpf ? cpf.replace(/\D/g, '') : null,
                 endereco: endereco.trim() || null,
                 horario_inicio: horarioInicio,
                 horario_fim: horarioFim,
                 dias_trabalho: diasTrabalho.join(','),
                 senha: senha,
-                is_ativo: isAtivo
+                is_ativo: isAtivo,
+                // --- DADO ADICIONADO (REQ 2) ---
+                // Envia a lista de IDs de especialidades SE for o cargo 2, senão envia lista vazia
+                especialidades: cargoIdInt === CARGOS.FUNCIONARIO ? especialidades : []
             };
 
-            // DEBUG: Verificar o que está sendo enviado
-            console.log('=== DADOS DO FUNCIONÁRIO ===');
-            console.log('cargo_id:', cargoIdInt);
-            console.log('cargo_funcao:', cargoFuncaoValue);
-            console.log('Objeto completo:', dadosFuncionario);
-
-            // Cadastro no banco de dados (AC2)
+            //
             const response = await axios.post('/funcionario/cadastrar', dadosFuncionario, {
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                }
+                headers: { 'Authorization': `Bearer ${token}` }
             });
 
             setSuccess(response.data.message || 'Funcionário cadastrado com sucesso!');
-            
-            // Limpar formulário após sucesso
+
+            // Limpar formulário
             setNome('');
             setCargoId('');
             setEmail('');
@@ -184,8 +165,9 @@ function CadastroFuncionarioCompleto({ onNavigateToHome }) {
             setSenha('');
             setConfirmarSenha('');
             setIsAtivo(true);
+            setEspecialidades([]); // Limpa especialidades
             setFieldErrors({});
-            
+
         } catch (err) {
             console.error('Erro ao cadastrar funcionário:', err);
             setError(err.response?.data?.detail || 'Erro ao cadastrar funcionário.');
@@ -194,9 +176,12 @@ function CadastroFuncionarioCompleto({ onNavigateToHome }) {
         }
     };
 
+    // --- LÓGICA AUXILIAR PARA "SERVIÇOS GERAIS" ---
+    const isServicosGerais = catalogoServicos.length > 0 && especialidades.length === catalogoServicos.length;
+
     return (
         <div className="login-container">
-            <div className="login-card" style={{ maxWidth: '600px' }}>
+            <div className="login-card" style={{ maxWidth: '800px' }}> {/* Aumentado o max-width */}
                 <div className="login-header">
                     <h1>Cadastro de Funcionário</h1>
                     <p>Preencha todos os dados obrigatórios para cadastrar um novo funcionário</p>
@@ -208,9 +193,7 @@ function CadastroFuncionarioCompleto({ onNavigateToHome }) {
                 <form onSubmit={handleSubmit}>
                     {/* Nome Completo */}
                     <div className="form-group">
-                        <label className="form-label">
-                            Nome Completo <span className="required">*</span>
-                        </label>
+                        <label className="form-label">Nome Completo <span className="required">*</span></label>
                         <input
                             type="text"
                             className={`form-input ${fieldErrors.nome ? 'error' : ''}`}
@@ -223,29 +206,66 @@ function CadastroFuncionarioCompleto({ onNavigateToHome }) {
 
                     {/* Cargo/Função */}
                     <div className="form-group">
-                        <label className="form-label">
-                            Cargo <span className="required">*</span>
-                        </label>
+                        <label className="form-label">Cargo <span className="required">*</span></label>
                         <select
                             className={`form-input ${fieldErrors.cargoId ? 'error' : ''}`}
                             value={cargoId}
                             onChange={(e) => setCargoId(e.target.value)}
                         >
                             <option value="">Selecione um cargo</option>
-                            <option value={CARGOS.VETERINARIO}>Veterinário</option>
-                            <option value={CARGOS.ATENDENTE}>Atendente</option>
                             <option value={CARGOS.GESTOR}>Gestor</option>
                             <option value={CARGOS.FUNCIONARIO}>Funcionário</option>
+                            <option value={CARGOS.VETERINARIO}>Veterinário</option>
+                            <option value={CARGOS.ATENDENTE}>Atendente</option>
                         </select>
                         {fieldErrors.cargoId && <span className="field-error">{fieldErrors.cargoId}</span>}
                     </div>
 
+                    {/* --- CAMPO CONDICIONAL DE ESPECIALIDADES (REQ 2) --- */}
+                    {cargoId === String(CARGOS.FUNCIONARIO) && (
+                        <div className="form-group especialidades-container">
+                            <label className="form-label">Especialidades (Opcional)</label>
+                            <p>Selecione os serviços que este funcionário realiza. Se nada for selecionado, ele será considerado apto para "Serviços Gerais".</p>
+
+                            <div className="especialidade-item">
+                                <label className="checkbox-label" style={{fontWeight: 'bold'}}>
+                                    <input
+                                        type="checkbox"
+                                        checked={isServicosGerais}
+                                        onChange={handleServicosGerais}
+                                    />
+                                    Serviços Gerais (Selecionar Todos)
+                                </label>
+                            </div>
+
+                            <div className="especialidades-grid">
+                                {catalogoServicos.length > 0 ? (
+                                    catalogoServicos.map(servico => (
+                                        <div key={servico.id} className="especialidade-item">
+                                            <label className="checkbox-label">
+                                                <input
+                                                    type="checkbox"
+                                                    value={servico.id}
+                                                    checked={especialidades.includes(servico.id)}
+                                                    onChange={() => handleEspecialidadeChange(servico.id)}
+                                                />
+                                                {servico.nome}
+                                            </label>
+                                        </div>
+                                    ))
+                                ) : (
+                                    <p>Carregando serviços...</p>
+                                )}
+                            </div>
+                        </div>
+                    )}
+                    {/* --- FIM DO CAMPO CONDICIONAL --- */}
+
+
                     {/* Informações de Contato */}
                     <div className="form-row">
                         <div className="form-group">
-                            <label className="form-label">
-                                E-mail <span className="required">*</span>
-                            </label>
+                            <label className="form-label">E-mail <span className="required">*</span></label>
                             <input
                                 type="email"
                                 className={`form-input ${fieldErrors.email ? 'error' : ''}`}
@@ -255,11 +275,8 @@ function CadastroFuncionarioCompleto({ onNavigateToHome }) {
                             />
                             {fieldErrors.email && <span className="field-error">{fieldErrors.email}</span>}
                         </div>
-
                         <div className="form-group">
-                            <label className="form-label">
-                                Telefone <span className="required">*</span>
-                            </label>
+                            <label className="form-label">Telefone <span className="required">*</span></label>
                             <input
                                 type="text"
                                 className={`form-input ${fieldErrors.telefone ? 'error' : ''}`}
@@ -285,7 +302,6 @@ function CadastroFuncionarioCompleto({ onNavigateToHome }) {
                                 maxLength="14"
                             />
                         </div>
-
                         <div className="form-group">
                             <label className="form-label">Endereço</label>
                             <input
@@ -301,9 +317,7 @@ function CadastroFuncionarioCompleto({ onNavigateToHome }) {
                     {/* Horários de Trabalho */}
                     <div className="form-row">
                         <div className="form-group">
-                            <label className="form-label">
-                                Horário de Início <span className="required">*</span>
-                            </label>
+                            <label className="form-label">Horário de Início <span className="required">*</span></label>
                             <input
                                 type="time"
                                 className={`form-input ${fieldErrors.horarioInicio ? 'error' : ''}`}
@@ -312,11 +326,8 @@ function CadastroFuncionarioCompleto({ onNavigateToHome }) {
                             />
                             {fieldErrors.horarioInicio && <span className="field-error">{fieldErrors.horarioInicio}</span>}
                         </div>
-
                         <div className="form-group">
-                            <label className="form-label">
-                                Horário de Fim <span className="required">*</span>
-                            </label>
+                            <label className="form-label">Horário de Fim <span className="required">*</span></label>
                             <input
                                 type="time"
                                 className={`form-input ${fieldErrors.horarioFim ? 'error' : ''}`}
@@ -329,9 +340,7 @@ function CadastroFuncionarioCompleto({ onNavigateToHome }) {
 
                     {/* Dias de Trabalho */}
                     <div className="form-group">
-                        <label className="form-label">
-                            Dias de Trabalho <span className="required">*</span>
-                        </label>
+                        <label className="form-label">Dias de Trabalho <span className="required">*</span></label>
                         <div className="checkbox-group">
                             {diasSemana.map(dia => (
                                 <label key={dia} className="checkbox-label">
@@ -350,9 +359,7 @@ function CadastroFuncionarioCompleto({ onNavigateToHome }) {
                     {/* Senha */}
                     <div className="form-row">
                         <div className="form-group">
-                            <label className="form-label">
-                                Senha <span className="required">*</span>
-                            </label>
+                            <label className="form-label">Senha <span className="required">*</span></label>
                             <input
                                 type="password"
                                 className={`form-input ${fieldErrors.senha ? 'error' : ''}`}
@@ -362,11 +369,8 @@ function CadastroFuncionarioCompleto({ onNavigateToHome }) {
                             />
                             {fieldErrors.senha && <span className="field-error">{fieldErrors.senha}</span>}
                         </div>
-
                         <div className="form-group">
-                            <label className="form-label">
-                                Confirmar Senha <span className="required">*</span>
-                            </label>
+                            <label className="form-label">Confirmar Senha <span className="required">*</span></label>
                             <input
                                 type="password"
                                 className={`form-input ${fieldErrors.confirmarSenha ? 'error' : ''}`}
@@ -392,8 +396,8 @@ function CadastroFuncionarioCompleto({ onNavigateToHome }) {
                         </label>
                     </div>
 
-                    <button 
-                        type="submit" 
+                    <button
+                        type="submit"
                         className="btn-submit"
                         disabled={isLoading}
                     >

@@ -6,20 +6,15 @@ class RepositorioProduto:
         try:
             conn = conectar()
             cursor = conn.cursor()
-            # --- CORREÇÃO AQUI ---
-            # A consulta foi alterada para procurar o texto da busca tanto no nome do produto
-            # quanto no código de barras, permitindo buscas parciais em ambos.
+            #procura pelo nome ou codigo de barras
             sql = """
                 SELECT barcode, product_name, brands
                 FROM produtos_externos
-                WHERE product_name ILIKE %s OR barcode ILIKE %s
+                WHERE product_name ILIKE %s OR barcode = %s
                 LIMIT 10;
             """
-            # Adicionamos os wildcards (%) em ambos os parâmetros da busca
-            search_term = f"%{query}%"
-            cursor.execute(sql, (search_term, search_term))
-            # --- FIM DA CORREÇÃO ---
-
+            #aqui ele procura alguns dados por coluna
+            cursor.execute(sql, (f"%{query}%", query))
             resultados = cursor.fetchall()
             return [
                 {"barcode": row[0], "nome": row[1], "marca": row[2]}

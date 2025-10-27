@@ -35,20 +35,11 @@ function VisualizarServicos({ onBack }) {
     const [formError, setFormError] = useState('');
     const [formSuccess, setFormSuccess] = useState('');
 
-    const capitalizeName = (name) => {
-        if (!name) return '';
-        return name.toLowerCase().split(' ').map(word =>
-            word.charAt(0).toUpperCase() + word.slice(1)
-        ).join(' ');
-    };
-
+    // Função para formatar preço em Real
     const formatarReal = (value) => {
-        if (!value) return 'R$ ';
         let numero = value.replace(/\D/g, '');
-        if (numero === '') return '';
         numero = (Number(numero) / 100).toFixed(2);
-        let formatado = numero.replace('.', ',').replace(/\B(?=(\d{3})+(?!\d))/g, '.');
-        return `R$ ${formatado}`;
+        return numero.replace('.', ',').replace(/\B(?=(\d{3})+(?!\d))/g, '.');
     };
 
     // Função para converter minutos em horas e minutos (para exibição)
@@ -92,18 +83,18 @@ function VisualizarServicos({ onBack }) {
         const { name, value } = e.target;
 
         if (name === 'preco') {
+            // Aplica máscara de Real
             const valorFormatado = formatarReal(value);
             setFormData(prev => ({ ...prev, [name]: valorFormatado }));
         } else if (name === 'duracao') {
+            // Permite apenas números positivos
             const apenasNumeros = value.replace(/\D/g, '');
             setFormData(prev => ({ ...prev, [name]: apenasNumeros }));
-        } else if (name === 'nome') {
-            setFormData(prev => ({ ...prev, [name]: capitalizeName(value) }));
-        }
-        else {
+        } else {
             setFormData(prev => ({ ...prev, [name]: value }));
         }
     };
+
     const handleFormSubmit = async (e) => {
         e.preventDefault();
         setFormLoading(true);
@@ -118,7 +109,8 @@ function VisualizarServicos({ onBack }) {
             return;
         }
 
-        const precoLimpo = formData.preco.replace('R$ ', '').replace(/\./g, '').replace(',', '.');
+        // Converte o preço formatado para número
+        const precoLimpo = formData.preco.replace(/\./g, '').replace(',', '.');
         const precoNum = parseFloat(precoLimpo);
 
         if (precoNum <= 0 || isNaN(precoNum)) {
@@ -168,7 +160,7 @@ function VisualizarServicos({ onBack }) {
             nome: servico.nome,
             descricao: servico.descricao || '',
             duracao: servico.duracao || '',
-            preco: servico.preco ? formatarReal(servico.preco.toFixed(2).replace('.', '')) : ''
+            preco: servico.preco ? servico.preco.toFixed(2).replace('.', ',') : ''
         });
         setEditingId(servico.id);
         setShowForm(true);
@@ -219,8 +211,8 @@ function VisualizarServicos({ onBack }) {
                         Visualize, edite e gerencie todos os serviços oferecidos pela clínica.
                     </p>
                     <div className="hero-buttons">
-                        <button
-                            className="btn btn-outline-white hover-lift"
+                        <button 
+                            className="btn btn-outline-white hover-lift" 
                             onClick={() => {
                                 setShowForm(!showForm);
                                 if (!showForm) {
@@ -259,11 +251,10 @@ function VisualizarServicos({ onBack }) {
                                     </label>
                                     <input
                                         type="text"
-                                        name="nome"
                                         className="form-input"
                                         placeholder="Ex: Consulta Veterinária"
                                         value={formData.nome}
-                                        onChange={handleInputChange}
+                                        onChange={e => setFormData({ ...formData, nome: e.target.value })}
                                         required
                                     />
                                 </div>
@@ -272,11 +263,10 @@ function VisualizarServicos({ onBack }) {
                                     <label className="form-label">Descrição</label>
                                     <input
                                         type="text"
-                                        name="descricao"
                                         className="form-input"
                                         placeholder="Descrição do serviço (opcional)"
                                         value={formData.descricao}
-                                        onChange={handleInputChange}
+                                        onChange={e => setFormData({ ...formData, descricao: e.target.value })}
                                     />
                                 </div>
 
@@ -303,20 +293,20 @@ function VisualizarServicos({ onBack }) {
                                         type="text"
                                         name="preco"
                                         className="form-input"
-                                        placeholder="R$ 0,00"
+                                        placeholder="0,00"
                                         value={formData.preco}
                                         onChange={handleInputChange}
                                         required
                                     />
                                 </div>
 
-                                <button
-                                    type="submit"
+                                <button 
+                                    type="submit" 
                                     className="btn-submit"
                                     disabled={formLoading}
                                 >
-                                    {formLoading
-                                        ? (editingId ? 'Atualizando...' : 'Cadastrando...')
+                                    {formLoading 
+                                        ? (editingId ? 'Atualizando...' : 'Cadastrando...') 
                                         : (editingId ? 'Atualizar Serviço' : 'Cadastrar Serviço')
                                     }
                                 </button>
@@ -335,6 +325,7 @@ function VisualizarServicos({ onBack }) {
                         </p>
                     </div>
 
+                    {/* Tabela modernizada */}
                     <div style={{
                         background: 'white',
                         borderRadius: '16px',
@@ -357,8 +348,8 @@ function VisualizarServicos({ onBack }) {
                                 </thead>
                                 <tbody>
                                     {servicos.map((servico, index) => (
-                                        <tr
-                                            key={servico.id}
+                                        <tr 
+                                            key={servico.id} 
                                             style={{
                                                 borderBottom: index === servicos.length - 1 ? 'none' : '1px solid #ecf0f1',
                                                 transition: 'background 0.3s ease'
@@ -366,16 +357,16 @@ function VisualizarServicos({ onBack }) {
                                             onMouseEnter={(e) => e.currentTarget.style.background = '#f8f9fa'}
                                             onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
                                         >
-                                            <td style={{
-                                                padding: '1rem',
-                                                fontWeight: '600',
-                                                color: '#2c3e50'
+                                            <td style={{ 
+                                                padding: '1rem', 
+                                                fontWeight: '600', 
+                                                color: '#2c3e50' 
                                             }}>
                                                 {servico.nome}
                                             </td>
-                                            <td style={{
-                                                padding: '1rem',
-                                                color: '#7f8c8d'
+                                            <td style={{ 
+                                                padding: '1rem', 
+                                                color: '#7f8c8d' 
                                             }}>
                                                 {servico.descricao || '—'}
                                             </td>
@@ -391,17 +382,17 @@ function VisualizarServicos({ onBack }) {
                                                     {formatarDuracao(servico.duracao)}
                                                 </span>
                                             </td>
-                                            <td style={{
-                                                padding: '1rem',
-                                                fontWeight: '600',
-                                                color: '#27ae60',
-                                                fontSize: '1.1rem'
+                                            <td style={{ 
+                                                padding: '1rem', 
+                                                fontWeight: '600', 
+                                                color: '#27ae60', 
+                                                fontSize: '1.1rem' 
                                             }}>
                                                 R$ {servico.preco.toFixed(2).replace('.', ',')}
                                             </td>
                                             <td style={{ padding: '1rem', textAlign: 'center' }}>
                                                 <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center' }}>
-                                                    <button
+                                                    <button 
                                                         style={{
                                                             background: 'linear-gradient(135deg, #3498db 0%, #2980b9 100%)',
                                                             color: 'white',
@@ -431,7 +422,7 @@ function VisualizarServicos({ onBack }) {
                                                     >
                                                         <IconEdit />
                                                     </button>
-                                                    <button
+                                                    <button 
                                                         style={{
                                                             background: 'linear-gradient(135deg, #e74c3c 0%, #c0392b 100%)',
                                                             color: 'white',

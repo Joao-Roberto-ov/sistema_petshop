@@ -1,8 +1,16 @@
 import React, { useState } from 'react';
 import axios from '../api/axios';
 
-function PetCadastroScreen({ onNavigateToHome }) {
-    const [formData, setFormData] = useState({ nome: '', tipo: 'Cão', raca: '', idade: '', peso: '' }); // 'Cão' como valor inicial
+function PetCadastroScreen({ onNavigateToHome, cliente, onBack }) {
+    const [formData, setFormData] = useState({ 
+        nome: '', 
+        especie: 'Cão', 
+        raca: '', 
+        idade: '', 
+        peso: '', 
+        sexo_biologico: '', 
+        observacoes: '' 
+    });
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
     const [loading, setLoading] = useState(false);
@@ -33,23 +41,26 @@ function PetCadastroScreen({ onNavigateToHome }) {
 
         //validaçao de idade e peso negativos
         if (parseInt(formData.idade) < 0) {
-            setError('A idade não pode ser negativa.');
-            setLoading(false);
-            return;
+setError('A idade não pode ser negativa.');
+	            setTimeout(() => setError(''), 3000);
+	            setLoading(false);
+	            return;
         }
 
         if (formData.peso && parseFloat(formData.peso) < 0) {
-            setError('O peso não pode ser negativo.');
-            setLoading(false);
-            return;
+setError('O peso não pode ser negativo.');
+	            setTimeout(() => setError(''), 3000);
+	            setLoading(false);
+	            return;
         }
 
         try {
             const token = localStorage.getItem('token');
             if (!token) {
-                setError("Você não está autenticado. Faça login novamente.");
-                setLoading(false);
-                return;
+setError("Você não está autenticado. Faça login novamente.");
+	                setTimeout(() => setError(''), 3000);
+	                setLoading(false);
+	                return;
             }
 
             const dadosParaEnviar = {
@@ -58,14 +69,32 @@ function PetCadastroScreen({ onNavigateToHome }) {
                 peso: formData.peso ? parseFloat(formData.peso) : null,
             };
 
-            await axios.post('/pets', dadosParaEnviar, {
+            let url = '/pets';
+
+            if (cliente) {
+                // Se for cadastro por funcionário, usa a rota específica e adiciona o cliente_id
+                url = '/pets/funcionario';
+                dadosParaEnviar.cliente_id = cliente.id;
+            }
+
+            await axios.post(url, dadosParaEnviar, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
 
             setSuccess(`Pet '${formData.nome}' cadastrado com sucesso!`);
-            setFormData({ nome: '', tipo: 'Cão', raca: '', idade: '', peso: '' });
+	            setTimeout(() => setSuccess(''), 3000);
+            setFormData({ 
+                nome: '', 
+                especie: 'Cão', 
+                raca: '', 
+                idade: '', 
+                peso: '', 
+                sexo_biologico: '', 
+                observacoes: '' 
+            });
         } catch (err) {
             setError(err.response?.data?.detail || 'Erro ao cadastrar o pet.');
+	            setTimeout(() => setError(''), 3000);
         } finally {
             setLoading(false);
         }
@@ -76,7 +105,7 @@ function PetCadastroScreen({ onNavigateToHome }) {
             <div className="login-card">
                 <div className="login-header">
                     <h1>Cadastrar Novo Pet</h1>
-                    <p>Preencha as informações do seu companheiro.</p>
+                    <p>{cliente ? `Para o cliente: ${cliente.nome}` : 'Preencha as informações do seu companheiro.'}</p>
                 </div>
                 {error && <div className="error-message">{error}</div>}
                 {success && <div className="success-message">{success}</div>}
@@ -92,19 +121,19 @@ function PetCadastroScreen({ onNavigateToHome }) {
                             required
                         />
                     </div>
-                    <div className="form-group">
-                        <label className="form-label">Tipo *</label>
-                        <select
-                            name="tipo"
-                            className="form-input"
-                            value={formData.tipo}
-                            onChange={handleInputChange}
-                            required
-                        >
-                            <option value="Cão">Cão</option>
-                            <option value="Gato">Gato</option>
-                        </select>
-                    </div>
+<div className="form-group">
+	                        <label className="form-label">Espécie *</label>
+	                        <select
+	                            name="especie"
+	                            className="form-input"
+	                            value={formData.especie}
+	                            onChange={handleInputChange}
+	                            required
+	                        >
+	                            <option value="Cão">Cão</option>
+	                            <option value="Gato">Gato</option>
+	                        </select>
+	                    </div>
                     <div className="form-group">
                         <label className="form-label">Raça *</label>
                         <input type="text" name="raca" className="form-input" value={formData.raca} onChange={handleInputChange} required />
@@ -133,12 +162,40 @@ function PetCadastroScreen({ onNavigateToHome }) {
                             min="0"
                         />
                     </div>
+<div className="form-group">
+	                        <label className="form-label">Sexo *</label>
+                        <select
+                            name="sexo_biologico"
+                            className="form-input"
+                            value={formData.sexo_biologico}
+onChange={handleInputChange}
+	                            required
+	                        >
+                            <option value="">Selecione</option>
+                            <option value="Macho">Macho</option>
+                            <option value="Fêmea">Fêmea</option>
+                        </select>
+                    </div>
+
+                    <div className="form-group">
+                        <label className="form-label">Observações (Alergias, Comportamento) (Opcional)</label>
+                        <textarea
+                            name="observacoes"
+                            className="form-input"
+                            value={formData.observacoes}
+                            onChange={handleInputChange}
+                            rows="4"
+                        ></textarea>
+                    </div>
+
                     <button type="submit" className="btn-submit" disabled={loading}>
                         {loading ? 'Cadastrando...' : 'Cadastrar Pet'}
                     </button>
                 </form>
                 <div className="login-footer">
-                    <a href="#" onClick={(e) => { e.preventDefault(); onNavigateToHome(); }}>Voltar para o Início</a>
+                    <a href="#" onClick={(e) => { e.preventDefault(); cliente ? onBack() : onNavigateToHome(); }}>
+                        Voltar {cliente ? `para o Perfil de ${cliente.nome}` : 'para o Início'}
+                    </a>
                 </div>
             </div>
         </div>

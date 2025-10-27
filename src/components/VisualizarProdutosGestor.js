@@ -3,13 +3,11 @@ import axios from '../api/axios';
 
 function VisualizarProdutosGestor({ onBack }) {
     const [produtos, setProdutos] = useState([]);
-    const [produtosFiltrados, setProdutosFiltrados] = useState([]); // <-- NOVO ESTADO
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [showForm, setShowForm] = useState(false);
     const [editingId, setEditingId] = useState(null);
     const [isExterno, setIsExterno] = useState(false);
-    const [searchTerm, setSearchTerm] = useState(''); // <-- NOVO ESTADO
 
     const [formData, setFormData] = useState({
         barcode: '', nome: '', marca: '', categoria: '', descricao: '',
@@ -23,18 +21,6 @@ function VisualizarProdutosGestor({ onBack }) {
         fetchProdutos();
     }, []);
 
-    useEffect(() => {
-        if (searchTerm.trim() === '') {
-            setProdutosFiltrados(produtos);
-        } else {
-            const filtered = produtos.filter(produto =>
-                produto.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                produto.barcode.toLowerCase().includes(searchTerm.toLowerCase())
-            );
-            setProdutosFiltrados(filtered);
-        }
-    }, [searchTerm, produtos]);
-
     const fetchProdutos = async () => {
         try {
             setLoading(true);
@@ -43,7 +29,6 @@ function VisualizarProdutosGestor({ onBack }) {
                 headers: { Authorization: `Bearer ${token}` }
             });
             setProdutos(response.data);
-            setProdutosFiltrados(response.data); // Inicializa a lista filtrada
         } catch (err) {
             setError(err.response?.data?.detail || 'Erro ao buscar produtos.');
         } finally {
@@ -236,20 +221,8 @@ function VisualizarProdutosGestor({ onBack }) {
                     <div className="text-center" style={{marginBottom: '2rem'}}>
                         <h2 className="section-title">Produtos Cadastrados</h2>
                         <p className="section-description">
-                            {produtosFiltrados.length} produtos encontrados
+                            Total de {produtos.length} produtos
                         </p>
-                    </div>
-
-                    {/* --- BARRA DE PESQUISA ADICIONADA --- */}
-                    <div style={{ marginBottom: '2rem', maxWidth: '600px', margin: '0 auto 2rem' }}>
-                        <input
-                            type="text"
-                            className="form-input"
-                            placeholder="Pesquisar por nome ou código de barras..."
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                            style={{ fontSize: '1.1rem', padding: '1rem' }}
-                        />
                     </div>
 
                     <div style={{ overflowX: 'auto', background: 'white', borderRadius: '12px', boxShadow: '0 4px 20px rgba(0,0,0,0.08)' }}>
@@ -264,7 +237,7 @@ function VisualizarProdutosGestor({ onBack }) {
                                 </tr>
                             </thead>
                             <tbody>
-                                {produtosFiltrados.map((produto, index) => ( // <-- ALTERADO PARA USAR A LISTA FILTRADA
+                                {produtos.map((produto, index) => (
                                     <tr key={produto.id} style={{ borderBottom: '1px solid #e5e7eb', backgroundColor: index % 2 === 0 ? '#ffffff' : '#f9fafb' }}>
                                         <td style={{ padding: '1rem' }}>{produto.nome}</td>
                                         <td style={{ padding: '1rem' }}>{produto.marca || '-'}</td>

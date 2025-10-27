@@ -7,6 +7,7 @@ API_BASE_URL = "https://world.openpetfoodfacts.org/api/v2/search"
 
 
 def buscar_produtos_da_api(tag_categoria: str, page_size=100):
+    """Busca produtos de uma categoria específica da API."""
     params = {
         "tagtype_0": "categories",
         "tag_contains_0": "contains",
@@ -37,7 +38,8 @@ def salvar_produtos_no_banco(produtos: list):
 
         #on conflict evita duplicaçoes na tabela
         sql = """
-              INSERT INTO produtos_externos (barcode, product_name, brands, categories, image_url, ingredients_text, nutriscore_grade, ecoscore_grade)
+              INSERT INTO produtos_externos (barcode, product_name, brands, categories, image_url,
+                                             ingredients_text, nutriscore_grade, ecoscore_grade)
               VALUES %s
               ON CONFLICT (barcode)
               DO UPDATE SET

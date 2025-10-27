@@ -155,7 +155,6 @@ class ServicosCliente:
             "is_ativo": user_data[6] if len(user_data) > 6 else True  #retorna o valor real de is_ativo, ou true como padrão
         }
 
-
     def editar_cliente(
             self,
             id: int,
@@ -178,7 +177,7 @@ class ServicosCliente:
 
         #verifica se existe um CPF duplicado (excluindo o do cliente logado)
         if cpf:
-            cliente_cpf = self.repo.buscar_pelo_cpf(cpf)
+            cliente_cpf = self.repo.procurar_por_cpf(cpf)
             if cliente_cpf and cliente_cpf[0] != id:
                 raise HTTPException(status_code=400, detail="Já existe um cliente com este CPF.")
 
@@ -321,7 +320,7 @@ class ServicosCliente:
             # AC2: email não revela a senha atual
             # AC4: link deve ser de uso unico e com prazo de expiraçao
             # AC5: link deve direcionar para a pagina de redefiniçao de senha
-            link_redefinicao = f"http://petlifes-env.us-east-2.elasticbeanstalk.com/reset-password?token={token}&email={user_email}"
+            link_redefinicao = f"http://localhost:3000/reset-password?token={token}&email={user_email}"
             self.email_service.enviar_link_redefinicao(user_email, link_redefinicao)
             return {"message": "Se um usuário com este e-mail existir, um link de redefinição será enviado."}
         except HTTPException:
@@ -380,3 +379,19 @@ class ServicosCliente:
             import traceback
             traceback.print_exc()
             raise HTTPException(status_code=500, detail=f"Erro ao alterar status do cliente: {str(e)}")
+    def editar_cliente(self, id: int, nome: str = None, email: str = None, telefone: str = None, endereco: str = None):
+        """
+        Edita as informações de um cliente existente.
+        Usado por funcionários administradores.
+        """
+        try:
+            self.repo.editar_cliente(
+                id=id,
+                nome=nome,
+                email=email,
+                telefone=telefone,
+                endereco=endereco
+            )
+            return {"message": "Cliente editado com sucesso!"}
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Erro ao editar cliente: {str(e)}")

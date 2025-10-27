@@ -202,33 +202,50 @@
         flex-direction: column;
         gap: 0;
     }
-    
+
     .form-row .form-group {
         margin-bottom: 15px;
     }
-    
+
     .checkbox-group {
         gap: 10px;
     }
-    
+
     .funcionarios-grid {
         grid-template-columns: 1fr;
     }
-    
+
     .funcionario-header {
         flex-direction: column;
         align-items: flex-start;
         gap: 10px;
     }
-    
+
     .stats-container {
         justify-content: center;
     }
-    
+
     .stat-card {
         flex: 1;
         min-width: auto;
     }
+}
+
+.fixed-top-right {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 1000;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    animation: fadeInOut 5s forwards; /* Aumentado para 5s para mensagens de senha temporária */
+    max-width: 300px;
+}
+
+@keyframes fadeInOut {
+    0% { opacity: 0; transform: translateY(-20px); }
+    10% { opacity: 1; transform: translateY(0); }
+    90% { opacity: 1; transform: translateY(0); }
+    100% { opacity: 0; transform: translateY(-20px); }
 }
 
 @media (max-width: 480px) {
@@ -236,18 +253,56 @@
         margin: 10px;
         padding: 20px;
     }
-    
+
     .checkbox-group {
         flex-direction: column;
         gap: 8px;
     }
-    
+
     .info-row {
         flex-direction: column;
     }
-    
+
     .info-row strong {
         min-width: auto;
         margin-bottom: 2px;
     }
+}
+
+.especialidades-container {
+    background-color: #f8f9fa;
+    border: 1px solid #e9ecef;
+    border-radius: 8px;
+    padding: 1rem;
+    margin-top: 1rem;
+}
+
+.especialidades-container > p {
+    font-size: 0.85rem;
+    color: #6c757d;
+    margin-bottom: 1rem;
+}
+
+.especialidades-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+    max-height: 150px; /* Altura máxima com scroll */
+    overflow-y: auto;
+    padding-top: 0.5rem;
+}
+
+.especialidade-item {
+    background-color: #fff;
+    padding: 0.5rem 0.75rem;
+    border-radius: 6px;
+    border: 1px solid #e0e0e0;
+}
+
+/* Reutiliza o estilo de .checkbox-label */
+.especialidade-item .checkbox-label {
+    font-size: 0.9rem;
+    font-weight: 500;
+    margin: 0;
 }

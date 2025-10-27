@@ -1,5 +1,3 @@
-// joao-roberto-ov/sistema_petshop/sistema_petshop-dev/src/components/HomePageFuncionario.js
-
 import React from 'react';
 
 function HomePageFuncionario({
@@ -12,71 +10,67 @@ function HomePageFuncionario({
     onNavigateToVisualizarProdutos,
     onNavigateToVisualizarServicos,
     onNavigateToVisualizarPets,
-    onNavigateToRegistrarVenda,
-    onLogout
+    onLogout,
+    // Novas props adicionadas
+    onNavigateToDashboard,
+    onNavigateToGerenciarAgendamentos
 }) {
 
     const cargoLower = userData?.cargo?.toLowerCase();
-    const isGestor = cargoLower === 'gestor';
-    const isAdmin = userData?.cargo === 'ADMINISTRADOR' || cargoLower === 'administrador';
-    const isAdminOuGestor = isGestor || isAdmin;
+    // Usa cargo_id se existir, senão volta para a string (mais robusto)
+    const cargoId = userData?.cargo_id;
+    const isGestor = cargoId === 1 || cargoLower === 'gestor' || cargoLower === 'administrador';
 
     const services = [
+        {
+            icon: '📊',
+            title: "Meu Painel",
+            description: "Visualize seu painel pessoal de atividades.",
+            onClick: onNavigateToDashboard
+        },
         {
             icon: '👥',
             title: "Visualizar Clientes",
             description: "Gerencie e visualize todos os clientes cadastrados no sistema.",
             onClick: onNavigateToVisualizarClientes
         },
-        {
-            icon: '🛒',
-            title: "Registrar Venda",
-            description: "...",
-            onClick: onNavigateToRegistrarVenda // CORREÇÃO: Garante que a função seja chamada no clique
-        },
-        ...(isAdminOuGestor ? [{
+        ...(isGestor ? [{
             icon: '🛠',
             title: "Gerenciar Serviços",
-            description: "Adicione, edite ou remova os serviços oferecidos pela PetLife.",
+            description: "Adicione, edite ou remova os serviços oferecidos.",
             onClick: onNavigateToVisualizarServicos
         }] : []),
-        ...(isAdminOuGestor ? [{
+        ...(isGestor ? [{
             icon: '👨‍💼',
             title: "Cadastrar Funcionário",
-            description: "Adicione novos funcionários ao sistema com informações completas.",
+            description: "Adicione novos funcionários ao sistema.",
             onClick: onNavigateToCadastroFuncionarioCompleto
         }] : []),
-        ...(isAdminOuGestor ? [{
+        ...(isGestor ? [{
             icon: '👥',
             title: "Gerenciar Funcionários",
-            description: "Visualize e gerencie todos os funcionários cadastrados no sistema.",
+            description: "Visualize e gerencie todos os funcionários.",
             onClick: onNavigateToGerenciarFuncionarios
         }] : []),
-        ...(isAdminOuGestor ? [{
+        ...(isGestor ? [{
             icon: '🐾',
             title: "Gerenciar Pets",
-            description: "Visualize e edite as informações de todos os pets cadastrados no sistema.",
+            description: "Visualize e edite as informações de todos os pets.",
             onClick: onNavigateToVisualizarPets
         }] : []),
         {
             icon: '🛒',
-            title: isAdminOuGestor ? "Gerenciar Produtos" : "Consultar Produtos",
-            description: isAdminOuGestor
+            title: isGestor ? "Gerenciar Produtos" : "Consultar Produtos",
+            description: isGestor
                 ? "Cadastre e edite produtos do sistema."
                 : "Consulte disponibilidade e preços de produtos.",
             onClick: onNavigateToVisualizarProdutos
         },
         {
-            icon: '📊',
-            title: "Relatórios",
-            description: "Visualize relatórios e estatísticas do sistema (em breve).",
-            onClick: () => alert('A funcionalidade "Relatórios" será implementada em breve!')
-        },
-        {
             icon: '📅',
-            title: "Agendamentos",
-            description: "Gerencie os agendamentos de serviços (em breve).",
-            onClick: () => alert('A funcionalidade "Agendamentos" será implementada em breve!')
+            title: "Gerenciar Agendamentos",
+            description: "Visualize, cancele ou reagende os próximos serviços.",
+            onClick: onNavigateToGerenciarAgendamentos
         }
     ];
 
@@ -106,7 +100,7 @@ function HomePageFuncionario({
                         Bem-vindo, {userData?.nome ? userData.nome.split(' ')[0] : 'Funcionário'}!
                     </h1>
                     <p className="animate-fade-in-up">
-                        {isAdmin
+                        {isGestor
                             ? 'Gerencie clientes, funcionários e mantenha tudo organizado na PetLife.'
                             : 'Gerencie os clientes e mantenha tudo organizado na PetLife.'}
                     </p>
@@ -115,13 +109,11 @@ function HomePageFuncionario({
                         <button className="btn btn-outline-white hover-lift" onClick={onNavigateToVisualizarClientes}>
                             👥 Visualizar Clientes
                         </button>
-                        {isAdmin && (
-                            <button className="btn btn-outline-white hover-lift" onClick={onNavigateToFuncionarioCadastroAdmin}>
+                        {isGestor && (
+                            <button className="btn btn-outline-white hover-lift" onClick={onNavigateToCadastroFuncionarioCompleto}>
                                 ➕ Cadastrar Funcionário
                             </button>
                         )}
-
-                        {/* Botões de produtos e serviços agrupados e refatorados */}
                         {isGestor ? (
                             <>
                                 <button className="btn btn-outline-white hover-lift" onClick={onNavigateToCadastrarProduto}>
@@ -130,18 +122,15 @@ function HomePageFuncionario({
                                 <button className="btn btn-outline-white hover-lift" onClick={onNavigateToVisualizarProdutos}>
                                     🛒 Gerenciar Produtos
                                 </button>
-                                {/* Botão de Gerenciar Serviços para gestores */}
                                 <button className="btn btn-outline-white hover-lift" onClick={onNavigateToVisualizarServicos}>
                                     🛠 Gerenciar Serviços
                                 </button>
                             </>
                         ) : (
-                            // Funcionário comum (não-gestor) só consulta produtos
                             <button className="btn btn-outline-white hover-lift" onClick={onNavigateToVisualizarProdutos}>
                                 🛒 Consultar Produtos
                             </button>
                         )}
-
                         <button className="btn btn-outline-white hover-lift" onClick={onLogout}>
                             🚪 Sair
                         </button>

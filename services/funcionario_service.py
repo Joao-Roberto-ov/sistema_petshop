@@ -3,11 +3,22 @@ from psycopg2 import IntegrityError
 from seguranca import cria_hash_senha, verifica_senha, cria_token_de_acesso
 from repositories.funcionario_repository import RepositorioFuncionario
 from services.email_service import EmailService
-from modelos import ForgotPasswordRequest, RedefinirSenhaRequest, FuncionarioCadastroPorAdmin
+# --- MODIFICAÇÕES DE IMPORTAÇÃO ---
+from modelos import (
+    ForgotPasswordRequest, RedefinirSenhaRequest, FuncionarioCadastroPorAdmin,
+    FuncionarioCadastro, FuncionarioUpdate
+)
+from typing import List, Optional
+# --- FIM DAS MODIFICAÇÕES ---
 import secrets
 from datetime import datetime, timedelta, timezone
 from passlib.context import CryptContext
+
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+# (Req 2) ID do Cargo "Funcionário"
+CARGO_FUNCIONARIO_ID = 2
+
 
 class ServicosFuncionario:
     def __init__(self):
@@ -45,49 +56,32 @@ class ServicosFuncionario:
                 "token_type": "bearer",
                 "user": dados_usuario
             }
-        
+
         except HTTPException:
             raise
         except Exception as e:
             raise HTTPException(status_code=500, detail=f"Erro interno no login de funcionário: {str(e)}")
 
     def buscar_pelo_id(self, user_id: int):
+        """
+        Busca os dados completos do funcionário.
+        O repositório já retorna um dict incluindo 'especialidades'.
+        """
         try:
-            user_data = self.repo.procurar_pelo_id(user_id)
+            user_data = self.repo.procurar_pelo_id(user_id)  # Esta função foi modificada no repo
             if not user_data:
                 return None
 
-            if isinstance(user_data, dict):
-                return {
-                    "id": user_data.get("id"),
-                    "nome": user_data.get("nome"),
-                    "email": user_data.get("email"),
-                    "telefone": user_data.get("telefone"),
-                    "endereco": user_data.get("endereco") if user_data.get("endereco") else "Não informado",
-                    "cpf": user_data.get("cpf"),
-                    "cargo_id": user_data.get("cargo_id"),
-                    "cargo": user_data.get("cargo"),
-                    "is_ativo": user_data.get("is_ativo", True)
-                }
-            else:
-                return {
-                    "id": user_data[0] if len(user_data) > 0 else None,
-                    "nome": user_data[1] if len(user_data) > 1 else None,
-                    "email": user_data[2] if len(user_data) > 2 else None,
-                    "telefone": user_data[3] if len(user_data) > 3 else None,
-                    "endereco": user_data[4] if len(user_data) > 4 and user_data[4] else "Não informado",
-                    "cpf": user_data[5] if len(user_data) > 5 and user_data[5] else None,
-                    "cargo_id": user_data[6] if len(user_data) > 6 else None,
-                    "cargo": user_data[7] if len(user_data) > 7 else "funcionario",
-                    "is_ativo": user_data[8] if len(user_data) > 8 else True
-                }
-        
+            # Apenas retorna o dicionário que o repositório já montou
+            return user_data
+
         except Exception as e:
             raise HTTPException(status_code=500, detail=f"Erro ao buscar funcionário: {str(e)}")
 
-    def cadastrar_funcionario(self, nome, email, senha, telefone, endereco, cpf, cargo_id, is_ativo=True, horario_inicio=None, horario_fim=None, dias_trabalho=None):
+    def cadastrar_funcionario(self, nome, email, senha, telefone, endereco, cpf, cargo_id, is_ativo=True,
+                              horario_inicio=None, horario_fim=None, dias_trabalho=None):
         """
-        Cadastra um novo funcionário
+        Cadastra um novo funcionário (Função antiga, mantida por compatibilidade)
         """
         try:
             senha_hash = cria_hash_senha(senha)
@@ -110,13 +104,14 @@ class ServicosFuncionario:
 
     def cadastrar_funcionario_por_admin(self, funcionario: FuncionarioCadastroPorAdmin):
         """
-        Cadastra um novo funcionário por um administrador.
+        Cadastra um novo funcionário por um administrador (Função antiga).
         """
         try:
             senha_hash = cria_hash_senha(funcionario.senha)
             user_id = self.repo.criar_funcionario_admin(
                 funcionario.nome, funcionario.email, senha_hash, funcionario.telefone,
-                funcionario.endereco, funcionario.cpf, funcionario.cargo_id, funcionario.isAtivo, horario_inicio=None, horario_fim=None, dias_trabalho=None
+                funcionario.endereco, funcionario.cpf, funcionario.cargo_id, funcionario.isAtivo, horario_inicio=None,
+                horario_fim=None, dias_trabalho=None
             )
             return user_id
         except IntegrityError as e:
@@ -130,34 +125,28 @@ class ServicosFuncionario:
         except Exception as e:
             raise HTTPException(status_code=500, detail=f"Erro ao cadastrar funcionário: {str(e)}")
 
-
-
-    def cadastrar_funcionario_completo(self, funcionario_data):
+    # --- FUNÇÃO MODIFICADA (REQ 2) ---
+    def cadastrar_funcionario_completo(self, funcionario_data: FuncionarioCadastro):
         """
-        Cadastra um novo funcionário com todos os campos obrigatórios incluindo horários de trabalho.
+        Cadastra um novo funcionário e, se for Cargo 2, guarda as suas especialidades.
         """
         try:
             # Validação dos campos obrigatórios (AC3)
             if not funcionario_data.nome or not funcionario_data.nome.strip():
                 raise HTTPException(status_code=400, detail="Nome é obrigatório e não pode ficar em branco.")
-            
             if not funcionario_data.cargo_id:
                 raise HTTPException(status_code=400, detail="Cargo é obrigatório.")
-            
             if not funcionario_data.email:
                 raise HTTPException(status_code=400, detail="E-mail é obrigatório.")
-            
             if not funcionario_data.telefone or not funcionario_data.telefone.strip():
                 raise HTTPException(status_code=400, detail="Telefone é obrigatório.")
-            
             if not funcionario_data.horario_inicio or not funcionario_data.horario_fim:
                 raise HTTPException(status_code=400, detail="Horários de trabalho são obrigatórios.")
-            
             if not funcionario_data.dias_trabalho or not funcionario_data.dias_trabalho.strip():
                 raise HTTPException(status_code=400, detail="Dias de trabalho são obrigatórios.")
 
             senha_hash = cria_hash_senha(funcionario_data.senha)
-            
+
             # Cadastro no banco de dados (AC2)
             user_id = self.repo.cadastrar_funcionario(
                 nome=funcionario_data.nome,
@@ -173,12 +162,18 @@ class ServicosFuncionario:
                 dias_trabalho=funcionario_data.dias_trabalho,
                 cargo_funcao=funcionario_data.cargo_funcao
             )
-            
+
+            # --- LÓGICA DE ESPECIALIDADE (REQ 2) ---
+            # Se o cargo for "Funcionário" (ID 2) e especialidades foram enviadas
+            if funcionario_data.especialidades is not None and funcionario_data.cargo_id == CARGO_FUNCIONARIO_ID:
+                self.repo.atualizar_especialidades(user_id, funcionario_data.especialidades)
+            # --- FIM DA LÓGICA ---
+
             return {
                 "id": user_id,
                 "message": f"Funcionário '{funcionario_data.nome}' cadastrado com sucesso!"
             }
-            
+
         except IntegrityError as e:
             error_message = str(e).lower()
             if "email" in error_message:
@@ -194,7 +189,7 @@ class ServicosFuncionario:
 
     def listar_funcionarios(self):
         """
-        Lista todos os funcionários cadastrados (AC2 - disponível para consultas).
+        Lista todos os funcionários (repo agora inclui especialidades).
         """
         try:
             funcionarios = self.repo.buscar_todos()
@@ -204,7 +199,7 @@ class ServicosFuncionario:
 
     def buscar_funcionario_por_id(self, funcionario_id: int):
         """
-        Busca um funcionário específico por ID (AC2 - disponível para consultas).
+        Busca um funcionário (repo agora inclui especialidades).
         """
         try:
             funcionario = self.buscar_pelo_id(funcionario_id)
@@ -216,102 +211,91 @@ class ServicosFuncionario:
         except Exception as e:
             raise HTTPException(status_code=500, detail=f"Erro ao buscar funcionário: {str(e)}")
 
-    def atualizar_funcionario(self, funcionario_id: int, dados_atualizacao):
+    # --- FUNÇÃO MODIFICADA (REQ 3) ---
+    def atualizar_funcionario(self, funcionario_id: int, dados_atualizacao: FuncionarioUpdate):
         """
-        Atualiza dados de um funcionário existente.
+        Atualiza dados de um funcionário existente, incluindo especialidades (Req 3).
         """
         try:
-            campos_atualizacao = {}
-            
-            if dados_atualizacao.nome is not None:
-                if not dados_atualizacao.nome.strip():
-                    raise HTTPException(status_code=400, detail="Nome não pode ficar em branco.")
-                campos_atualizacao["nome"] = dados_atualizacao.nome
-            
-            if dados_atualizacao.cargo_id is not None:
-                if dados_atualizacao.cargo_id not in [1, 2, 3, 4]:
-                    raise HTTPException(status_code=400, detail="ID do cargo inválido. Os IDs válidos são 1 (Gestor), 2 (Funcionário), 3 (Veterinário) ou 4 (Atendente).")
-                campos_atualizacao["cargo_id"] = dados_atualizacao.cargo_id
-            
-            if dados_atualizacao.email is not None:
-                campos_atualizacao["email"] = dados_atualizacao.email
-            
-            if dados_atualizacao.telefone is not None:
-                campos_atualizacao["telefone"] = dados_atualizacao.telefone
-            
-            if dados_atualizacao.cpf is not None:
-                campos_atualizacao["cpf"] = dados_atualizacao.cpf
-            
-            if dados_atualizacao.endereco is not None:
-                campos_atualizacao["endereco"] = dados_atualizacao.endereco
-            
-            if dados_atualizacao.horario_inicio is not None:
-                campos_atualizacao["horario_inicio"] = dados_atualizacao.horario_inicio
-            
-            if dados_atualizacao.horario_fim is not None:
-                campos_atualizacao["horario_fim"] = dados_atualizacao.horario_fim
-            
-            if dados_atualizacao.dias_trabalho is not None:
-                campos_atualizacao["dias_trabalho"] = dados_atualizacao.dias_trabalho
-            
-            if dados_atualizacao.is_ativo is not None:
-                campos_atualizacao["is_ativo"] = dados_atualizacao.is_ativo
+            # 1. Separa as especialidades dos outros campos
+            especialidades_para_atualizar = dados_atualizacao.especialidades
 
-            if not campos_atualizacao:
-                raise HTTPException(status_code=400, detail="Nenhum campo válido fornecido para atualização.")
-            
+            # 2. Pega os outros campos que foram enviados (excluindo os que são None)
+            campos_atualizacao = dados_atualizacao.model_dump(exclude_unset=True, exclude={'especialidades'})
+
             funcionario_atual = self.repo.procurar_pelo_id(funcionario_id)
             if not funcionario_atual:
                 raise HTTPException(status_code=404, detail="Funcionário não encontrado.")
-            
-            campos_finais = {}
-            for campo, valor in campos_atualizacao.items():
-                valor_atual = funcionario_atual.get(campo)
-                
-                if isinstance(valor_atual, str):
-                    valor_atual = valor_atual.strip().lower() if valor_atual else ""
-                    valor_comparar = str(valor).strip().lower() if valor else ""
+
+            # 3. Lógica de atualização de especialidades (Req 3)
+            if especialidades_para_atualizar is not None:
+                # O cargo final é o novo cargo (se enviado) ou o cargo antigo
+                cargo_final = campos_atualizacao.get('cargo_id', funcionario_atual.get('cargo_id'))
+
+                if cargo_final == CARGO_FUNCIONARIO_ID:
+                    # Se for cargo "Funcionário", atualiza as especialidades
+                    self.repo.atualizar_especialidades(funcionario_id, especialidades_para_atualizar)
                 else:
-                    valor_comparar = valor
-                
-                if valor_atual != valor_comparar:
-                    campos_finais[campo] = valor
-            
-            if not campos_finais:
-                return {
-                    "funcionario": funcionario_atual,
-                    "message": "Nenhuma alteração necessária - dados já estão atualizados"
-                }
-            
-            print(f"Campos que serão atualizados: {campos_finais}")
-            
-            funcionario_atualizado = self.repo.atualizar_funcionario(funcionario_id, campos_finais)
-            
-            if not funcionario_atualizado:
-                raise HTTPException(status_code=404, detail="Funcionário não encontrado.")
-            
+                    # Se mudou para um cargo que não tem especialidade (ex: Gestor), limpa a lista
+                    self.repo.atualizar_especialidades(funcionario_id, [])
+
+            # 4. Verifica se há outros campos (além de especialidades) para atualizar
+            if not campos_atualizacao:
+                if especialidades_para_atualizar is not None:
+                    # Só atualizou especialidades
+                    funcionario_final = self.repo.procurar_pelo_id(funcionario_id)
+                    return {
+                        "funcionario": funcionario_final,
+                        "message": "Especialidades atualizadas com sucesso!"
+                    }
+                else:
+                    # Não enviou nada para atualizar
+                    raise HTTPException(status_code=400, detail="Nenhum campo válido fornecido para atualização.")
+
+            # 5. Atualiza os outros campos na tabela Funcionarios
+            funcionario_atualizado_base = self.repo.atualizar_funcionario(funcionario_id, campos_atualizacao)
+
+            if not funcionario_atualizado_base:
+                raise HTTPException(status_code=404, detail="Erro ao atualizar funcionário.")
+
+            # 6. Busca o funcionário completo novamente para retornar os dados corretos
+            funcionario_final = self.repo.procurar_pelo_id(funcionario_id)
+
             return {
-                "funcionario": funcionario_atualizado,
+                "funcionario": funcionario_final,
                 "message": "Funcionário atualizado com sucesso!"
             }
-            
+
         except IntegrityError as e:
             error_message = str(e).lower()
-            print(f"ERRO DE INTEGRIDADE DETALHADO: {error_message}")
-            
             if "email" in error_message:
                 raise HTTPException(status_code=400, detail="O e-mail fornecido já está cadastrado.")
             elif "cpf" in error_message:
                 raise HTTPException(status_code=400, detail="O CPF fornecido já está cadastrado.")
             else:
-                # Log mais detalhado para debug
-                print(f"Erro de integridade não tratado: {e}")
-                raise HTTPException(status_code=400, detail="Erro de integridade dos dados. Possível conflito com dados existentes.")
+                raise HTTPException(status_code=400, detail="Erro de integridade dos dados.")
         except HTTPException:
             raise
         except Exception as e:
             print(f"Erro geral ao atualizar funcionário: {e}")
+            import traceback
+            traceback.print_exc()
             raise HTTPException(status_code=500, detail=f"Erro ao atualizar funcionário: {str(e)}")
+
+    # --- NOVA FUNÇÃO ADICIONADA (REQ 5) ---
+    def buscar_especialistas_por_servico(self, servico_id: int):
+        """
+        Retorna funcionários (ID, Nome) que são especialistas em um serviço (ou todos os funcionários do cargo 2).
+        """
+        try:
+            especialistas = self.repo.buscar_especialistas_por_servico(servico_id)
+            # Nota: Req 2 menciona "Serviços Gerais". Se quisermos que funcionários sem
+            # especialidade apareçam aqui, a lógica no repositório precisa ser alterada.
+            # Por enquanto, retorna apenas quem tem a especialidade exata.
+            return especialistas
+        except Exception as e:
+            print(f"Erro ao buscar especialistas: {e}")
+            raise HTTPException(status_code=500, detail="Erro ao buscar especialistas.")
 
     def esqueci_minha_senha(self, request_data: ForgotPasswordRequest):
         """
@@ -320,21 +304,17 @@ class ServicosFuncionario:
         try:
             user_db = self.repo.buscar_funcionario_pelo_email(request_data.email)
             if not user_db:
-                # AC3: mensagem padrao para evitar enumeraçao de usuarios
-                print(f"Tentativa de redefinição de senha para e-mail de funcionário não cadastrado: {request_data.email}")
+                print(
+                    f"Tentativa de redefinição de senha para e-mail de funcionário não cadastrado: {request_data.email}")
                 return {"message": "Se um usuário com este e-mail existir, um link de redefinição será enviado."}
 
             user_id, user_email = user_db
-            token = secrets.token_urlsafe(32) #gera um token seguro
-            expiracao = datetime.now(timezone.utc) + timedelta(minutes=15) # AC4: o token acaba em 15 minutos
-            
+            token = secrets.token_urlsafe(32)
+            expiracao = datetime.now(timezone.utc) + timedelta(minutes=15)
+
             self.repo.salvar_token_redefinicao(user_id, token, expiracao)
 
-            #AC1: envia o e-mail com o link de redefinição
-            #AC2: e-mail não revela a senha atual
-            #AC4: link deve ser de uso único e com prazo de expiração
-            #AC5: link deve direcionar para a página de redefinição de senha
-            link_redefinicao = f"http://localhost:3000/reset-password-funcionario?token={token}&email={user_email}" 
+            link_redefinicao = f"http://localhost:3000/reset-password-funcionario?token={token}&email={user_email}"
             self.email_service.enviar_link_redefinicao(user_email, link_redefinicao)
             return {"message": "Se um usuário com este e-mail existir, um link de redefinição será enviado."}
         except HTTPException:
@@ -345,23 +325,21 @@ class ServicosFuncionario:
     def redefinir_senha_publica(self, request_data: RedefinirSenhaRequest):
 
         token_info = self.repo.buscar_token_redefinicao(request_data.token)
-        
+
         if not token_info:
             raise HTTPException(status_code=400, detail="Token inválido ou expirado.")
-        
+
         funcionario_id, email_associado, expiracao_token = token_info
 
         if datetime.now(timezone.utc) > expiracao_token:
-            self.repo.invalidar_token_redefinicao(request_data.token) 
+            self.repo.invalidar_token_redefinicao(request_data.token)
             raise HTTPException(status_code=400, detail="Token inválido ou expirado.")
-        
-        senha_hashed = cria_hash_senha(request_data.nova_senha) 
+
+        senha_hashed = cria_hash_senha(request_data.nova_senha)
         self.repo.atualizar_senha_funcionario(funcionario_id, senha_hashed)
-        self.repo.invalidar_token_redefinicao(request_data.token) 
-        
+        self.repo.invalidar_token_redefinicao(request_data.token)
+
         return {"message": "Senha redefinida com sucesso!"}
-
-
 
     def desativar_funcionario(self, funcionario_id: int):
         """
@@ -371,13 +349,13 @@ class ServicosFuncionario:
             funcionario_existente = self.repo.procurar_pelo_id(funcionario_id)
             if not funcionario_existente:
                 raise HTTPException(status_code=404, detail="Funcionário não encontrado.")
-            
+
             campos_atualizacao = {"is_ativo": False}
             funcionario_atualizado = self.repo.atualizar_funcionario(funcionario_id, campos_atualizacao)
-            
+
             if not funcionario_atualizado:
                 raise HTTPException(status_code=500, detail="Erro ao desativar funcionário.")
-            
+
             return {"message": "Funcionário desativado com sucesso!"}
         except HTTPException:
             raise
@@ -392,16 +370,15 @@ class ServicosFuncionario:
             funcionario_existente = self.repo.procurar_pelo_id(funcionario_id)
             if not funcionario_existente:
                 raise HTTPException(status_code=404, detail="Funcionário não encontrado.")
-            
+
             campos_atualizacao = {"is_ativo": True}
             funcionario_atualizado = self.repo.atualizar_funcionario(funcionario_id, campos_atualizacao)
-            
+
             if not funcionario_atualizado:
                 raise HTTPException(status_code=500, detail="Erro ao ativar funcionário.")
-            
+
             return {"message": "Funcionário ativado com sucesso!"}
         except HTTPException:
             raise
         except Exception as e:
             raise HTTPException(status_code=500, detail=f"Erro ao ativar funcionário: {str(e)}")
-

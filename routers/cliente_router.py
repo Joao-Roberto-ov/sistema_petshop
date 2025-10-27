@@ -75,8 +75,7 @@ async def rota_buscar_todos(service: ServicosCliente = Depends(pegar_servicos_cl
         print(f"=== CLIENTES ENCONTRADOS: {len(clientes)} ===")
         return clientes
     except Exception as e:
+        print(f"=== ERRO NO ENDPOINT /users: {str(e)} ===")
+        import traceback
+        traceback.print_exc()
         raise HTTPException(status_code=500, detail="Erro ao buscar clientes.")
-
-@router.get("/buscar", status_code=200)
-async def rota_buscar_clientes(nome: str, service: ServicosCliente = Depends(pegar_servicos_cliente)):
-    return service.buscar_clientes_por_nome(nome)
