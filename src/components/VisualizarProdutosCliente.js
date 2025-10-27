@@ -3,7 +3,7 @@ import axios from '../api/axios';
 import './VisualizarProdutosCliente.css';
 import ProdutoDetalhesModal from './ProdutoDetalhesModal';
 
-function VisualizarProdutosCliente({ onBack }) {
+function VisualizarProdutosCliente({ onBack, onNavigateToCheckout }) {
     const [produtos, setProdutos] = useState([]);
     const [produtosFiltrados, setProdutosFiltrados] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -14,7 +14,6 @@ function VisualizarProdutosCliente({ onBack }) {
     const [carrinho, setCarrinho] = useState([]);
     const [mostrarCarrinho, setMostrarCarrinho] = useState(false);
 
-    // imagem padrão
     let imagemPadrao;
     try {
         imagemPadrao = require('../imagens/Produto-sem-foto.jpg');
@@ -66,7 +65,6 @@ function VisualizarProdutosCliente({ onBack }) {
     };
 
     const adicionarAoCarrinho = (produto, e) => {
-        // evita que o clique no botão abra o modal (stop propagation)
         if (e && e.stopPropagation) e.stopPropagation();
 
         setCarrinho(prev => {
@@ -161,12 +159,20 @@ function VisualizarProdutosCliente({ onBack }) {
 
                             <hr />
                             <h4>Total: R$ {totalCarrinho.toFixed(2)}</h4>
-                            <button className="btn-finalizar">Finalizar Compra</button>
+
+                            {/* Botão que leva ao checkout */}
+                            <button
+                                className="btn-finalizar"
+                                onClick={() => onNavigateToCheckout(carrinho)}
+                            >
+                                Finalizar Compra
+                            </button>
                         </>
                     )}
                 </div>
             )}
 
+            {/* Seções de produtos */}
             <section className="hero">
                 <div className="container">
                     <h1 className="animate-fade-in-up">Nossos Produtos</h1>
@@ -186,44 +192,26 @@ function VisualizarProdutosCliente({ onBack }) {
                         />
 
                         <div className="category-filters">
-                            <button
-                                className={`filter-btn ${filterCategory === 'Todos' ? 'active' : ''}`}
-                                onClick={() => setFilterCategory('Todos')}
-                            >
-                                🐾 Todos
-                            </button>
-                            <button
-                                className={`filter-btn ${filterCategory === 'Cães' ? 'active' : ''}`}
-                                onClick={() => setFilterCategory('Cães')}
-                            >
-                                🐕 Cães
-                            </button>
-                            <button
-                                className={`filter-btn ${filterCategory === 'Gatos' ? 'active' : ''}`}
-                                onClick={() => setFilterCategory('Gatos')}
-                            >
-                                🐈 Gatos
-                            </button>
+                            {['Todos', 'Cães', 'Gatos'].map(cat => (
+                                <button
+                                    key={cat}
+                                    className={`filter-btn ${filterCategory === cat ? 'active' : ''}`}
+                                    onClick={() => setFilterCategory(cat)}
+                                >
+                                    {cat === 'Todos' ? '🐾' : cat === 'Cães' ? '🐕' : '🐈'} {cat}
+                                </button>
+                            ))}
                         </div>
                     </div>
 
                     {error && <div className="error-message">{error}</div>}
-
-                    <div className="text-center" style={{ marginBottom: '2rem' }}>
-                        <p className="section-description">
-                            {produtosFiltrados.length} produto{produtosFiltrados.length !== 1 ? 's' : ''} encontrado{produtosFiltrados.length !== 1 ? 's' : ''}
-                        </p>
-                    </div>
 
                     <div className="produtos-grid">
                         {produtosFiltrados.map(produto => (
                             <div
                                 key={produto.id}
                                 className="produto-card"
-                                onClick={() => setProdutoSelecionado(produto)} // abre o modal ao clicar no card
-                                role="button"
-                                tabIndex={0}
-                                onKeyDown={(e) => { if (e.key === 'Enter') setProdutoSelecionado(produto); }}
+                                onClick={() => setProdutoSelecionado(produto)}
                             >
                                 <div className="produto-image-container">
                                     <img
@@ -232,9 +220,7 @@ function VisualizarProdutosCliente({ onBack }) {
                                         className="produto-image"
                                         onError={(e) => { e.target.src = imagemPadrao; }}
                                     />
-                                    {produto.estoque <= 0 && (
-                                        <div className="produto-badge esgotado">Esgotado</div>
-                                    )}
+                                    {produto.estoque <= 0 && <div className="produto-badge esgotado">Esgotado</div>}
                                     {produto.estoque > 0 && produto.estoque < 10 && (
                                         <div className="produto-badge baixo-estoque">Últimas unidades</div>
                                     )}
@@ -245,14 +231,12 @@ function VisualizarProdutosCliente({ onBack }) {
                                     <h3 className="produto-nome">{produto.nome}</h3>
                                     {produto.marca && <p className="produto-marca">{produto.marca}</p>}
                                     <div className="produto-footer">
-                                        <span className="produto-preco">R$ {produto.preco_venda.toFixed(2).replace('.', ',')}</span>
-
-                                        {/* Exibe quantidade em estoque (mantendo seu layout) */}
+                                        <span className="produto-preco">
+                                            R$ {produto.preco_venda.toFixed(2).replace('.', ',')}
+                                        </span>
                                         <span className="produto-estoque">
                                             {produto.estoque > 0 ? `${produto.estoque} em estoque` : 'Indisponível'}
                                         </span>
-
-                                        {/* botão de adicionar - evitar que abra modal */}
                                         <button
                                             className="adicionar-carrinho-btn"
                                             disabled={produto.estoque <= 0}
@@ -272,13 +256,9 @@ function VisualizarProdutosCliente({ onBack }) {
                             <p style={{ fontSize: '1.3rem', fontWeight: '600', marginBottom: '0.5rem' }}>
                                 {produtos.length === 0 ? 'Sem produtos disponíveis no momento' : 'Nenhum produto encontrado'}
                             </p>
-                            <p style={{ fontSize: '1rem', color: '#9ca3af' }}>
-                                {produtos.length === 0 ? 'Estamos trabalhando para adicionar novos produtos em breve.' : 'Tente ajustar os filtros ou buscar por outro termo.'}
-                            </p>
                         </div>
                     )}
 
-                    {/* Modal de detalhes do produto (aberto ao clicar no card) */}
                     {produtoSelecionado && (
                         <ProdutoDetalhesModal
                             produto={produtoSelecionado}
