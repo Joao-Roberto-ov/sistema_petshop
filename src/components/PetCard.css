@@ -1,0 +1,241 @@
+/* PetCard.css */
+
+.pet-card {
+    background-color: #ffffff;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    border: 1px solid #e5e7eb;
+    overflow: hidden;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.pet-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.08);
+}
+
+.pet-card-header {
+    display: flex;
+    align-items: center;
+    padding: 1.25rem;
+    gap: 1rem;
+    background-color: #f9fafb; /* Fundo levemente acinzentado para o cabeçalho */
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.pet-avatar {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: white;
+    flex-shrink: 0;
+}
+
+.pet-name-species {
+    flex-grow: 1;
+}
+
+.pet-name {
+    margin: 0;
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: #111827;
+}
+
+.pet-species {
+    margin: 0;
+    color: #6b7280;
+    font-size: 0.9rem;
+}
+
+.pet-card-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.action-btn {
+    background: #e5e7eb;
+    border: none;
+    border-radius: 50%;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: #6b7280;
+    transition: background-color 0.2s, color 0.2s;
+}
+
+.action-btn:hover {
+    background-color: #d1d5db;
+    color: #111827;
+}
+
+.pet-card-body {
+    padding: 1.25rem;
+}
+
+/* Estilo para informações do pet (modo visualização) */
+.pet-info {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+    gap: 1rem;
+}
+
+.info-item span {
+    display: block;
+    font-size: 0.8rem;
+    color: #6b7280;
+    margin-bottom: 0.25rem;
+    text-transform: uppercase;
+    font-weight: 500;
+}
+
+.info-item p {
+    margin: 0;
+    font-size: 1rem;
+    color: #374151;
+    font-weight: 600;
+}
+
+/* Estilo para o formulário de edição */
+.pet-edit-form .form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.form-group-edit label {
+    display: block;
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: #374151;
+    margin-bottom: 0.3rem;
+}
+
+.form-group-edit input {
+    width: 100%;
+    padding: 0.6rem 0.8rem;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    font-size: 0.95rem;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.form-group-edit input:focus {
+    outline: none;
+    border-color: #4a9b8e;
+    box-shadow: 0 0 0 2px rgba(74, 155, 142, 0.2);
+}
+
+.error-text {
+    display: block;
+    color: #ef4444;
+    font-size: 0.85rem;
+    margin-bottom: 1rem;
+    text-align: center;
+}
+
+.edit-buttons {
+    display: flex;
+    gap: 0.75rem;
+    margin-top: 1rem;
+}
+
+.btn-save, .btn-cancel {
+    flex-grow: 1;
+    padding: 0.7rem;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.btn-save {
+    background-color: #4a9b8e;
+    color: white;
+    border: 1px solid #4a9b8e;
+}
+
+.btn-save:hover {
+    background-color: #3d8b7e;
+}
+
+.btn-cancel {
+    background-color: transparent;
+    color: #6b7280;
+    border: 1px solid #d1d5db;
+}
+
+.btn-cancel:hover {
+    background-color: #f3f4f6;
+    border-color: #adb5bd;
+}
+
+
+/* Estilo específico para as observações do pet no card */
+.pet-observations {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%; /* Garante que o ellipsis funcione */
+    font-size: 0.9rem !important;
+    font-weight: 400 !important;
+    color: #4b5563 !important;
+    margin-top: 0.1rem !important;
+}
+
+
+.form-group-edit select,
+.form-group-edit textarea {
+    width: 100%;
+    padding: 0.6rem 0.8rem;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    font-size: 0.95rem;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    resize: vertical; /* Permite redimensionar verticalmente o textarea */
+}
+
+.form-group-edit select:focus,
+.form-group-edit textarea:focus {
+    outline: none;
+    border-color: #4a9b8e;
+    box-shadow: 0 0 0 2px rgba(74, 155, 142, 0.2);
+}
+
+.pet-edit-form .full-width {
+    grid-column: 1 / -1; /* Faz o campo ocupar toda a largura */
+}
+
+
+/* Estilos para as mensagens temporárias no PetCard */
+.success-message-card, .error-message-card {
+    padding: 0.75rem 1rem;
+    font-size: 0.9rem;
+    font-weight: 600;
+    text-align: center;
+    border-radius: 8px;
+    margin: 0.5rem;
+    transition: opacity 0.3s ease;
+}
+
+.success-message-card {
+    background-color: #d1fae5; /* Verde claro */
+    color: #065f46; /* Verde escuro */
+    border: 1px solid #a7f3d0;
+}
+
+.error-message-card {
+    background-color: #fee2e2; /* Vermelho claro */
+    color: #991b1b; /* Vermelho escuro */
+    border: 1px solid #fecaca;
+}

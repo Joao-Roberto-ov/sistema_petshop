@@ -1,0 +1,161 @@
+.modal-backdrop-produto {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.7);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 3000;
+    padding: 1rem;
+}
+
+.modal-content-produto {
+    background: white;
+    border-radius: 16px;
+    width: 90%;
+    max-width: 900px;
+    max-height: 90vh;
+    overflow-y: auto;
+    position: relative;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+}
+
+.close-button-produto {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    background: rgba(0, 0, 0, 0.5);
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    font-size: 1.5rem;
+    cursor: pointer;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.3s ease;
+}
+
+.close-button-produto:hover {
+    background: rgba(0, 0, 0, 0.7);
+}
+
+.modal-produto-layout {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2rem;
+    padding: 2rem;
+}
+
+.modal-produto-imagem {
+    width: 100%;
+    height: 400px;
+    background: #f3f4f6;
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+.modal-produto-imagem img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.modal-produto-info {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.modal-produto-categoria {
+    font-size: 0.9rem;
+    color: #6b7280;
+    font-weight: 500;
+}
+
+.modal-produto-nome {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #111827;
+    margin: 0;
+    line-height: 1.2;
+}
+
+.modal-produto-marca {
+    font-size: 1rem;
+    color: #9ca3af;
+    margin: 0;
+}
+
+.modal-produto-preco-container {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1.5rem 0;
+    border-top: 1px solid #e5e7eb;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.modal-produto-preco {
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: #16a34a;
+}
+
+.modal-produto-estoque-badge {
+    padding: 0.5rem 1rem;
+    background: #d1fae5;
+    color: #065f46;
+    border-radius: 20px;
+    font-size: 0.9rem;
+    font-weight: 600;
+}
+
+.modal-produto-descricao {
+    margin-top: 1rem;
+}
+
+.modal-produto-descricao h3 {
+    font-size: 1.2rem;
+    color: #374151;
+    margin-bottom: 0.5rem;
+}
+
+.modal-produto-descricao p {
+    color: #6b7280;
+    line-height: 1.6;
+    white-space: pre-wrap;
+}
+
+.modal-produto-aviso {
+    padding: 1rem;
+    background: #fef2f2;
+    border-left: 4px solid #dc2626;
+    color: #991b1b;
+    border-radius: 8px;
+    margin-top: 1rem;
+}
+
+@media (max-width: 768px) {
+    .modal-produto-layout {
+        grid-template-columns: 1fr;
+    }
+
+    .modal-produto-imagem {
+        height: 300px;
+    }
+
+    .modal-produto-nome {
+        font-size: 1.5rem;
+    }
+
+    .modal-produto-preco {
+        font-size: 2rem;
+    }
+}

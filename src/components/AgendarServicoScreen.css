@@ -1,0 +1,98 @@
+.agendamento-container {
+    padding: 2rem;
+    max-width: 1200px;
+    margin: 2rem auto;
+}
+
+.loading-message, .error-message {
+    text-align: center;
+    padding: 2rem;
+    font-size: 1.1rem;
+    color: #555;
+}
+
+.error-message {
+    color: #dc3545;
+    background-color: #f8d7da;
+    border: 1px solid #f5c6cb;
+    border-radius: 8px;
+}
+
+.servicos-disponiveis-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 1.5rem;
+}
+
+.servico-card-agendamento {
+    background-color: white;
+    border-radius: 12px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.servico-card-agendamento:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+}
+
+.servico-card-agendamento h3 {
+    color: #333;
+    font-size: 1.3rem;
+    margin-bottom: 0.5rem;
+}
+
+.servico-descricao {
+    color: #666;
+    font-size: 0.95rem;
+    flex-grow: 1; /*descrição ocupa o espaço disponivel */
+    margin-bottom: 1rem;
+    line-height: 1.5;
+}
+
+.servico-detalhes {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.9rem;
+    color: #555;
+    border-top: 1px solid #eee;
+    padding-top: 1rem;
+    margin-top: 1rem;
+}
+
+.servico-detalhes span:last-child {
+    font-weight: 600;
+    color: #28a745; /*verde para o preço*/
+}
+
+.btn-agendar-servico {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    background-color: #4a9b8e; /*cor primaria*/
+    color: white;
+    border: none;
+    padding: 0.75rem 1rem;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    margin-top: 1.5rem; /*espaçamento do botao*/
+    width: 100%;
+}
+
+.btn-agendar-servico:hover {
+    background-color: #3d8b7e; /*cor mais escura no hover*/
+    transform: translateY(-2px);
+    box-shadow: 0 4px 10px rgba(74, 155, 142, 0.3);
+}
+
+.btn-agendar-servico svg {
+    margin-right: 0.25rem;
+}

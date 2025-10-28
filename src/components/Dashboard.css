@@ -1,0 +1,260 @@
+/* src/components/Dashboard.css */
+.dashboard-container {
+    padding: 2rem;
+    max-width: 1200px;
+    margin: 2rem auto;
+    background-color: #f8f9fa; /* Fundo levemente cinza */
+    border-radius: 12px;
+    min-height: 80vh; /* Garante altura mínima */
+}
+
+.dashboard-grid {
+    display: grid;
+    grid-template-columns: 300px 1fr;
+    gap: 2rem;
+}
+
+@media (max-width: 992px) {
+    .dashboard-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Card Lateral (Pets e Info) */
+.dashboard-sidebar {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.info-card {
+    background-color: white;
+    border-radius: 12px;
+    padding: 1.5rem;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+    border: 1px solid #eee;
+}
+
+.info-card h2 {
+    font-size: 1.5rem;
+    color: #333;
+    margin-top: 0;
+    margin-bottom: 0.5rem;
+    border-bottom: 2px solid #4a9b8e;
+    padding-bottom: 0.5rem;
+}
+
+.info-card h3 {
+    font-size: 1.1rem;
+    color: #4a9b8e;
+    margin-top: 1.5rem;
+    margin-bottom: 0.75rem;
+}
+
+.info-card p {
+    color: #666;
+    font-size: 1rem;
+    margin: 0.25rem 0;
+    word-break: break-word; /* Quebra e-mails longos */
+}
+
+.pets-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.pets-list li {
+    padding: 0.5rem 0;
+    border-bottom: 1px solid #f0f0f0;
+    font-size: 0.95rem;
+}
+
+.pets-list li:last-child {
+    border-bottom: none;
+}
+
+.pets-list strong {
+    color: #333;
+}
+.pets-list span {
+    color: #777;
+    font-style: italic;
+}
+
+/* Área Principal (Agendamentos) */
+.dashboard-main {
+    background-color: white;
+    border-radius: 12px;
+    padding: 2rem;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+    border: 1px solid #eee;
+    min-height: 400px;
+}
+
+.agendamentos-header {
+    margin-bottom: 1.5rem;
+}
+
+.agendamentos-header h2 {
+    font-size: 1.8rem;
+    color: #333;
+    margin: 0 0 1rem 0;
+}
+
+.filter-buttons {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.filter-btn {
+    padding: 0.5rem 1rem;
+    border: 1px solid #ccc;
+    background: white;
+    border-radius: 6px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-size: 0.85rem;
+}
+
+.filter-btn:hover {
+    background: #f4f4f4;
+    border-color: #aaa;
+}
+
+.filter-btn.active {
+    background: #4a9b8e;
+    color: white;
+    border-color: #4a9b8e;
+}
+
+.loading-message, .no-agendamentos {
+    text-align: center;
+    padding: 3rem;
+    color: #888;
+    font-size: 1.1rem;
+    font-style: italic;
+}
+
+.agendamentos-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 1.5rem;
+}
+
+.agendamentos-table th,
+.agendamentos-table td {
+    padding: 0.75rem 1rem;
+    text-align: left;
+    border-bottom: 1px solid #eee;
+}
+
+.agendamentos-table th {
+    background-color: #f8f9fa;
+    color: #555;
+    font-size: 0.9rem;
+    text-transform: uppercase;
+}
+
+.agendamentos-table td {
+    font-size: 0.95rem;
+    vertical-align: middle;
+}
+
+.agendamento-data {
+    font-weight: 600;
+    color: #333;
+    min-width: 150px;
+}
+
+.agendamento-pet, .agendamento-servico {
+    display: block;
+}
+.agendamento-servico {
+    font-weight: 600;
+}
+.agendamento-pet {
+    font-size: 0.9rem;
+    color: #666;
+}
+
+.agendamento-status {
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    display: inline-block;
+    text-align: center;
+    min-width: 80px;
+}
+
+.agendamento-status.agendado {
+    background-color: #d1fae5;
+    color: #065f46;
+}
+
+.agendamento-status.cancelado {
+    background-color: #fee2e2;
+    color: #991b1b;
+    text-decoration: line-through;
+}
+
+.agendamento-status.realizado {
+    background-color: #e5e7eb;
+    color: #4b5563;
+}
+
+/* --- ESTILOS CORRIGIDOS PARA OS BOTÕES DE ÍCONE --- */
+
+.action-buttons {
+    display: flex;
+    flex-wrap: nowrap; /* Garante que fiquem na mesma linha */
+    gap: 0.75rem; /* Espaço entre os ícones */
+}
+
+.action-btn {
+    border: none;
+    padding: 0; /* Remove padding de texto */
+    width: 34px;  /* Tamanho fixo */
+    height: 34px; /* Tamanho fixo */
+    border-radius: 50%; /* Botão redondo */
+    cursor: pointer;
+    font-weight: 500;
+    transition: all 0.2s ease;
+    display: flex; /* Centraliza o ícone */
+    align-items: center; /* Centraliza o ícone */
+    justify-content: center; /* Centraliza o ícone */
+}
+
+.btn-cancelar {
+    background-color: #fee2e2;
+    color: #dc2626;
+}
+.btn-cancelar:hover {
+    background-color: #dc2626;
+    color: white;
+}
+
+.btn-reagendar {
+    background-color: #eef2ff;
+    color: #4338ca;
+}
+.btn-reagendar:hover {
+    background-color: #4338ca;
+    color: white;
+}
+/* Tratamento para o status cancelado na tabela */
+tr:has(.agendamento-status.cancelado) {
+    background-color: #f9f9f9;
+    opacity: 0.7;
+}
+
+tr:has(.agendamento-status.cancelado) .agendamento-data,
+tr:has(.agendamento-status.cancelado) .agendamento-servico {
+    text-decoration: line-through;
+    color: #999;
+}

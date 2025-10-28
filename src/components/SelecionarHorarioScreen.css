@@ -1,0 +1,135 @@
+.agendamento-container {
+    padding: 2rem;
+    max-width: 700px;
+    margin: 2rem auto;
+}
+
+.back-button {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: none;
+    border: none;
+    color: #4a9b8e;
+    font-weight: 500;
+    cursor: pointer;
+    margin-bottom: 1.5rem;
+    padding: 0.5rem 0;
+    transition: color 0.2s ease;
+}
+
+.back-button:hover {
+    color: #3d8b7e;
+    text-decoration: underline;
+}
+
+.agendamento-card {
+    background-color: white;
+    border-radius: 12px;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
+    padding: 2rem 2.5rem;
+    border: 1px solid #eee;
+}
+
+.agendamento-header {
+    text-align: center;
+    margin-bottom: 2rem;
+    padding-bottom: 1.5rem;
+    border-bottom: 1px solid #eee;
+}
+
+.agendamento-header h2 {
+    color: #333;
+    font-size: 1.8rem;
+    margin-bottom: 0.5rem;
+}
+
+.agendamento-header p {
+    color: #666;
+    font-size: 1rem;
+}
+
+.form-group-agendamento {
+    margin-bottom: 1.75rem;
+}
+
+.form-group-agendamento label {
+    display: block;
+    font-weight: 600;
+    color: #374151;
+    margin-bottom: 0.6rem;
+}
+
+.form-input-agendamento {
+    width: 100%;
+    padding: 0.8rem 1rem;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    font-size: 1rem;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    background-color: #fff; /* Garante fundo branco */
+}
+
+.form-input-agendamento:focus {
+    outline: none;
+    border-color: #4a9b8e;
+    box-shadow: 0 0 0 3px rgba(74, 155, 142, 0.15);
+}
+
+.form-input-agendamento:disabled {
+    background-color: #f3f4f6;
+    cursor: not-allowed;
+    opacity: 0.7;
+}
+
+.info-message {
+    background-color: #eef2ff; /* Azul bem claro */
+    color: #4338ca; /* Azul índigo */
+    padding: 0.75rem 1rem;
+    border-radius: 8px;
+    border-left: 4px solid #6366f1;
+    font-size: 0.9rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.slot-info {
+    font-size: 0.85rem;
+    color: #666;
+    margin-top: 0.5rem;
+    padding-left: 0.2rem;
+}
+
+.btn-confirmar-agendamento {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    background-color: #10b981; /* Verde esmeralda */
+    color: white;
+    border: none;
+    padding: 0.875rem;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    margin-top: 1rem; /* Espaçamento antes do botão */
+}
+
+.btn-confirmar-agendamento:hover:not(:disabled) {
+    background-color: #059669; /* Verde mais escuro */
+    transform: translateY(-2px);
+    box-shadow: 0 4px 10px rgba(16, 185, 129, 0.3);
+}
+
+.btn-confirmar-agendamento:disabled {
+    background-color: #9ca3af; /* Cinza para desabilitado */
+    cursor: not-allowed;
+}
+
+.btn-confirmar-agendamento svg {
+    margin-right: 0.25rem;
+}
