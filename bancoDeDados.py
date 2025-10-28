@@ -191,6 +191,46 @@ def criar_tabelas():
             preco_unitario NUMERIC(10, 2) NOT NULL
         );""")
 
+        curs.execute("""
+        CREATE TABLE IF NOT EXISTS EnderecosEntrega (
+            id SERIAL PRIMARY KEY,
+            cliente_id INTEGER NOT NULL REFERENCES Clientes(id) ON DELETE CASCADE,
+            rua VARCHAR(255) NOT NULL,
+            numero VARCHAR(20) NOT NULL,
+            bairro VARCHAR(100) NOT NULL,
+            cidade VARCHAR(100) NOT NULL,
+            estado VARCHAR(50) NOT NULL,
+            cep VARCHAR(20) NOT NULL
+        );
+        """)
+
+        # Tabela principal de checkouts (representa uma venda em processo ou finalizada)
+        curs.execute("""
+        CREATE TABLE IF NOT EXISTS Checkouts (
+            id SERIAL PRIMARY KEY,
+            cliente_id INTEGER NOT NULL REFERENCES Clientes(id) ON DELETE CASCADE,
+            endereco_entrega_id INTEGER REFERENCES EnderecosEntrega(id) ON DELETE SET NULL,
+            retirada_na_loja BOOLEAN DEFAULT FALSE,
+            forma_pagamento VARCHAR(20) NOT NULL,  -- 'cartao' ou 'pix'
+            status_pagamento VARCHAR(20) DEFAULT 'pendente',  -- 'pendente', 'confirmado', 'falhou'
+            total NUMERIC(10, 2) DEFAULT 0.00,
+            criado_em TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+        );
+        """)
+
+        # Tabela de itens do checkout (semelhante à de itens de venda)
+        curs.execute("""
+        CREATE TABLE IF NOT EXISTS ItensCheckout (
+            id SERIAL PRIMARY KEY,
+            checkout_id INTEGER NOT NULL REFERENCES Checkouts(id) ON DELETE CASCADE,
+            tipo VARCHAR(20) NOT NULL,              -- 'produto' ou 'servico'
+            id_item INTEGER NOT NULL,               -- id do produto ou serviço
+            nome VARCHAR(255) NOT NULL,
+            quantidade INTEGER NOT NULL CHECK (quantidade > 0),
+            preco_unitario NUMERIC(10, 2) NOT NULL
+        );
+        """)
+
 
         conectado.commit()
         print("Verificação e criação de tabelas concluída com sucesso.")

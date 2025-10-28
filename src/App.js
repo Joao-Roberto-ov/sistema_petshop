@@ -23,6 +23,7 @@ import VisualizarProdutosFuncionario from './components/VisualizarProdutosFuncio
 import VisualizarProdutosCliente from './components/VisualizarProdutosCliente';
 import VisualizarPetsGestor from './components/VisualizarPetsGestor';
 import RegistrarVenda from './components/RegistrarVenda';
+import Checkout from './components/Checkout';
 
 function App() {
     const [currentScreen, setCurrentScreen] = useState('home');
@@ -78,6 +79,13 @@ function App() {
         setUserData(null);
         navigateToHome(null, true);
     };
+    const [checkoutCarrinho, setCheckoutCarrinho] = useState([]);
+
+    const handleNavigateToCheckout = (carrinho) => {
+        setCheckoutCarrinho(carrinho);
+        setCurrentScreen('checkout');
+    };
+
 
     const renderScreen = () => {
         if (isLoggedIn && (currentScreen === 'login' || currentScreen === 'signup')) {
@@ -160,6 +168,12 @@ function App() {
                     onLogout={handleLogout}
                 />;
 
+            case 'checkout':
+                return <Checkout 
+                    carrinho={checkoutCarrinho} // armazene em um estado
+                    onBack={() => setCurrentScreen('visualizar-produtos-cliente')}
+                />;
+
             case 'registrar-venda':
                 return <RegistrarVenda
                     onBack={() => navigateToHome()}
@@ -175,9 +189,13 @@ function App() {
                 />;
 
             case 'visualizar-produtos-cliente':
-                return <VisualizarProdutosCliente
-                    onBack={() => setCurrentScreen('home')}
-                />;
+                return (
+                    <VisualizarProdutosCliente
+                        onBack={() => setCurrentScreen('home')}
+                        onNavigateToCheckout={handleNavigateToCheckout}
+                    />
+                );
+
 
             case 'visualizarClientes':
                 return <VisualizarClientes onBack={() => navigateToHome()} />;
@@ -248,6 +266,7 @@ function App() {
                     else setCurrentScreen('visualizar-produtos-cliente');
                 }}
                 onNavigateToCadastrarProduto={()=> setCurrentScreen('registrar-venda')}
+                onNavigateToCheckout={()=> setCurrentScreen('checkout')}
             />
             <main>
                 {renderScreen()}
