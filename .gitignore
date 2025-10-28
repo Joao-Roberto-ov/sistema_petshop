@@ -13,7 +13,7 @@ __pycache__/
 # Virtual environments
 .venv/
 venv/
-env/
+.env/
 # Pytest / coverage
 .pytest_cache/
 .coverage
