@@ -26,4 +26,4 @@ htmlcov/
 .DS_Store
 Thumbs.db
 # --- IDE / PyCharm ---
-.idea
+.idea/
