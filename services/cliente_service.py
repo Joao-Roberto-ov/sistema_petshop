@@ -364,7 +364,7 @@ class ServicosCliente:
 
             print(f"Cliente encontrado: {cliente_existente[1]} (ID: {cliente_existente[0]})")
 
-            # TESTE: Verificar se o método existe
+            # TESTE: Verificar se o metodo existe
             print(f"Métodos disponíveis no repo: {[method for method in dir(self.repo) if not method.startswith('_')]}")
 
             self.repo.atualizar_status_cliente(cliente_id, is_ativo)
