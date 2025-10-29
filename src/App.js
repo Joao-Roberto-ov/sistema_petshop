@@ -32,8 +32,6 @@ import SelecionarHorarioScreen from './components/SelecionarHorarioScreen';
 import Checkout from './components/Checkout';
 
 const CARGO = { GESTOR: 1, FUNCIONARIO: 2, VETERINARIO: 3, ATENDENTE: 4 };
-
-// Helper function to dispatch navigation events
 const navigateTo = (screenName) => {
     window.dispatchEvent(new CustomEvent('navigate', { detail: screenName }));
 };
@@ -47,27 +45,24 @@ function App() {
     const [checkoutCarrinho, setCheckoutCarrinho] = useState([]);
 
     useEffect(() => {
-        // Handle URL params for reset password
+
         const urlParams = new URLSearchParams(window.location.search);
         const token = urlParams.get('token');
         if (token && currentScreen !== 'reset-password') {
-            // Use navigateTo to ensure the state update goes through the listener
+
             navigateTo('reset-password');
-            return; // Prevent further processing in this effect run
+            return;
         }
 
-        // Check for saved login state
         const authToken = localStorage.getItem('token');
         const savedUserData = localStorage.getItem('userData');
-        if (authToken && savedUserData && !isLoggedIn) { // Check !isLoggedIn to avoid loop
+        if (authToken && savedUserData && !isLoggedIn) {
             try {
                 const parsedUser = JSON.parse(savedUserData);
                 setIsLoggedIn(true);
                 setUserData(parsedUser);
-                // Determine home screen based on user type but don't navigate yet,
-                // let the 'navigate' event listener handle the initial screen setting if needed
                 const targetHomeScreen = (parsedUser?.cargo_id || parsedUser?.cargo) ? 'homeFuncionario' : 'home';
-                // If the current screen is still the default 'home', update it, otherwise let the listener manage.
+
                  if (currentScreen === 'home') {
                     setCurrentScreen(targetHomeScreen);
                  }
@@ -75,33 +70,32 @@ function App() {
                  console.error("Limpando dados de usuário inválidos:", e);
                  localStorage.removeItem('token');
                  localStorage.removeItem('userData');
-                 setIsLoggedIn(false); // Ensure state reflects logout
+                 setIsLoggedIn(false);
                  setUserData(null);
             }
         }
 
-        // Setup navigation event listener
+
         const handleNavigate = (event) => {
-            // Use functional update to compare against the latest state
+
             setCurrentScreen(prevScreen => {
                 if (event.detail !== prevScreen) {
-                    console.log(`Navegando de ${prevScreen} para ${event.detail}`); // Debug log
-                    return event.detail; // Update state
+                    console.log(`Navegando de ${prevScreen} para ${event.detail}`);
+                    return event.detail;
                 }
-                return prevScreen; // Keep state if it's the same
+                return prevScreen;
             });
         };
         window.addEventListener('navigate', handleNavigate);
 
-        // Cleanup function runs only on component unmount
         return () => {
             window.removeEventListener('navigate', handleNavigate);
         };
-    }, []); // <-- EMPTY dependency array, runs only once on mount
+    }, []);
 
     const navigateToHome = (user = userData, forced = false) => {
         const targetScreen = (user?.cargo_id || user?.cargo) ? 'homeFuncionario' : 'home';
-        // Always use the dispatch event for navigation
+
         navigateTo(targetScreen);
     };
 
@@ -111,7 +105,7 @@ function App() {
         } else {
             const cargoId = userData?.cargo_id;
             const cargoString = userData?.cargo?.toUpperCase();
-            let targetScreen = 'dashboard'; // Default Client
+            let targetScreen = 'dashboard';
 
             if (cargoId === CARGO.GESTOR || cargoString === 'GESTOR' || cargoString === 'ADMINISTRADOR') {
                 targetScreen = 'dashboard-gestor';
@@ -125,7 +119,7 @@ function App() {
     const handleLogin = (data) => {
         setIsLoggedIn(true);
         setUserData(data);
-        navigateToHome(data); // Navigate after setting state
+        navigateToHome(data);
     };
 
     const handleLogout = () => {
@@ -136,7 +130,7 @@ function App() {
         setServicoParaAgendar(null);
         setAgendamentoParaReagendar(null);
         setCheckoutCarrinho([]);
-        navigateToHome(null, true); // Use navigateToHome which dispatches event
+        navigateToHome(null, true);
     };
 
     const iniciarNovoAgendamento = () => {
@@ -156,19 +150,16 @@ function App() {
     };
 
     const renderScreen = () => {
-        // Redirect logged-in users away from login/signup
         if (isLoggedIn && (currentScreen === 'login' || currentScreen === 'signup')) {
-            // Use navigateToHome to dispatch event instead of direct state set
+
             navigateToHome();
-            return null; // Return null while redirecting
+            return null;
         }
 
         const cargoId = userData?.cargo_id;
         const cargoString = userData?.cargo;
         const isFuncionarioLogado = !!(cargoId || cargoString);
         const isClienteLogado = isLoggedIn && !isFuncionarioLogado;
-
-        // --- Screen Access Control (Keep as is) ---
         const telasFuncionario = ['homeFuncionario', 'dashboard-funcionario', 'dashboard-gestor',
                                   'visualizarClientes', 'visualizarServicos', 'cadastro-funcionario-completo',
                                   'listar-funcionarios',
@@ -180,9 +171,9 @@ function App() {
             navigateToHome(null, true); return null;
         }
 
-        const telasCliente = ['dashboard', 'meus-pets', 'meu-perfil', 'agendar-servico',
-                              'visualizar-servicos-cliente', 'checkout', 'visualizar-produtos-cliente',
-                              'pet-cadastro', 'selecionar-horario']; // Added missing client screens
+        const telasCliente = ['dashboard', 'meu-perfil', 'agendar-servico',
+                              'checkout', 'visualizar-produtos-cliente',
+                              'pet-cadastro', 'selecionar-horario'];
         if (isFuncionarioLogado && telasCliente.includes(currentScreen)) {
             console.warn("Acesso negado: Funcionário tentando acessar área de cliente. Redirecionando para home.");
             navigateToHome(userData, true); return null;
@@ -193,22 +184,20 @@ function App() {
                              'listar-funcionarios',
                              'visualizar-pets-gestor', 'cadastrarProduto',
                              'visualizar-produtos-gestor', 'funcionario-cadastro-admin', 'gerenciar-agendamentos',
-                             'gerenciar-pets']; // Added GerenciarPets
+                             'gerenciar-pets'];
         if (isFuncionarioLogado && !isGestor && telasGestor.includes(currentScreen)) {
             console.warn("Acesso negado: Funcionário não-gestor tentando acessar área de gestor.");
             navigateToHome(userData, true); return null;
         }
-        // --- End Screen Access Control ---
-
 
         switch (currentScreen) {
             case 'login':
                 return <LoginScreen
                     onLogin={handleLogin}
-                    // Use navigateTo for all navigation triggers
+
                     onNavigateToSignup={() => navigateTo('signup')}
                     onNavigateToForgotPassword={() => navigateTo('forgot-password')}
-                    setUserData={setUserData} // Keep setUserData for login process
+                    setUserData={setUserData}
                 />;
 
             case 'signup':
@@ -231,8 +220,8 @@ function App() {
                     userData={userData}
                     onLogout={handleLogout}
                     onNavigateToHome={() => navigateToHome(null, true)}
-                    onIniciarReagendamento={iniciarReagendamento} // Keep as is, it triggers state change + navigation
-                    onNavigateToAgendarServico={iniciarNovoAgendamento} // Keep as is
+                    onIniciarReagendamento={iniciarReagendamento}
+                    onNavigateToAgendarServico={iniciarNovoAgendamento}
                 />;
 
              case 'dashboard-funcionario':
@@ -252,14 +241,13 @@ function App() {
             case 'pet-cadastro':
                 return <PetCadastroScreen
                     onNavigateToHome={() => navigateToHome(userData)}
-                    // Add onBack prop if needed, pointing to navigateTo('meus-pets')
                     onBack={() => navigateTo('meus-pets')}
                 />;
 
             case 'meus-pets':
                 return <MeusPetsScreen
                     onNavigateToPetCadastro={() => navigateTo('pet-cadastro')}
-                    onNavigateToHome={() => navigateToHome(userData)} // Navigate home
+                    onNavigateToHome={() => navigateToHome(userData)}
                 />;
 
             case 'meu-perfil':
@@ -276,7 +264,7 @@ function App() {
              case 'homeFuncionario':
                  return <HomePageFuncionario
                      userData={userData}
-                     onNavigateToDashboard={navigateToDashboard} // Use central function
+                     onNavigateToDashboard={navigateToDashboard}
                      onNavigateToVisualizarClientes={() => navigateTo("visualizarClientes")}
                      onNavigateToVisualizarServicos={() => navigateTo('visualizarServicos')}
                      onNavigateToCadastrarProduto={() => navigateTo('cadastrarProduto')}
@@ -302,7 +290,6 @@ function App() {
                     onBack={() => navigateTo('visualizar-produtos-cliente')}
                 />;
 
-            // --- Other cases using navigateTo ---
             case 'registrar-venda': return <RegistrarVenda onBack={() => navigateToHome(userData)} />;
             case 'visualizar-produtos-gestor': return <VisualizarProdutosGestor onBack={() => navigateToHome(userData)} />;
             case 'visualizar-produtos-funcionario': return <VisualizarProdutosFuncionario onBack={() => navigateToHome(userData)} />;
@@ -310,14 +297,14 @@ function App() {
                 return (
                     <VisualizarProdutosCliente
                         onBack={() => navigateToHome(userData)}
-                        onNavigateToCheckout={handleNavigateToCheckout} // Keep as is
+                        onNavigateToCheckout={handleNavigateToCheckout}
                     />
                 );
 
             case 'visualizarClientes':return <VisualizarClientes userData={userData} onBack={() => navigateToHome(userData)}/>;
             case 'visualizar-pets-gestor': return <VisualizarPetsGestor onBack={() => navigateToHome(userData)} />;
             case 'visualizarServicos':
-                 if (!isGestor) { // Simplified check using isGestor
+                 if (!isGestor) {
                      return (
                          <div className="container" style={{ padding: '2rem' }}>
                              <h2>Acesso Negado</h2>
@@ -337,43 +324,42 @@ function App() {
 
             case 'agendar-servico':
                  return <AgendarServicoScreen
-                             onBack={() => navigateToHome(userData)} // Navigate home
+                             onBack={() => navigateToHome(userData)}
                              onNavigateToAgendamento={(servico) => {
                                  setServicoParaAgendar(servico);
                                  setAgendamentoParaReagendar(null);
-                                 navigateTo('selecionar-horario'); // Navigate via dispatch
+                                 navigateTo('selecionar-horario');
                              }}
                          />;
              case 'selecionar-horario':
-                  // Determine which screen based on context (Reagendamento Gestor or normal)
-                  const isReagendamentoGestor = modoReagendamento && isGestor; // Check if Gestor is reagendando
+                  const isReagendamentoGestor = modoReagendamento && isGestor;
 
                   return isReagendamentoGestor ? (
                      <ReagendamentoGestorScreen
                         agendamentoParaReagendar={agendamentoParaReagendar}
-                        onBack={() => navigateTo('gerenciar-agendamentos')} // Go back to management screen
+                        onBack={() => navigateTo('gerenciar-agendamentos')}
                         onAgendamentoSuccess={() => {
-                            setAgendamentoParaReagendar(null); // Clear state
-                            navigateTo('gerenciar-agendamentos'); // Go back after success
+                            setAgendamentoParaReagendar(null);
+                            navigateTo('gerenciar-agendamentos');
                         }}
                      />
                   ) : (
                      <SelecionarHorarioScreen
                         servico={servicoParaAgendar}
-                        agendamentoParaReagendar={agendamentoParaReagendar} // Could be null for new, or set for client reagendamento
+                        agendamentoParaReagendar={agendamentoParaReagendar}
                         onBack={() => modoReagendamento ? navigateToDashboard() : navigateTo('agendar-servico')} // Go back appropriately
                         onAgendamentoSuccess={() => {
                             setServicoParaAgendar(null);
                             setAgendamentoParaReagendar(null);
-                            navigateToDashboard(); // Go to dashboard after success
+                            navigateToDashboard();
                         }}
                      />
                   );
-            case 'gerenciar-agendamentos': // Added case for Gestor management
+            case 'gerenciar-agendamentos':
                     return <GerenciarAgendamentosGestor
                         userData={userData}
                         onNavigateToHome={() => navigateToHome(userData)}
-                        onIniciarReagendamento={iniciarReagendamento} // Pass the function to start reagendamento flow
+                        onIniciarReagendamento={iniciarReagendamento}
                     />;
 
 
@@ -383,17 +369,16 @@ function App() {
                     onNavigateToLogin={() => navigateTo('login')}
                     onNavigateToSignup={() => navigateTo('signup')}
                     onNavigateToProdutos={() => navigateTo('visualizar-produtos-cliente')}
-                    onNavigateToServicos={() => navigateTo('visualizar-servicos-cliente')} // Standardized
+                    onNavigateToServicos={() => navigateTo('visualizar-servicos-cliente')}
                     isLoggedIn={isLoggedIn}
                     userData={userData}
                     onLogout={handleLogout}
                     onNavigateToDashboard={navigateToDashboard}
-                    onNavigateToAgendamento={iniciarNovoAgendamento} // Use central function
+                    onNavigateToAgendamento={iniciarNovoAgendamento}
                 />;
         }
     };
 
-    // Determine if the user is currently in a reagendamento flow
     const modoReagendamento = Boolean(agendamentoParaReagendar);
 
     return (
@@ -402,7 +387,6 @@ function App() {
                 isLoggedIn={isLoggedIn}
                 userData={userData}
                 onLogout={handleLogout}
-                // Pass navigateTo functions directly
                 onNavigateToLogin={() => navigateTo('login')}
                 onNavigateToSignup={() => navigateTo('signup')}
                 onNavigateToDashboard={navigateToDashboard}
@@ -412,13 +396,12 @@ function App() {
                 onNavigateToHome={() => navigateToHome(userData)}
                 onNavigateToServicosCliente={() => navigateTo('visualizar-servicos-cliente')}
                 onNavigateToProdutos={(tipo) => {
-                    // Logic to determine product screen based on user type
                     if (!isLoggedIn || !userData?.cargo) navigateTo('visualizar-produtos-cliente');
                     else if (['gestor', 'administrador'].includes(userData.cargo.toLowerCase())) navigateTo('visualizar-produtos-gestor');
                     else navigateTo('visualizar-produtos-funcionario');
                 }}
-                onNavigateToAgendarServico={iniciarNovoAgendamento} // Use central function
-                onNavigateToCheckout={() => navigateTo('checkout')} // Added checkout nav
+                onNavigateToAgendarServico={iniciarNovoAgendamento}
+                onNavigateToCheckout={() => navigateTo('checkout')}
             />
             <main>
                 {renderScreen()}

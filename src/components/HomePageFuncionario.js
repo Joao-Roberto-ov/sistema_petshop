@@ -20,6 +20,7 @@ function HomePageFuncionario({
     // Lógica de permissão robusta (do primeiro arquivo)
     const cargoLower = userData?.cargo?.toLowerCase();
     const cargoId = userData?.cargo_id;
+    // Considera GESTOR ou ADMINISTRADOR como admin/gestor
     const isGestorOuAdmin = cargoId === 1 || cargoLower === 'gestor' || cargoLower === 'administrador';
 
     // Lista de serviços unificada
@@ -43,30 +44,41 @@ function HomePageFuncionario({
             description: "Registre uma nova venda de produtos ou serviços.",
             onClick: onNavigateToRegistrarVenda
         },
-        ...(isGestorOuAdmin ? [{
-            icon: '🛠',
-            title: "Gerenciar Serviços",
-            description: "Adicione, edite ou remova os serviços oferecidos.",
-            onClick: onNavigateToVisualizarServicos
-        }] : []),
-        ...(isGestorOuAdmin ? [{
-            icon: '👨‍💼',
-            title: "Cadastrar Funcionário",
-            description: "Adicione novos funcionários ao sistema.",
-            onClick: onNavigateToCadastroFuncionarioCompleto
-        }] : []),
-        ...(isGestorOuAdmin ? [{
-            icon: '👥',
-            title: "Gerenciar Funcionários",
-            description: "Visualize e gerencie todos os funcionários.",
-            onClick: onNavigateToGerenciarFuncionarios
-        }] : []),
-        ...(isGestorOuAdmin ? [{
-            icon: '🐾',
-            title: "Gerenciar Pets",
-            description: "Visualize e edite as informações de todos os pets.",
-            onClick: onNavigateToVisualizarPets
-        }] : []),
+        // Itens que só aparecem para Gestor/Admin
+        ...(isGestorOuAdmin ? [
+            {
+                icon: '🛠',
+                title: "Gerenciar Serviços",
+                description: "Adicione, edite ou remova os serviços oferecidos.",
+                onClick: onNavigateToVisualizarServicos
+            },
+            {
+                icon: '👨‍💼',
+                title: "Cadastrar Funcionário",
+                description: "Adicione novos funcionários ao sistema.",
+                onClick: onNavigateToCadastroFuncionarioCompleto
+            },
+            {
+                icon: '👥',
+                title: "Gerenciar Funcionários",
+                description: "Visualize e gerencie todos os funcionários.",
+                onClick: onNavigateToGerenciarFuncionarios
+            },
+            {
+                icon: '🐾',
+                title: "Gerenciar Pets",
+                description: "Visualize e edite as informações de todos os pets.",
+                onClick: onNavigateToVisualizarPets
+            },
+            // *** ALTERAÇÃO: "Gerenciar Agendamentos" agora está dentro do bloco condicional ***
+            {
+                icon: '📅',
+                title: "Gerenciar Agendamentos",
+                description: "Visualize, cancele ou reagende os próximos serviços.",
+                onClick: onNavigateToGerenciarAgendamentos
+            }
+        ] : []), // Fim do bloco condicional para Gestor/Admin
+        // Item que aparece para todos os funcionários
         {
             icon: '🔍',
             title: isGestorOuAdmin ? "Gerenciar Produtos" : "Consultar Produtos",
@@ -75,13 +87,7 @@ function HomePageFuncionario({
                 : "Consulte disponibilidade e preços de produtos.",
             onClick: onNavigateToVisualizarProdutos
         },
-        // Adicionado do primeiro arquivo (substitui o 'alert' do segundo)
-        {
-            icon: '📅',
-            title: "Gerenciar Agendamentos",
-            description: "Visualize, cancele ou reagende os próximos serviços.",
-            onClick: onNavigateToGerenciarAgendamentos
-        }
+        // *** REMOVIDO: O item "Gerenciar Agendamentos" foi movido para o bloco condicional acima ***
     ];
 
     const differentials = [
@@ -115,12 +121,11 @@ function HomePageFuncionario({
                             : 'Gerencie os clientes e mantenha tudo organizado na PetLife.'}
                     </p>
 
+                    {/* Botões do Hero (sem alterações aqui, a lógica principal está nos cards) */}
                     <div className="hero-buttons">
                         <button className="btn btn-outline-white hover-lift" onClick={onNavigateToVisualizarClientes}>
                             👥 Visualizar Clientes
                         </button>
-
-                        {/* Botões padronizados (lógica do primeiro arquivo) */}
                         {isGestorOuAdmin && (
                             <button className="btn btn-outline-white hover-lift" onClick={onNavigateToCadastroFuncionarioCompleto}>
                                 ➕ Cadastrar Funcionário
@@ -143,7 +148,6 @@ function HomePageFuncionario({
                                 🛒 Consultar Produtos
                             </button>
                         )}
-
                         <button className="btn btn-outline-white hover-lift" onClick={onLogout}>
                             🚪 Sair
                         </button>
@@ -159,6 +163,7 @@ function HomePageFuncionario({
                             Acesse as ferramentas necessárias para gerenciar o sistema de forma eficiente.
                         </p>
                     </div>
+                    {/* Renderiza os cards baseados na lista 'services' filtrada */}
                     <div className="services-grid">
                         {services.map((service, index) =>
                             <div
