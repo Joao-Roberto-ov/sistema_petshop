@@ -181,7 +181,7 @@ function HomePageFuncionario({
                     <h2 className="section-title">Por que usar o sistema PetLife?</h2>
                     <p className="section-description">
                         Um sistema completo e seguro para gerenciar seu negócio de forma profissional.
-                    </V>
+                    </p>
                     <div className="grid-3">
                         {differentials.map((item, index) => (
                             <div key={index} className="feature-card animate-fade-in-up" style={{ animationDelay: `${index * 0.1}s` }}>

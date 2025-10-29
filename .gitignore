@@ -25,5 +25,7 @@ htmlcov/
 # macOS / Windows / Linux chato
 .DS_Store
 Thumbs.db
-# --- IDE / PyCharm ---
+#IDE / PyCharm
 .idea/
+# Package-lock.json
+package-lock.json
