@@ -26,7 +26,7 @@ function HomePageFuncionario({
     const services = [
         {
             icon: '📊',
-            title: "Meu Painel",
+            title: "Meu Dashboard",
             description: "Visualize seu painel pessoal de atividades.",
             onClick: onNavigateToDashboard
         },
@@ -68,7 +68,7 @@ function HomePageFuncionario({
             onClick: onNavigateToVisualizarPets
         }] : []),
         {
-            icon: '🛒',
+            icon: '🔍',
             title: isGestorOuAdmin ? "Gerenciar Produtos" : "Consultar Produtos",
             description: isGestorOuAdmin
                 ? "Cadastre e edite produtos do sistema."

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import CadastroPetFuncionario from './CadastroPetFuncionario'; // Importar o componente de cadastro de pet
+import CadastroPetFuncionario from './CadastroPetFuncionario';
 import axios from '../api/axios';
 
 // Ícones SVG para os botões da tabela
@@ -31,13 +31,13 @@ const IconToggle = ({ isActive }) => (
     </svg>
 );
 
-function VisualizarClientes({ onBack }) {
+function VisualizarClientes({ userData, onBack }) {
     const [clientes, setClientes] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [showForm, setShowForm] = useState(false);
     const [editingId, setEditingId] = useState(null);
-    const [petRegisteringId, setPetRegisteringId] = useState(null); // ID do cliente para cadastro de pet
+    const [petRegisteringId, setPetRegisteringId] = useState(null);
 
     // Formulário
     const [formData, setFormData] = useState({
@@ -54,6 +54,9 @@ function VisualizarClientes({ onBack }) {
     const [toggleStatusError, setToggleStatusError] = useState('');
     const [petFormSuccess, setPetFormSuccess] = useState('');
     const [petFormError, setPetFormError] = useState('');
+
+    // Verifica se o usuário é Gestor
+    const isGestor = userData?.cargo_id === 1 || userData?.cargo?.toLowerCase() === 'gestor' || userData?.cargo?.toLowerCase() === 'administrador';
 
     useEffect(() => {
         fetchClientes();
@@ -105,7 +108,7 @@ function VisualizarClientes({ onBack }) {
                     headers: { Authorization: `Bearer ${token}` }
                 });
                 setFormSuccess(`Cliente '${formData.nome}' cadastrado com sucesso! Senha temporária: ${response.data.senha_temporaria}`);
-                setTimeout(() => setFormSuccess(''), 5000); // 5 segundos para a senha temporária
+                setTimeout(() => setFormSuccess(''), 5000);
             }
 
             setFormData({ nome: '', email: '', telefone: '', cpf: '', endereco: '' });
@@ -133,18 +136,18 @@ function VisualizarClientes({ onBack }) {
         if (!window.confirm(`Tem certeza que deseja ${newStatus ? 'ativar' : 'desativar'} este cliente?`)) {
             return;
         }
-        
+
         try {
             const token = localStorage.getItem('token');
             const url = `http://localhost:8000/api/admin/clientes/${clienteId}/status?is_ativo=${newStatus}`;
-            
+
             const response = await axios.put(url, {}, {
-                headers: { 
+                headers: {
                     Authorization: `Bearer ${token}`,
                     'Content-Type': 'application/json'
                 }
             });
-            
+
             fetchClientes();
             setToggleStatusSuccess(`Cliente ${cliente.nome} ${newStatus ? 'ativado' : 'desativado'} com sucesso!`);
             setTimeout(() => setToggleStatusSuccess(''), 3000);
@@ -178,7 +181,7 @@ function VisualizarClientes({ onBack }) {
         setPetRegisteringId(clienteId);
         setPetFormError('');
         setPetFormSuccess('');
-        setShowForm(false); // Fechar o formulário de cliente se estiver aberto
+        setShowForm(false);
     };
 
     const handlePetRegisterCancel = () => {
@@ -188,9 +191,8 @@ function VisualizarClientes({ onBack }) {
     };
 
     const handlePetRegisterSuccess = () => {
-        // Apenas limpa o formulário, pois o CadastroPetFuncionario já exibe a mensagem de sucesso
         setPetRegisteringId(null);
-        fetchClientes(); // Opcional: recarregar a lista de clientes/pets se necessário
+        fetchClientes();
     };
 
     if (loading) {
@@ -214,7 +216,6 @@ function VisualizarClientes({ onBack }) {
         );
     }
 
-    // Se estiver cadastrando um pet, renderiza o formulário de pet
     if (petRegisteringId) {
         const clienteSelecionado = clientes.find(c => c.id === petRegisteringId);
         if (!clienteSelecionado) {
@@ -247,20 +248,22 @@ function VisualizarClientes({ onBack }) {
                         Visualize, edite e gerencie todos os clientes cadastrados no sistema.
                     </p>
                     <div className="hero-buttons">
-                        <button 
-                            className="btn btn-outline-white hover-lift" 
-                            onClick={() => {
-                                setShowForm(!showForm);
-                                if (!showForm) {
-                                    setEditingId(null);
-                                    setFormData({ nome: '', email: '', telefone: '', cpf: '', endereco: '' });
-                                    setFormError('');
-                                    setFormSuccess('');
-                                }
-                            }}
-                        >
-                            {showForm ? '❌ Cancelar' : '➕ Cadastrar Novo Cliente'}
-                        </button>
+                        {isGestor && (
+                            <button
+                                className="btn btn-outline-white hover-lift"
+                                onClick={() => {
+                                    setShowForm(!showForm);
+                                    if (!showForm) {
+                                        setEditingId(null);
+                                        setFormData({ nome: '', email: '', telefone: '', cpf: '', endereco: '' });
+                                        setFormError('');
+                                        setFormSuccess('');
+                                    }
+                                }}
+                            >
+                                {showForm ? '❌ Cancelar' : '➕ Cadastrar Novo Cliente'}
+                            </button>
+                        )}
                         <button className="btn btn-outline-white hover-lift" onClick={onBack}>
                             ← Voltar
                         </button>
@@ -268,7 +271,7 @@ function VisualizarClientes({ onBack }) {
                 </div>
             </section>
 
-            {showForm && (
+            {showForm && isGestor && (
                 <section className="section bg-light">
                     <div className="container">
                         <div className="login-card" style={{ maxWidth: '800px', margin: '0 auto' }}>
@@ -344,13 +347,13 @@ function VisualizarClientes({ onBack }) {
                                     </div>
                                 )}
 
-                                <button 
-                                    type="submit" 
+                                <button
+                                    type="submit"
                                     className="btn-submit"
                                     disabled={formLoading}
                                 >
-                                    {formLoading 
-                                        ? (editingId ? 'Atualizando...' : 'Cadastrando...') 
+                                    {formLoading
+                                        ? (editingId ? 'Atualizando...' : 'Cadastrando...')
                                         : (editingId ? 'Atualizar Cliente' : 'Cadastrar Cliente')
                                     }
                                 </button>
@@ -369,7 +372,6 @@ function VisualizarClientes({ onBack }) {
                         </p>
                     </div>
 
-                    {/* Tabela modernizada */}
                     <div style={{
                         background: 'white',
                         borderRadius: '16px',
@@ -394,43 +396,43 @@ function VisualizarClientes({ onBack }) {
                                 </thead>
                                 <tbody>
                                     {clientes.map((cliente, index) => (
-                                        <tr 
-                                            key={cliente.id} 
-                                            style={{ 
+                                        <tr
+                                            key={cliente.id}
+                                            style={{
                                                 borderBottom: index === clientes.length - 1 ? 'none' : '1px solid #ecf0f1',
                                                 transition: 'background 0.3s ease'
                                             }}
                                             onMouseEnter={(e) => e.currentTarget.style.background = '#f8f9fa'}
                                             onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
                                         >
-                                            <td style={{ 
-                                                padding: '1rem', 
-                                                fontWeight: '600', 
-                                                color: '#2c3e50' 
+                                            <td style={{
+                                                padding: '1rem',
+                                                fontWeight: '600',
+                                                color: '#2c3e50'
                                             }}>
                                                 {cliente.nome}
                                             </td>
-                                            <td style={{ 
-                                                padding: '1rem', 
-                                                color: '#7f8c8d' 
+                                            <td style={{
+                                                padding: '1rem',
+                                                color: '#7f8c8d'
                                             }}>
                                                 {cliente.email}
                                             </td>
-                                            <td style={{ 
-                                                padding: '1rem', 
-                                                color: '#7f8c8d' 
+                                            <td style={{
+                                                padding: '1rem',
+                                                color: '#7f8c8d'
                                             }}>
                                                 {cliente.telefone || '—'}
                                             </td>
-                                            <td style={{ 
-                                                padding: '1rem', 
-                                                color: '#7f8c8d' 
+                                            <td style={{
+                                                padding: '1rem',
+                                                color: '#7f8c8d'
                                             }}>
                                                 {cliente.endereco || '—'}
                                             </td>
-                                            <td style={{ 
-                                                padding: '1rem', 
-                                                color: '#7f8c8d' 
+                                            <td style={{
+                                                padding: '1rem',
+                                                color: '#7f8c8d'
                                             }}>
                                                 {cliente.cpf || '—'}
                                             </td>
@@ -448,10 +450,10 @@ function VisualizarClientes({ onBack }) {
                                             </td>
                                             <td style={{ padding: '1rem', textAlign: 'center' }}>
                                                 <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center' }}>
-                                                    {/* Botão Cadastrar Pet (AC1) - Agora com ícone de pata */}
+                                                    {/* Botão Cadastrar Pet - SEMPRE VISÍVEL para todos os funcionários */}
                                                     <button
                                                         style={{
-                                                            background: 'linear-gradient(135deg, #2ecc71 0%, #27ae60 100%)', // Verde
+                                                            background: 'linear-gradient(135deg, #2ecc71 0%, #27ae60 100%)',
                                                             color: 'white',
                                                             border: 'none',
                                                             padding: '0.5rem',
@@ -479,75 +481,81 @@ function VisualizarClientes({ onBack }) {
                                                     >
                                                         <IconPaw />
                                                     </button>
-                                                    <button
-                                                        style={{
-                                                            background: 'linear-gradient(135deg, #3498db 0%, #2980b9 100%)',
-                                                            color: 'white',
-                                                            border: 'none',
-                                                            padding: '0.5rem',
-                                                            borderRadius: '6px',
-                                                            cursor: 'pointer',
-                                                            transition: 'all 0.3s ease',
-                                                            display: 'flex',
-                                                            alignItems: 'center',
-                                                            justifyContent: 'center',
-                                                            width: '36px',
-                                                            height: '36px'
-                                                        }}
-                                                        onMouseEnter={(e) => {
-                                                            e.target.style.background = 'linear-gradient(135deg, #2980b9 0%, #1f5f8b 100%)';
-                                                            e.target.style.transform = 'translateY(-1px)';
-                                                            e.target.style.boxShadow = '0 4px 12px rgba(52, 152, 219, 0.3)';
-                                                        }}
-                                                        onMouseLeave={(e) => {
-                                                            e.target.style.background = 'linear-gradient(135deg, #3498db 0%, #2980b9 100%)';
-                                                            e.target.style.transform = 'translateY(0)';
-                                                            e.target.style.boxShadow = 'none';
-                                                        }}
-                                                        onClick={() => handleEditClick(cliente)}
-                                                        title="Editar cliente"
-                                                    >
-                                                        <IconEdit />
-                                                    </button>
-                                                    <button 
-                                                        style={{
-                                                            background: cliente.is_ativo 
-                                                                ? 'linear-gradient(135deg, #e74c3c 0%, #c0392b 100%)' 
-                                                                : 'linear-gradient(135deg, #27ae60 0%, #229954 100%)',
-                                                            color: 'white',
-                                                            border: 'none',
-                                                            padding: '0.5rem',
-                                                            borderRadius: '6px',
-                                                            cursor: 'pointer',
-                                                            transition: 'all 0.3s ease',
-                                                            display: 'flex',
-                                                            alignItems: 'center',
-                                                            justifyContent: 'center',
-                                                            width: '36px',
-                                                            height: '36px'
-                                                        }}
-                                                        onMouseEnter={(e) => {
-                                                            if (cliente.is_ativo) {
-                                                                e.target.style.background = 'linear-gradient(135deg, #c0392b 0%, #922b21 100%)';
-                                                                e.target.style.boxShadow = '0 4px 12px rgba(231, 76, 60, 0.3)';
-                                                            } else {
-                                                                e.target.style.background = 'linear-gradient(135deg, #229954 0%, #1e7e34 100%)';
-                                                                e.target.style.boxShadow = '0 4px 12px rgba(39, 174, 96, 0.3)';
-                                                            }
-                                                            e.target.style.transform = 'translateY(-1px)';
-                                                        }}
-                                                        onMouseLeave={(e) => {
-                                                            e.target.style.background = cliente.is_ativo 
-                                                                ? 'linear-gradient(135deg, #e74c3c 0%, #c0392b 100%)' 
-                                                                : 'linear-gradient(135deg, #27ae60 0%, #229954 100%)';
-                                                            e.target.style.transform = 'translateY(0)';
-                                                            e.target.style.boxShadow = 'none';
-                                                        }}
-                                                        onClick={() => handleToggleStatus(cliente.id, !cliente.is_ativo)}
-                                                        title={cliente.is_ativo ? 'Desativar cliente' : 'Ativar cliente'}
-                                                    >
-                                                        <IconToggle isActive={cliente.is_ativo} />
-                                                    </button>
+
+                                                    {/* Botões de Editar e Ativar/Desativar - APENAS PARA GESTORES */}
+                                                    {isGestor && (
+                                                        <>
+                                                            <button
+                                                                style={{
+                                                                    background: 'linear-gradient(135deg, #3498db 0%, #2980b9 100%)',
+                                                                    color: 'white',
+                                                                    border: 'none',
+                                                                    padding: '0.5rem',
+                                                                    borderRadius: '6px',
+                                                                    cursor: 'pointer',
+                                                                    transition: 'all 0.3s ease',
+                                                                    display: 'flex',
+                                                                    alignItems: 'center',
+                                                                    justifyContent: 'center',
+                                                                    width: '36px',
+                                                                    height: '36px'
+                                                                }}
+                                                                onMouseEnter={(e) => {
+                                                                    e.target.style.background = 'linear-gradient(135deg, #2980b9 0%, #1f5f8b 100%)';
+                                                                    e.target.style.transform = 'translateY(-1px)';
+                                                                    e.target.style.boxShadow = '0 4px 12px rgba(52, 152, 219, 0.3)';
+                                                                }}
+                                                                onMouseLeave={(e) => {
+                                                                    e.target.style.background = 'linear-gradient(135deg, #3498db 0%, #2980b9 100%)';
+                                                                    e.target.style.transform = 'translateY(0)';
+                                                                    e.target.style.boxShadow = 'none';
+                                                                }}
+                                                                onClick={() => handleEditClick(cliente)}
+                                                                title="Editar cliente"
+                                                            >
+                                                                <IconEdit />
+                                                            </button>
+                                                            <button
+                                                                style={{
+                                                                    background: cliente.is_ativo
+                                                                        ? 'linear-gradient(135deg, #e74c3c 0%, #c0392b 100%)'
+                                                                        : 'linear-gradient(135deg, #27ae60 0%, #229954 100%)',
+                                                                    color: 'white',
+                                                                    border: 'none',
+                                                                    padding: '0.5rem',
+                                                                    borderRadius: '6px',
+                                                                    cursor: 'pointer',
+                                                                    transition: 'all 0.3s ease',
+                                                                    display: 'flex',
+                                                                    alignItems: 'center',
+                                                                    justifyContent: 'center',
+                                                                    width: '36px',
+                                                                    height: '36px'
+                                                                }}
+                                                                onMouseEnter={(e) => {
+                                                                    if (cliente.is_ativo) {
+                                                                        e.target.style.background = 'linear-gradient(135deg, #c0392b 0%, #922b21 100%)';
+                                                                        e.target.style.boxShadow = '0 4px 12px rgba(231, 76, 60, 0.3)';
+                                                                    } else {
+                                                                        e.target.style.background = 'linear-gradient(135deg, #229954 0%, #1e7e34 100%)';
+                                                                        e.target.style.boxShadow = '0 4px 12px rgba(39, 174, 96, 0.3)';
+                                                                    }
+                                                                    e.target.style.transform = 'translateY(-1px)';
+                                                                }}
+                                                                onMouseLeave={(e) => {
+                                                                    e.target.style.background = cliente.is_ativo
+                                                                        ? 'linear-gradient(135deg, #e74c3c 0%, #c0392b 100%)'
+                                                                        : 'linear-gradient(135deg, #27ae60 0%, #229954 100%)';
+                                                                    e.target.style.transform = 'translateY(0)';
+                                                                    e.target.style.boxShadow = 'none';
+                                                                }}
+                                                                onClick={() => handleToggleStatus(cliente.id, !cliente.is_ativo)}
+                                                                title={cliente.is_ativo ? 'Desativar cliente' : 'Ativar cliente'}
+                                                            >
+                                                                <IconToggle isActive={cliente.is_ativo} />
+                                                            </button>
+                                                        </>
+                                                    )}
                                                 </div>
                                             </td>
                                         </tr>

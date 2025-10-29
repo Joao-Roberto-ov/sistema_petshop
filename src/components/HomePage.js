@@ -3,11 +3,12 @@ function HomePage({
     onNavigateToLogin,
     onNavigateToSignup,
     onNavigateToProdutos,
+    onNavigateToServicos,
     isLoggedIn,
     userData,
     onLogout,
     onNavigateToDashboard,
-    onNavigateToAgendamento // <-- Adicionada aqui
+    onNavigateToAgendamento
 }) {
     const handlePlaceholderClick = (feature) => {
         alert(`A funcionalidade "${feature}" será implementada em breve!`);
@@ -115,7 +116,7 @@ function HomePage({
                     <h2>Pronto para cuidar do seu pet?</h2>
                     <p>Explore nossos serviços e descubra como podemos ajudar seu companheiro.</p>
                     <div className="cta-buttons">
-                        <button className="btn btn-outline-white btn-lg hover-lift" onClick={() => handlePlaceholderClick('Conhecer Serviços')}>Conhecer Serviços</button>
+                        <button className="btn btn-outline-white btn-lg hover-lift" onClick={onNavigateToServicos}>Conhecer Serviços</button>
                     </div>
                 </div>
             </section>
