@@ -25,50 +25,10 @@ const IconActivate = () => (
     </svg>
 );
 
-// ID do Cargo "Funcionário" (do backend util/cargos.py)
+// ID do Cargo "Funcionário" (adicionado do arquivo 1)
 const CARGO_FUNCIONARIO_ID = 2;
 
-// Estilos inline para o modal (para simplicidade, mas idealmente seria um CSS separado)
-const modalStyles = {
-    overlay: {
-        position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-        background: 'rgba(0, 0, 0, 0.5)', display: 'flex',
-        alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '1rem'
-    },
-    content: {
-        background: 'white', borderRadius: '16px', padding: '2rem',
-        width: '100%', maxWidth: '800px', maxHeight: '90vh', // Aumentado o maxWidth
-        overflowY: 'auto', boxShadow: '0 20px 60px rgba(0, 0, 0, 0.3)'
-    },
-    header: {
-        display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem',
-        borderBottom: '1px solid #eee', paddingBottom: '1rem'
-    },
-    title: { color: '#2c3e50', margin: 0 },
-    closeButton: {
-        background: 'none', border: 'none', fontSize: '1.5rem', cursor: 'pointer',
-        color: '#7f8c8d', padding: '0.5rem', lineHeight: 1
-    },
-    formGrid: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' },
-    formGroupFull: { gridColumn: '1 / -1' },
-    label: { display: 'block', marginBottom: '0.5rem', fontWeight: '600', color: '#2c3e50' },
-    input: {
-        width: '100%', padding: '0.75rem', border: '2px solid #ecf0f1',
-        borderRadius: '8px', fontSize: '1rem', boxSizing: 'border-box'
-    },
-    select: {
-        width: '100%', padding: '0.75rem', border: '2px solid #ecf0f1',
-        borderRadius: '8px', fontSize: '1rem', background: 'white', boxSizing: 'border-box'
-    },
-    footer: { display: 'flex', gap: '1rem', justifyContent: 'flex-end', marginTop: '2rem' },
-    button: {
-        padding: '0.75rem 1.5rem', borderRadius: '8px', cursor: 'pointer',
-        fontWeight: '600', border: 'none', transition: 'all 0.3s ease'
-    },
-    buttonCancel: { background: '#ecf0f1', color: '#7f8c8d' },
-    buttonSave: { background: 'linear-gradient(135deg, #3498db 0%, #2980b9 100%)', color: 'white' },
-};
-// Estilos para especialidades (adicionados)
+// Estilos para especialidades (adicionados do arquivo 1)
 const especialidadeStyles = {
     container: {
         gridColumn: '1 / -1', // Ocupa a linha inteira
@@ -103,6 +63,7 @@ const especialidadeStyles = {
     }
 };
 
+
 function GerenciarFuncionarios({ onNavigateToHome }) {
 
     const [funcionarios, setFuncionarios] = useState([]);
@@ -113,7 +74,7 @@ function GerenciarFuncionarios({ onNavigateToHome }) {
     const [statusFilter, setStatusFilter] = useState('todos');
     const [cargoFilter, setCargoFilter] = useState('todos');
 
-    // --- NOVO ESTADO (REQ 3) ---
+    // --- NOVO ESTADO (adicionado do arquivo 1) ---
     const [catalogoServicos, setCatalogoServicos] = useState([]);
 
     const [showEditModal, setShowEditModal] = useState(false);
@@ -125,7 +86,7 @@ function GerenciarFuncionarios({ onNavigateToHome }) {
     const [deletingFuncionario, setDeletingFuncionario] = useState(null);
     const [deleteLoading, setDeleteLoading] = useState(false);
 
-    // Modificado para carregar funcionários E serviços
+    // Modificado para carregar funcionários E serviços (lógica do arquivo 1)
     useEffect(() => {
         const carregarDadosIniciais = async () => {
             setLoading(true);
@@ -159,7 +120,8 @@ function GerenciarFuncionarios({ onNavigateToHome }) {
                 console.error('Erro ao carregar dados:', err);
                 if (err.response?.status === 401 || err.message === "Token não encontrado.") {
                     setError('Sessão expirada ou inválida. Faça login novamente.');
-                    // Idealmente, o interceptor do axios faria o logout
+                } else if (err.response?.status === 403) {
+                    setError('Você não tem permissão para visualizar funcionários.');
                 } else {
                     setError('Erro ao carregar dados. Tente recarregar a página.');
                 }
@@ -171,8 +133,14 @@ function GerenciarFuncionarios({ onNavigateToHome }) {
         carregarDadosIniciais();
     }, []); // Executa apenas uma vez
 
+
     const getCargoNome = (cargoId) => {
-        const cargos = { 1: 'Gestor', 2: 'Funcionário', 3: 'Veterinário', 4: 'Atendente' };
+        const cargos = {
+            1: 'Gestor',
+            2: 'Funcionário',
+            3: 'Veterinário',
+            4: 'Atendente'
+        };
         return cargos[cargoId] || 'Cargo Desconhecido';
     };
 
@@ -199,22 +167,27 @@ function GerenciarFuncionarios({ onNavigateToHome }) {
     const formatarTelefone = (telefone) => {
         if (!telefone) return 'Não informado';
         const numeros = telefone.replace(/\D/g, '');
-        if (numeros.length === 11) return numeros.replace(/(\d{2})(\d{5})(\d{4})/, '($1) $2-$3');
-        if (numeros.length === 10) return numeros.replace(/(\d{2})(\d{4})(\d{4})/, '($1) $2-$3');
+        if (numeros.length === 11) {
+            return numeros.replace(/(\d{2})(\d{5})(\d{4})/, '($1) $2-$3');
+        } else if (numeros.length === 10) {
+            return numeros.replace(/(\d{2})(\d{4})(\d{4})/, '($1) $2-$3');
+        }
         return telefone;
     };
+
     const formatarCPF = (cpf) => {
         if (!cpf) return 'Não informado';
         const numeros = cpf.replace(/\D/g, '');
         return numeros.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
     };
+
     const formatarData = (dataString) => {
         if (!dataString) return 'Não informado';
         const data = new Date(dataString);
         return data.toLocaleDateString('pt-BR');
     };
 
-    // --- MODIFICADO (REQ 3) ---
+    // --- MODIFICADO (lógica do arquivo 1) ---
     const abrirModalEdicao = (funcionario) => {
         setEditingFuncionario(funcionario);
         setEditFormData({
@@ -234,7 +207,7 @@ function GerenciarFuncionarios({ onNavigateToHome }) {
         setShowEditModal(true);
     };
 
-    // --- NOVOS HANDLERS PARA O MODAL (REQ 3) ---
+    // --- NOVOS HANDLERS PARA O MODAL (adicionados do arquivo 1) ---
     const handleModalEspecialidadeChange = (servicoId) => {
         setEditFormData(prev => {
             const especialidades = prev.especialidades || [];
@@ -255,7 +228,10 @@ function GerenciarFuncionarios({ onNavigateToHome }) {
     };
     // --- FIM DOS NOVOS HANDLERS ---
 
-    // --- MODIFICADO (REQ 3) ---
+
+    // --- MODIFICADO (lógica do arquivo 1) ---
+    // Substituído para incluir a lógica de 'especialidades' e
+    // atualizar o estado a partir da RESPOSTA do servidor.
     const salvarEdicao = async () => {
         if (!editingFuncionario) return;
 
@@ -275,17 +251,14 @@ function GerenciarFuncionarios({ onNavigateToHome }) {
                 horario_fim: editFormData.horario_fim,
                 dias_trabalho: editFormData.dias_trabalho?.trim(),
                 is_ativo: editFormData.is_ativo,
-                // Adiciona o campo de especialidades (Req 3)
-                // O backend (service) vai lidar se a lista deve ser usada ou limpa
+                // Adiciona o campo de especialidades
                 especialidades: editFormData.especialidades
             };
 
             // Envia apenas os campos que foram realmente modificados ou são necessários
             const payload = {};
             for (const key in dadosAtualizacao) {
-                // Compara com o original, exceto especialidades que sempre enviamos
                 if (key === 'especialidades' || dadosAtualizacao[key] !== editingFuncionario[key]) {
-                     // Caso especial: cargo_id é int, precisa converter
                      if (key === 'cargo_id') {
                          payload[key] = parseInt(dadosAtualizacao[key]);
                      } else {
@@ -293,7 +266,6 @@ function GerenciarFuncionarios({ onNavigateToHome }) {
                      }
                 }
             }
-            // Se o cargo foi alterado, sempre envia especialidades
             if(payload.cargo_id && payload.cargo_id !== editingFuncionario.cargo_id) {
                 payload.especialidades = dadosAtualizacao.especialidades;
             }
@@ -328,11 +300,21 @@ function GerenciarFuncionarios({ onNavigateToHome }) {
 
         } catch (err) {
             console.error('Erro ao atualizar funcionário:', err);
-            alert('Erro ao atualizar funcionário: ' + (err.response?.data?.detail || err.message));
+            // Mantendo as mensagens de erro mais detalhadas do arquivo 2
+            if (err.response?.data?.detail === 'Erro de integridade dos dados.') {
+                alert('❌ Erro: Dados em conflito com o sistema.\n\nSolução: Recarregue a página e verifique os dados.');
+            } else if (err.response?.data?.detail?.includes('email')) {
+                alert('❌ Erro: Este email já está cadastrado para outro funcionário.');
+            } else if (err.response?.data?.detail?.includes('CPF')) {
+                alert('❌ Erro: Este CPF já está cadastrado para outro funcionário.');
+            } else {
+                alert('Erro ao atualizar funcionário: ' + (err.response?.data?.detail || err.message));
+            }
         } finally {
             setEditLoading(false);
         }
     };
+
 
     // Funções de Desativar/Ativar (permanecem iguais)
     const abrirModalExclusao = (funcionario) => {
@@ -344,17 +326,27 @@ function GerenciarFuncionarios({ onNavigateToHome }) {
         try {
             setDeleteLoading(true);
             const token = localStorage.getItem('token');
+
             await axios.put(`/funcionario/${deletingFuncionario.id}/desativar`, {}, {
-                headers: { 'Authorization': `Bearer ${token}` }
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
             });
-            // Atualiza o estado local
-            setFuncionarios(funcionarios.map(f =>
-                f.id === deletingFuncionario.id ? { ...f, is_ativo: false } : f
-            ));
+
+            if (Array.isArray(funcionarios)) {
+                setFuncionarios(funcionarios.map(f =>
+                    f.id === deletingFuncionario.id
+                        ? { ...f, is_ativo: false }
+                        : f
+                ));
+            }
+
             setShowDeleteModal(false);
             setDeletingFuncionario(null);
             alert('Funcionário desativado com sucesso!');
+
         } catch (err) {
+            console.error('Erro ao excluir funcionário:', err);
             alert('Erro ao desativar funcionário: ' + (err.response?.data?.detail || err.message));
         } finally {
             setDeleteLoading(false);
@@ -362,22 +354,34 @@ function GerenciarFuncionarios({ onNavigateToHome }) {
     };
 
     const ativarFuncionario = async (funcionario) => {
-        if (!window.confirm(`Tem certeza que deseja ativar o funcionário ${funcionario.nome}?`)) return;
+        if (!window.confirm(`Tem certeza que deseja ativar o funcionário ${funcionario.nome}?`)) {
+            return;
+        }
+
         try {
             const token = localStorage.getItem('token');
+
             await axios.put(`/funcionario/${funcionario.id}/ativar`, {}, {
-                headers: { 'Authorization': `Bearer ${token}` }
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
             });
-            // Atualiza o estado local
-            setFuncionarios(funcionarios.map(f =>
-                f.id === funcionario.id ? { ...f, is_ativo: true } : f
-            ));
+
+            if (Array.isArray(funcionarios)) {
+                setFuncionarios(funcionarios.map(f =>
+                    f.id === funcionario.id
+                        ? { ...f, is_ativo: true }
+                        : f
+                ));
+            }
+
             alert('Funcionário ativado com sucesso!');
+
         } catch (err) {
+            console.error('Erro ao ativar funcionário:', err);
             alert('Erro ao ativar funcionário: ' + (err.response?.data?.detail || err.message));
         }
     };
-
 
     if (loading) {
         return (
@@ -412,16 +416,17 @@ function GerenciarFuncionarios({ onNavigateToHome }) {
             </section>
 
             {error && (
-                 <section className="section">
+                <section className="section">
                     <div className="container">
                         <div className="error-message" style={{ textAlign: 'center' }}>
                             {error}
+                            {/* O botão "Tentar Novamente" foi removido pois a lógica de recarga agora está no useEffect principal */}
                         </div>
                     </div>
                 </section>
             )}
 
-            {/* Filtros */}
+            {/* Filtros e Estatísticas */}
             <section className="section bg-light">
                 <div className="container">
                     <div style={{
@@ -434,35 +439,66 @@ function GerenciarFuncionarios({ onNavigateToHome }) {
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr auto auto', gap: '1rem', alignItems: 'end' }}>
                             {/* Busca */}
                             <div>
-                                <label style={modalStyles.label}>Buscar Funcionários</label>
+                                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '600', color: '#2c3e50' }}>
+                                    Buscar Funcionários
+                                </label>
                                 <input
                                     type="text"
                                     placeholder="Buscar por nome, email ou cargo..."
                                     value={searchTerm}
                                     onChange={(e) => setSearchTerm(e.target.value)}
-                                    style={modalStyles.input}
+                                    style={{
+                                        width: '100%',
+                                        padding: '0.75rem 1rem',
+                                        border: '2px solid #ecf0f1',
+                                        borderRadius: '8px',
+                                        fontSize: '1rem',
+                                        transition: 'all 0.3s ease'
+                                    }}
+                                    onFocus={(e) => e.target.style.borderColor = '#3498db'}
+                                    onBlur={(e) => e.target.style.borderColor = '#ecf0f1'}
                                 />
                             </div>
+
                             {/* Filtro Status */}
                             <div>
-                                <label style={modalStyles.label}>Status</label>
+                                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '600', color: '#2c3e50' }}>
+                                    Status
+                                </label>
                                 <select
                                     value={statusFilter}
                                     onChange={(e) => setStatusFilter(e.target.value)}
-                                    style={{...modalStyles.select, minWidth: '150px'}}
+                                    style={{
+                                        padding: '0.75rem 1rem',
+                                        border: '2px solid #ecf0f1',
+                                        borderRadius: '8px',
+                                        fontSize: '1rem',
+                                        background: 'white',
+                                        minWidth: '150px'
+                                    }}
                                 >
                                     <option value="todos">Todos</option>
                                     <option value="ativo">Ativos</option>
                                     <option value="inativo">Inativos</option>
                                 </select>
                             </div>
+
                             {/* Filtro Cargo */}
                             <div>
-                                <label style={modalStyles.label}>Cargo</label>
+                                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '600', color: '#2c3e50' }}>
+                                    Cargo
+                                </label>
                                 <select
                                     value={cargoFilter}
                                     onChange={(e) => setCargoFilter(e.target.value)}
-                                    style={{...modalStyles.select, minWidth: '150px'}}
+                                    style={{
+                                        padding: '0.75rem 1rem',
+                                        border: '2px solid #ecf0f1',
+                                        borderRadius: '8px',
+                                        fontSize: '1rem',
+                                        background: 'white',
+                                        minWidth: '150px'
+                                    }}
                                 >
                                     <option value="todos">Todos os cargos</option>
                                     {cargosUnicos.map(cargo => (
@@ -471,68 +507,270 @@ function GerenciarFuncionarios({ onNavigateToHome }) {
                                 </select>
                             </div>
                         </div>
+
+                        {/* Estatísticas */}
+                        <div style={{
+                            display: 'grid',
+                            gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+                            gap: '1rem',
+                            marginTop: '2rem'
+                        }}>
+                            <div style={{
+                                background: 'linear-gradient(135deg, #3498db 0%, #2980b9 100%)',
+                                color: 'white',
+                                padding: '1.5rem',
+                                borderRadius: '12px',
+                                textAlign: 'center'
+                            }}>
+                                <div style={{ fontSize: '2rem', fontWeight: 'bold' }}>
+                                    {Array.isArray(funcionarios) ? funcionarios.length : 0}
+                                </div>
+                                <div style={{ fontSize: '0.9rem', opacity: 0.9 }}>Total</div>
+                            </div>
+                            <div style={{
+                                background: 'linear-gradient(135deg, #27ae60 0%, #219a52 100%)',
+                                color: 'white',
+                                padding: '1.5rem',
+                                borderRadius: '12px',
+                                textAlign: 'center'
+                            }}>
+                                <div style={{ fontSize: '2rem', fontWeight: 'bold' }}>
+                                    {Array.isArray(funcionarios) ? funcionarios.filter(f => f.is_ativo).length : 0}
+                                </div>
+                                <div style={{ fontSize: '0.9rem', opacity: 0.9 }}>Ativos</div>
+                            </div>
+                            <div style={{
+                                background: 'linear-gradient(135deg, #e74c3c 0%, #c0392b 100%)',
+                                color: 'white',
+                                padding: '1.5rem',
+                                borderRadius: '12px',
+                                textAlign: 'center'
+                            }}>
+                                <div style={{ fontSize: '2rem', fontWeight: 'bold' }}>
+                                    {Array.isArray(funcionarios) ? funcionarios.filter(f => !f.is_ativo).length : 0}
+                                </div>
+                                <div style={{ fontSize: '0.9rem', opacity: 0.9 }}>Inativos</div>
+                            </div>
+                            <div style={{
+                                background: 'linear-gradient(135deg, #9b59b6 0%, #8e44ad 100%)',
+                                color: 'white',
+                                padding: '1.5rem',
+                                borderRadius: '12px',
+                                textAlign: 'center'
+                            }}>
+                                <div style={{ fontSize: '2rem', fontWeight: 'bold' }}>
+                                    {funcionariosFiltrados.length}
+                                </div>
+                                <div style={{ fontSize: '0.9rem', opacity: 0.9 }}>Filtrados</div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </section>
 
-            {/* Lista de Funcionários (Tabela) */}
+            {/* Lista de Funcionários */}
             <section className="section">
                 <div className="container">
+                    <div className="text-center" style={{marginBottom: '2rem'}}>
+                        <h2 className="section-title">Funcionários Cadastrados</h2>
+                        <p className="section-description">
+                            Total de {funcionariosFiltrados.length} funcionário{funcionariosFiltrados.length !== 1 ? 's' : ''} encontrado{funcionariosFiltrados.length !== 1 ? 's' : ''}
+                        </p>
+                    </div>
+
                     {funcionariosFiltrados.length === 0 ? (
-                        <div style={{ background: 'white', borderRadius: '16px', padding: '3rem', textAlign: 'center', boxShadow: '0 4px 20px rgba(0, 0, 0, 0.1)' }}>
-                            <h3>Nenhum funcionário encontrado</h3>
+                        <div style={{
+                            background: 'white',
+                            borderRadius: '16px',
+                            padding: '3rem',
+                            textAlign: 'center',
+                            boxShadow: '0 4px 20px rgba(0, 0, 0, 0.1)'
+                        }}>
+                            <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>📋</div>
+                            <h3 style={{ color: '#2c3e50', marginBottom: '0.5rem' }}>Nenhum funcionário encontrado</h3>
+                            <p style={{ color: '#7f8c8d' }}>Tente ajustar os filtros ou cadastre um novo funcionário.</p>
                         </div>
                     ) : (
-                        <div style={{ background: 'white', borderRadius: '16px', boxShadow: '0 4px 20px rgba(0, 0, 0, 0.1)', overflow: 'hidden' }}>
+                        <div style={{
+                            background: 'white',
+                            borderRadius: '16px',
+                            boxShadow: '0 4px 20px rgba(0, 0, 0, 0.1)',
+                            overflow: 'hidden'
+                        }}>
                             <div style={{ overflowX: 'auto' }}>
                                 <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                                    <thead style={{ background: 'linear-gradient(135deg, #4a9b8e 0%, #3d8b7e 100%)', color: 'white' }}>
+                                    <thead style={{
+                                        background: 'linear-gradient(135deg, #4a9b8e 0%, #3d8b7e 100%)',
+                                        color: 'white'
+                                    }}>
                                         <tr>
-                                            <th style={{ padding: '1rem', textAlign: 'left' }}>Funcionário</th>
-                                            <th style={{ padding: '1rem', textAlign: 'left' }}>Cargo</th>
-                                            <th style={{ padding: '1rem', textAlign: 'left' }}>Email</th>
-                                            <th style={{ padding: '1rem', textAlign: 'left' }}>Telefone</th>
-                                            <th style={{ padding: '1rem', textAlign: 'left' }}>Status</th>
-                                            <th style={{ padding: '1rem', textAlign: 'center' }}>Ações</th>
+                                            <th style={{ padding: '1rem', textAlign: 'left', fontWeight: '600', fontSize: '1rem' }}>Funcionário</th>
+                                            <th style={{ padding: '1rem', textAlign: 'left', fontWeight: '600', fontSize: '1rem' }}>Cargo</th>
+                                            <th style={{ padding: '1rem', textAlign: 'left', fontWeight: '600', fontSize: '1rem' }}>Email</th>
+                                            <th style={{ padding: '1rem', textAlign: 'left', fontWeight: '600', fontSize: '1rem' }}>Telefone</th>
+                                            <th style={{ padding: '1rem', textAlign: 'left', fontWeight: '600', fontSize: '1rem' }}>Status</th>
+                                            <th style={{ padding: '1rem', textAlign: 'center', fontWeight: '600', fontSize: '1rem' }}>Ações</th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         {funcionariosFiltrados.map((funcionario, index) => (
-                                            <tr key={funcionario.id} style={{ borderBottom: index === funcionariosFiltrados.length - 1 ? 'none' : '1px solid #ecf0f1' }}>
+                                            <tr
+                                                key={funcionario.id}
+                                                style={{
+                                                    borderBottom: index === funcionariosFiltrados.length - 1 ? 'none' : '1px solid #ecf0f1',
+                                                    transition: 'background 0.3s ease'
+                                                }}
+                                                onMouseEnter={(e) => e.currentTarget.style.background = '#f8f9fa'}
+                                                onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                                            >
                                                 <td style={{ padding: '1rem' }}>
                                                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                                                        <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: '#3498db', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: 'bold' }}>
+                                                        <div style={{
+                                                            width: '40px',
+                                                            height: '40px',
+                                                            borderRadius: '50%',
+                                                            background: 'linear-gradient(135deg, #3498db 0%, #2980b9 100%)',
+                                                            display: 'flex',
+                                                            alignItems: 'center',
+                                                            justifyContent: 'center',
+                                                            color: 'white',
+                                                            fontWeight: 'bold',
+                                                            fontSize: '1rem'
+                                                        }}>
                                                             {funcionario.nome.charAt(0).toUpperCase()}
                                                         </div>
                                                         <div>
-                                                            <div style={{ fontWeight: '600' }}>{funcionario.nome}</div>
-                                                            <div style={{ fontSize: '0.875rem', color: '#7f8c8d' }}>Cadastro: {formatarData(funcionario.data_cadastro)}</div>
+                                                            <div style={{ fontWeight: '600', color: '#2c3e50' }}>
+                                                                {funcionario.nome}
+                                                            </div>
+                                                            <div style={{ fontSize: '0.875rem', color: '#7f8c8d' }}>
+                                                                Cadastro: {formatarData(funcionario.data_cadastro)}
+                                                            </div>
                                                         </div>
                                                     </div>
                                                 </td>
                                                 <td style={{ padding: '1rem' }}>
-                                                    <span style={{ background: '#e3f2fd', color: '#1565c0', padding: '0.25rem 0.75rem', borderRadius: '20px', fontSize: '0.875rem' }}>
+                                                    <span style={{
+                                                        background: '#e3f2fd',
+                                                        color: '#1565c0',
+                                                        padding: '0.25rem 0.75rem',
+                                                        borderRadius: '20px',
+                                                        fontSize: '0.875rem',
+                                                        fontWeight: '500'
+                                                    }}>
                                                         {funcionario.cargo_funcao}
                                                     </span>
                                                 </td>
-                                                <td style={{ padding: '1rem', color: '#7f8c8d' }}>{funcionario.email}</td>
-                                                <td style={{ padding: '1rem', color: '#7f8c8d' }}>{formatarTelefone(funcionario.telefone)}</td>
+                                                <td style={{ padding: '1rem', color: '#7f8c8d' }}>
+                                                    {funcionario.email}
+                                                </td>
+                                                <td style={{ padding: '1rem', color: '#7f8c8d' }}>
+                                                    {formatarTelefone(funcionario.telefone)}
+                                                </td>
                                                 <td style={{ padding: '1rem' }}>
-                                                    <span style={{ background: funcionario.is_ativo ? '#e8f5e8' : '#ffeaea', color: funcionario.is_ativo ? '#27ae60' : '#e74c3c', padding: '0.25rem 0.75rem', borderRadius: '20px', fontSize: '0.875rem' }}>
+                                                    <span style={{
+                                                        background: funcionario.is_ativo ? '#e8f5e8' : '#ffeaea',
+                                                        color: funcionario.is_ativo ? '#27ae60' : '#e74c3c',
+                                                        padding: '0.25rem 0.75rem',
+                                                        borderRadius: '20px',
+                                                        fontSize: '0.875rem',
+                                                        fontWeight: '500'
+                                                    }}>
                                                         {funcionario.is_ativo ? 'Ativo' : 'Inativo'}
                                                     </span>
                                                 </td>
                                                 <td style={{ padding: '1rem', textAlign: 'center' }}>
                                                     <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center' }}>
-                                                        <button style={{ background: '#3498db', color: 'white', border: 'none', padding: '0.5rem', borderRadius: '6px', cursor: 'pointer', width: '36px', height: '36px', display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={() => abrirModalEdicao(funcionario)} title="Editar">
+                                                        <button
+                                                            style={{
+                                                                background: 'linear-gradient(135deg, #3498db 0%, #2980b9 100%)',
+                                                                color: 'white',
+                                                                border: 'none',
+                                                                padding: '0.5rem',
+                                                                borderRadius: '6px',
+                                                                cursor: 'pointer',
+                                                                transition: 'all 0.3s ease',
+                                                                display: 'flex',
+                                                                alignItems: 'center',
+                                                                justifyContent: 'center',
+                                                                width: '36px',
+                                                                height: '36px'
+                                                            }}
+                                                            onMouseEnter={(e) => {
+                                                                e.target.style.background = 'linear-gradient(135deg, #2980b9 0%, #1f5f8b 100%)';
+                                                                e.target.style.transform = 'translateY(-1px)';
+                                                                e.target.style.boxShadow = '0 4px 12px rgba(52, 152, 219, 0.3)';
+                                                            }}
+                                                            onMouseLeave={(e) => {
+                                                                e.target.style.background = 'linear-gradient(135deg, #3498db 0%, #2980b9 100%)';
+                                                                e.target.style.transform = 'translateY(0)';
+                                                                e.target.style.boxShadow = 'none';
+                                                            }}
+                                                            onClick={() => abrirModalEdicao(funcionario)}
+                                                            title="Editar funcionário"
+                                                        >
                                                             <IconEdit />
                                                         </button>
                                                         {funcionario.is_ativo ? (
-                                                            <button style={{ background: '#e74c3c', color: 'white', border: 'none', padding: '0.5rem', borderRadius: '6px', cursor: 'pointer', width: '36px', height: '36px', display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={() => abrirModalExclusao(funcionario)} title="Desativar">
+                                                            <button
+                                                                style={{
+                                                                    background: 'linear-gradient(135deg, #e74c3c 0%, #c0392b 100%)',
+                                                                    color: 'white',
+                                                                    border: 'none',
+                                                                    padding: '0.5rem',
+                                                                    borderRadius: '6px',
+                                                                    cursor: 'pointer',
+                                                                    transition: 'all 0.3s ease',
+                                                                    display: 'flex',
+                                                                    alignItems: 'center',
+                                                                    justifyContent: 'center',
+                                                                    width: '36px',
+                                                                    height: '36px'
+                                                                }}
+                                                                onMouseEnter={(e) => {
+                                                                    e.target.style.background = 'linear-gradient(135deg, #c0392b 0%, #922b21 100%)';
+                                                                    e.target.style.transform = 'translateY(-1px)';
+                                                                    e.target.style.boxShadow = '0 4px 12px rgba(231, 76, 60, 0.3)';
+                                                                }}
+                                                                onMouseLeave={(e) => {
+                                                                    e.target.style.background = 'linear-gradient(135deg, #e74c3c 0%, #c0392b 100%)';
+                                                                    e.target.style.transform = 'translateY(0)';
+                                                                    e.target.style.boxShadow = 'none';
+                                                                }}
+                                                                onClick={() => abrirModalExclusao(funcionario)}
+                                                                title="Desativar funcionário"
+                                                            >
                                                                 <IconTrash />
                                                             </button>
                                                         ) : (
-                                                            <button style={{ background: '#27ae60', color: 'white', border: 'none', padding: '0.5rem', borderRadius: '6px', cursor: 'pointer', width: '36px', height: '36px', display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={() => ativarFuncionario(funcionario)} title="Ativar">
+                                                            <button
+                                                                style={{
+                                                                    background: 'linear-gradient(135deg, #27ae60 0%, #219a52 100%)',
+                                                                    color: 'white',
+                                                                    border: 'none',
+                                                                    padding: '0.5rem',
+                                                                    borderRadius: '6px',
+                                                                    cursor: 'pointer',
+                                                                    transition: 'all 0.3s ease',
+                                                                    display: 'flex',
+                                                                    alignItems: 'center',
+                                                                    justifyContent: 'center',
+                                                                    width: '36px',
+                                                                    height: '36px'
+                                                                }}
+                                                                onMouseEnter={(e) => {
+                                                                    e.target.style.background = 'linear-gradient(135deg, #219a52 0%, #1a7a42 100%)';
+                                                                    e.target.style.transform = 'translateY(-1px)';
+                                                                    e.target.style.boxShadow = '0 4px 12px rgba(39, 174, 96, 0.3)';
+                                                                }}
+                                                                onMouseLeave={(e) => {
+                                                                    e.target.style.background = 'linear-gradient(135deg, #27ae60 0%, #219a52 100%)';
+                                                                    e.target.style.transform = 'translateY(0)';
+                                                                    e.target.style.boxShadow = 'none';
+                                                                }}
+                                                                onClick={() => ativarFuncionario(funcionario)}
+                                                                title="Ativar funcionário"
+                                                            >
                                                                 <IconActivate />
                                                             </button>
                                                         )}
@@ -548,64 +786,223 @@ function GerenciarFuncionarios({ onNavigateToHome }) {
                 </div>
             </section>
 
-            {/* Modal de Edição (MODIFICADO com Req 3) */}
-            {showEditModal && editingFuncionario && (
-                <div style={modalStyles.overlay}>
-                    <div style={modalStyles.content}>
-                        <div style={modalStyles.header}>
-                            <h2 style={modalStyles.title}>✏️ Editar Funcionário</h2>
-                            <button onClick={() => setShowEditModal(false)} style={modalStyles.closeButton}>✕</button>
+            {/* Modal de Edição (MODIFICADO COM A LÓGICA DO ARQUIVO 1) */}
+            {showEditModal && (
+                <div style={{
+                    position: 'fixed',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    background: 'rgba(0, 0, 0, 0.5)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    zIndex: 1000,
+                    padding: '1rem'
+                }}>
+                    <div style={{
+                        background: 'white',
+                        borderRadius: '16px',
+                        padding: '2rem',
+                        width: '100%',
+                        maxWidth: '800px',
+                        maxHeight: '90vh',
+                        overflowY: 'auto',
+                        boxShadow: '0 20px 60px rgba(0, 0, 0, 0.3)'
+                    }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+                            <h2 style={{ color: '#2c3e50', margin: 0 }}>✏️ Editar Funcionário</h2>
+                            <button
+                                onClick={() => setShowEditModal(false)}
+                                style={{
+                                    background: 'none',
+                                    border: 'none',
+                                    fontSize: '1.5rem',
+                                    cursor: 'pointer',
+                                    color: '#7f8c8d',
+                                    padding: '0.5rem'
+                                }}
+                            >
+                                ✕
+                            </button>
                         </div>
 
-                        <div style={modalStyles.formGrid}>
-                            {/* Campos do formulário: Nome, Cargo, Email, etc. */}
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                            {/* Campos do formulário... */}
                             <div>
-                                <label style={modalStyles.label}>Nome *</label>
-                                <input type="text" value={editFormData.nome} onChange={(e) => setEditFormData({...editFormData, nome: e.target.value})} style={modalStyles.input} />
+                                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '600', color: '#2c3e50' }}>
+                                    Nome Completo *
+                                </label>
+                                <input
+                                    type="text"
+                                    value={editFormData.nome}
+                                    onChange={(e) => setEditFormData({...editFormData, nome: e.target.value})}
+                                    style={{
+                                        width: '100%',
+                                        padding: '0.75rem',
+                                        border: '2px solid #ecf0f1',
+                                        borderRadius: '8px',
+                                        fontSize: '1rem'
+                                    }}
+                                />
                             </div>
+
                             <div>
-                                <label style={modalStyles.label}>Cargo *</label>
-                                <select value={editFormData.cargo_id} onChange={(e) => setEditFormData({...editFormData, cargo_id: parseInt(e.target.value) || ''})} style={modalStyles.select}>
-                                    <option value="">Selecione</option>
+                                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '600', color: '#2c3e50' }}>
+                                    Cargo *
+                                </label>
+                                <select
+                                    value={editFormData.cargo_id}
+                                    onChange={(e) => setEditFormData({...editFormData, cargo_id: parseInt(e.target.value)})}
+                                    style={{
+                                        width: '100%',
+                                        padding: '0.75rem',
+                                        border: '2px solid #ecf0f1',
+                                        borderRadius: '8px',
+                                        fontSize: '1rem',
+                                        background: 'white'
+                                    }}
+                                >
+                                    <option value="">Selecione um cargo</option>
                                     <option value={1}>Gestor</option>
                                     <option value={2}>Funcionário</option>
                                     <option value={3}>Veterinário</option>
                                     <option value={4}>Atendente</option>
                                 </select>
                             </div>
+
                             <div>
-                                <label style={modalStyles.label}>Email *</label>
-                                <input type="email" value={editFormData.email} onChange={(e) => setEditFormData({...editFormData, email: e.target.value})} style={modalStyles.input} />
-                            </div>
-                            <div>
-                                <label style={modalStyles.label}>Telefone *</label>
-                                <input type="text" value={editFormData.telefone} onChange={(e) => setEditFormData({...editFormData, telefone: e.target.value})} style={modalStyles.input} />
-                            </div>
-                            <div>
-                                <label style={modalStyles.label}>CPF</label>
-                                <input type="text" value={editFormData.cpf} onChange={(e) => setEditFormData({...editFormData, cpf: e.target.value})} style={modalStyles.input} />
-                            </div>
-                            <div>
-                                <label style={modalStyles.label}>Endereço</label>
-                                <input type="text" value={editFormData.endereco} onChange={(e) => setEditFormData({...editFormData, endereco: e.target.value})} style={modalStyles.input} />
-                            </div>
-                            <div>
-                                <label style={modalStyles.label}>Horário Início *</label>
-                                <input type="time" value={editFormData.horario_inicio} onChange={(e) => setEditFormData({...editFormData, horario_inicio: e.target.value})} style={modalStyles.input} />
-                            </div>
-                            <div>
-                                <label style={modalStyles.label}>Horário Fim *</label>
-                                <input type="time" value={editFormData.horario_fim} onChange={(e) => setEditFormData({...editFormData, horario_fim: e.target.value})} style={modalStyles.input} />
-                            </div>
-                            <div style={modalStyles.formGroupFull}>
-                                <label style={modalStyles.label}>Dias de Trabalho *</label>
-                                <input type="text" value={editFormData.dias_trabalho} onChange={(e) => setEditFormData({...editFormData, dias_trabalho: e.target.value})} style={modalStyles.input} placeholder="Ex: Segunda,Terça,Quarta,Quinta,Sexta" />
+                                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '600', color: '#2c3e50' }}>
+                                    Email *
+                                </label>
+                                <input
+                                    type="email"
+                                    value={editFormData.email}
+                                    onChange={(e) => setEditFormData({...editFormData, email: e.target.value})}
+                                    style={{
+                                        width: '100%',
+                                        padding: '0.75rem',
+                                        border: '2px solid #ecf0f1',
+                                        borderRadius: '8px',
+                                        fontSize: '1rem'
+                                    }}
+                                />
                             </div>
 
-                            {/* --- CAMPO CONDICIONAL DE ESPECIALIDADES (REQ 3) --- */}
+                            <div>
+                                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '600', color: '#2c3e50' }}>
+                                    Telefone *
+                                </label>
+                                <input
+                                    type="text"
+                                    value={editFormData.telefone}
+                                    onChange={(e) => setEditFormData({...editFormData, telefone: e.target.value})}
+                                    style={{
+                                        width: '100%',
+                                        padding: '0.75rem',
+                                        border: '2px solid #ecf0f1',
+                                        borderRadius: '8px',
+                                        fontSize: '1rem'
+                                    }}
+                                />
+                            </div>
+
+                            <div>
+                                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '600', color: '#2c3e50' }}>
+                                    CPF
+                                </label>
+                                <input
+                                    type="text"
+                                    value={editFormData.cpf}
+                                    onChange={(e) => setEditFormData({...editFormData, cpf: e.target.value})}
+                                    style={{
+                                        width: '100%',
+                                        padding: '0.75rem',
+                                        border: '2px solid #ecf0f1',
+                                        borderRadius: '8px',
+                                        fontSize: '1rem'
+                                    }}
+                                />
+                            </div>
+
+                            <div>
+                                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '600', color: '#2c3e50' }}>
+                                    Endereço
+                                </label>
+                                <input
+                                    type="text"
+                                    value={editFormData.endereco}
+                                    onChange={(e) => setEditFormData({...editFormData, endereco: e.target.value})}
+                                    style={{
+                                        width: '100%',
+                                        padding: '0.75rem',
+                                        border: '2px solid #ecf0f1',
+                                        borderRadius: '8px',
+                                        fontSize: '1rem'
+                                    }}
+                                />
+                            </div>
+
+                            <div>
+                                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '600', color: '#2c3e50' }}>
+                                    Horário Início *
+                                </label>
+                                <input
+                                    type="time"
+                                    value={editFormData.horario_inicio}
+                                    onChange={(e) => setEditFormData({...editFormData, horario_inicio: e.target.value})}
+                                    style={{
+                                        width: '100%',
+                                        padding: '0.75rem',
+                                        border: '2px solid #ecf0f1',
+                                        borderRadius: '8px',
+                                        fontSize: '1rem'
+                                    }}
+                                />
+                            </div>
+
+                            <div>
+                                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '600', color: '#2c3e50' }}>
+                                    Horário Fim *
+                                </label>
+                                <input
+                                    type="time"
+                                    value={editFormData.horario_fim}
+                                    onChange={(e) => setEditFormData({...editFormData, horario_fim: e.target.value})}
+                                    style={{
+                                        width: '100%',
+                                        padding: '0.75rem',
+                                        border: '2px solid #ecf0f1',
+                                        borderRadius: '8px',
+                                        fontSize: '1rem'
+                                    }}
+                                />
+                            </div>
+
+                            <div style={{ gridColumn: '1 / -1' }}>
+                                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '600', color: '#2c3e50' }}>
+                                    Dias de Trabalho *
+                                </label>
+                                <input
+                                    type="text"
+                                    value={editFormData.dias_trabalho}
+                                    onChange={(e) => setEditFormData({...editFormData, dias_trabalho: e.target.value})}
+                                    style={{
+                                        width: '100%',
+                                        padding: '0.75rem',
+                                        border: '2px solid #ecf0f1',
+                                        borderRadius: '8px',
+                                        fontSize: '1rem'
+                                    }}
+                                    placeholder="Ex: Segunda,Terça,Quarta,Quinta,Sexta"
+                                />
+                            </div>
+
+                            {/* --- CAMPO CONDICIONAL DE ESPECIALIDADES (adicionado do Arq 1) --- */}
                             {editFormData.cargo_id === CARGO_FUNCIONARIO_ID && (
                                 <div style={especialidadeStyles.container}>
-                                    <label style={modalStyles.label}>Especialidades</label>
+                                    <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '600', color: '#2c3e50' }}>Especialidades</label>
                                     <p style={{ fontSize: '0.85rem', color: '#6c757d', marginBottom: '1rem' }}>
                                         Selecione os serviços que este funcionário realiza.
                                     </p>
@@ -615,7 +1012,7 @@ function GerenciarFuncionarios({ onNavigateToHome }) {
                                             <input
                                                 type="checkbox"
                                                 // Verifica se todos os serviços estão marcados
-                                                checked={catalogoServicos.length > 0 && editFormData.especialidades.length === catalogoServicos.length}
+                                                checked={catalogoServicos.length > 0 && (editFormData.especialidades || []).length === catalogoServicos.length}
                                                 onChange={handleModalServicosGerais}
                                             />
                                             Serviços Gerais (Selecionar Todos)
@@ -645,19 +1042,31 @@ function GerenciarFuncionarios({ onNavigateToHome }) {
                             )}
                             {/* --- FIM DO CAMPO CONDICIONAL --- */}
 
-                            <div style={modalStyles.formGroupFull}>
+                            <div style={{ gridColumn: '1 / -1' }}>
                                 <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: '600', color: '#2c3e50' }}>
-                                    <input type="checkbox" checked={editFormData.is_ativo} onChange={(e) => setEditFormData({...editFormData, is_ativo: e.target.checked})} />
+                                    <input
+                                        type="checkbox"
+                                        checked={editFormData.is_ativo}
+                                        onChange={(e) => setEditFormData({...editFormData, is_ativo: e.target.checked})}
+                                    />
                                     Funcionário ativo
                                 </label>
                             </div>
                         </div>
 
-                        <div style={modalStyles.footer}>
-                            <button style={{...modalStyles.button, ...modalStyles.buttonCancel}} onClick={() => setShowEditModal(false)} disabled={editLoading}>
+                        <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end', marginTop: '2rem' }}>
+                            <button
+                                className="btn btn-outline-white hover-lift"
+                                onClick={() => setShowEditModal(false)}
+                                disabled={editLoading}
+                            >
                                 Cancelar
                             </button>
-                            <button style={{...modalStyles.button, ...modalStyles.buttonSave}} onClick={salvarEdicao} disabled={editLoading}>
+                            <button
+                                className="btn-submit"
+                                onClick={salvarEdicao}
+                                disabled={editLoading}
+                            >
                                 {editLoading ? 'Salvando...' : 'Salvar Alterações'}
                             </button>
                         </div>
@@ -665,29 +1074,87 @@ function GerenciarFuncionarios({ onNavigateToHome }) {
                 </div>
             )}
 
-            {/* Modal de Confirmação de Exclusão */}
+            {/* Modal de Confirmação de Exclusão (estilo do arquivo 2 mantido) */}
             {showDeleteModal && (
-                 <div style={modalStyles.overlay}>
-                    <div style={{...modalStyles.content, maxWidth: '500px'}}>
-                        <div style={modalStyles.header}>
-                            <h2 style={modalStyles.title}>⚠️ Confirmar Desativação</h2>
-                            <button onClick={() => setShowDeleteModal(false)} style={modalStyles.closeButton}>✕</button>
+                <div style={{
+                    position: 'fixed',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    background: 'rgba(0, 0, 0, 0.5)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    zIndex: 1000,
+                    padding: '1rem'
+                }}>
+                    <div style={{
+                        background: 'white',
+                        borderRadius: '16px',
+                        padding: '2rem',
+                        width: '100%',
+                        maxWidth: '500px',
+                        boxShadow: '0 20px 60px rgba(0, 0, 0, 0.3)'
+                    }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                            <h2 style={{ color: '#2c3e50', margin: 0 }}>⚠️ Confirmar Desativação</h2>
+                            <button
+                                onClick={() => setShowDeleteModal(false)}
+                                style={{
+                                    background: 'none',
+                                    border: 'none',
+                                    fontSize: '1.5rem',
+                                    cursor: 'pointer',
+                                    color: '#7f8c8d',
+                                    padding: '0.5rem'
+                                }}
+                            >
+                                ✕
+                            </button>
                         </div>
+
                         <div style={{ marginBottom: '1.5rem' }}>
-                            <p style={{ color: '#2c3e50', marginBottom: '1rem' }}>Tem certeza que deseja desativar o funcionário:</p>
-                            <div style={{ background: '#f8f9fa', padding: '1rem', borderRadius: '8px', borderLeft: '4px solid #e74c3c' }}>
+                            <p style={{ color: '#2c3e50', marginBottom: '1rem' }}>
+                                Tem certeza que deseja desativar o funcionário:
+                            </p>
+                            <div style={{
+                                background: '#f8f9fa',
+                                padding: '1rem',
+                                borderRadius: '8px',
+                                borderLeft: '4px solid #e74c3c'
+                            }}>
                                 <div style={{ fontWeight: 'bold', color: '#2c3e50' }}>{deletingFuncionario?.nome}</div>
                                 <div style={{ color: '#7f8c8d' }}>{deletingFuncionario?.cargo_funcao}</div>
+                                <div style={{ color: '#7f8c8d' }}>{deletingFuncionario?.email}</div>
                             </div>
                             <p style={{ color: '#e74c3c', fontSize: '0.875rem', marginTop: '1rem' }}>
                                 O funcionário será desativado e não poderá mais acessar o sistema.
+                                Esta ação pode ser revertida editando o funcionário posteriormente.
                             </p>
                         </div>
-                        <div style={modalStyles.footer}>
-                            <button style={{...modalStyles.button, ...modalStyles.buttonCancel}} onClick={() => setShowDeleteModal(false)} disabled={deleteLoading}>
+
+                        <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end' }}>
+                            <button
+                                className="btn btn-outline-white hover-lift"
+                                onClick={() => setShowDeleteModal(false)}
+                                disabled={deleteLoading}
+                            >
                                 Cancelar
                             </button>
-                            <button style={{...modalStyles.button, background: '#e74c3c', color: 'white'}} onClick={confirmarExclusao} disabled={deleteLoading}>
+                            <button
+                                style={{
+                                    background: 'linear-gradient(135deg, #e74c3c 0%, #c0392b 100%)',
+                                    color: 'white',
+                                    border: 'none',
+                                    padding: '0.75rem 1.5rem',
+                                    borderRadius: '8px',
+                                    cursor: 'pointer',
+                                    fontWeight: '600'
+                                }}
+                                onClick={confirmarExclusao}
+                                disabled={deleteLoading}
+                            >
                                 {deleteLoading ? 'Desativando...' : 'Confirmar Desativação'}
                             </button>
                         </div>

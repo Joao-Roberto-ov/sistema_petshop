@@ -2,14 +2,14 @@ import React, { useState } from 'react';
 import axios from '../api/axios';
 
 function PetCadastroScreen({ onNavigateToHome, cliente, onBack }) {
-    const [formData, setFormData] = useState({ 
-        nome: '', 
-        especie: 'Cão', 
-        raca: '', 
-        idade: '', 
-        peso: '', 
-        sexo_biologico: '', 
-        observacoes: '' 
+    const [formData, setFormData] = useState({
+        nome: '',
+        especie: 'Cão',
+        raca: '',
+        idade: '',
+        peso: '',
+        sexo_biologico: '',
+        observacoes: ''
     });
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
@@ -41,14 +41,14 @@ function PetCadastroScreen({ onNavigateToHome, cliente, onBack }) {
 
         //validaçao de idade e peso negativos
         if (parseInt(formData.idade) < 0) {
-setError('A idade não pode ser negativa.');
+                setError('A idade não pode ser negativa.');
 	            setTimeout(() => setError(''), 3000);
 	            setLoading(false);
 	            return;
         }
 
         if (formData.peso && parseFloat(formData.peso) < 0) {
-setError('O peso não pode ser negativo.');
+                setError('O peso não pode ser negativo.');
 	            setTimeout(() => setError(''), 3000);
 	            setLoading(false);
 	            return;
@@ -57,7 +57,7 @@ setError('O peso não pode ser negativo.');
         try {
             const token = localStorage.getItem('token');
             if (!token) {
-setError("Você não está autenticado. Faça login novamente.");
+                    setError("Você não está autenticado. Faça login novamente.");
 	                setTimeout(() => setError(''), 3000);
 	                setLoading(false);
 	                return;
@@ -83,14 +83,14 @@ setError("Você não está autenticado. Faça login novamente.");
 
             setSuccess(`Pet '${formData.nome}' cadastrado com sucesso!`);
 	            setTimeout(() => setSuccess(''), 3000);
-            setFormData({ 
-                nome: '', 
-                especie: 'Cão', 
-                raca: '', 
-                idade: '', 
-                peso: '', 
-                sexo_biologico: '', 
-                observacoes: '' 
+            setFormData({
+                nome: '',
+                especie: 'Cão',
+                raca: '',
+                idade: '',
+                peso: '',
+                sexo_biologico: '',
+                observacoes: ''
             });
         } catch (err) {
             setError(err.response?.data?.detail || 'Erro ao cadastrar o pet.');
@@ -121,7 +121,7 @@ setError("Você não está autenticado. Faça login novamente.");
                             required
                         />
                     </div>
-<div className="form-group">
+                        <div className="form-group">
 	                        <label className="form-label">Espécie *</label>
 	                        <select
 	                            name="especie"

@@ -4,23 +4,25 @@ function HomePageFuncionario({
     userData,
     onNavigateToVisualizarClientes,
     onNavigateToCadastrarProduto,
-    onNavigateToFuncionarioCadastroAdmin,
+    // onNavigateToFuncionarioCadastroAdmin, // Removido para padronizar com o primeiro arquivo
     onNavigateToCadastroFuncionarioCompleto,
     onNavigateToGerenciarFuncionarios,
     onNavigateToVisualizarProdutos,
     onNavigateToVisualizarServicos,
     onNavigateToVisualizarPets,
+    onNavigateToRegistrarVenda, // Prop mantida do segundo arquivo
     onLogout,
-    // Novas props adicionadas
+    // Novas props adicionadas do primeiro arquivo
     onNavigateToDashboard,
     onNavigateToGerenciarAgendamentos
 }) {
 
+    // Lógica de permissão robusta (do primeiro arquivo)
     const cargoLower = userData?.cargo?.toLowerCase();
-    // Usa cargo_id se existir, senão volta para a string (mais robusto)
     const cargoId = userData?.cargo_id;
-    const isGestor = cargoId === 1 || cargoLower === 'gestor' || cargoLower === 'administrador';
+    const isGestorOuAdmin = cargoId === 1 || cargoLower === 'gestor' || cargoLower === 'administrador';
 
+    // Lista de serviços unificada
     const services = [
         {
             icon: '📊',
@@ -34,25 +36,32 @@ function HomePageFuncionario({
             description: "Gerencie e visualize todos os clientes cadastrados no sistema.",
             onClick: onNavigateToVisualizarClientes
         },
-        ...(isGestor ? [{
+        // Mantido do segundo arquivo
+        {
+            icon: '🛒',
+            title: "Registrar Venda",
+            description: "Registre uma nova venda de produtos ou serviços.",
+            onClick: onNavigateToRegistrarVenda
+        },
+        ...(isGestorOuAdmin ? [{
             icon: '🛠',
             title: "Gerenciar Serviços",
             description: "Adicione, edite ou remova os serviços oferecidos.",
             onClick: onNavigateToVisualizarServicos
         }] : []),
-        ...(isGestor ? [{
+        ...(isGestorOuAdmin ? [{
             icon: '👨‍💼',
             title: "Cadastrar Funcionário",
             description: "Adicione novos funcionários ao sistema.",
             onClick: onNavigateToCadastroFuncionarioCompleto
         }] : []),
-        ...(isGestor ? [{
+        ...(isGestorOuAdmin ? [{
             icon: '👥',
             title: "Gerenciar Funcionários",
             description: "Visualize e gerencie todos os funcionários.",
             onClick: onNavigateToGerenciarFuncionarios
         }] : []),
-        ...(isGestor ? [{
+        ...(isGestorOuAdmin ? [{
             icon: '🐾',
             title: "Gerenciar Pets",
             description: "Visualize e edite as informações de todos os pets.",
@@ -60,12 +69,13 @@ function HomePageFuncionario({
         }] : []),
         {
             icon: '🛒',
-            title: isGestor ? "Gerenciar Produtos" : "Consultar Produtos",
-            description: isGestor
+            title: isGestorOuAdmin ? "Gerenciar Produtos" : "Consultar Produtos",
+            description: isGestorOuAdmin
                 ? "Cadastre e edite produtos do sistema."
                 : "Consulte disponibilidade e preços de produtos.",
             onClick: onNavigateToVisualizarProdutos
         },
+        // Adicionado do primeiro arquivo (substitui o 'alert' do segundo)
         {
             icon: '📅',
             title: "Gerenciar Agendamentos",
@@ -100,7 +110,7 @@ function HomePageFuncionario({
                         Bem-vindo, {userData?.nome ? userData.nome.split(' ')[0] : 'Funcionário'}!
                     </h1>
                     <p className="animate-fade-in-up">
-                        {isGestor
+                        {isGestorOuAdmin
                             ? 'Gerencie clientes, funcionários e mantenha tudo organizado na PetLife.'
                             : 'Gerencie os clientes e mantenha tudo organizado na PetLife.'}
                     </p>
@@ -109,12 +119,14 @@ function HomePageFuncionario({
                         <button className="btn btn-outline-white hover-lift" onClick={onNavigateToVisualizarClientes}>
                             👥 Visualizar Clientes
                         </button>
-                        {isGestor && (
+
+                        {/* Botões padronizados (lógica do primeiro arquivo) */}
+                        {isGestorOuAdmin && (
                             <button className="btn btn-outline-white hover-lift" onClick={onNavigateToCadastroFuncionarioCompleto}>
                                 ➕ Cadastrar Funcionário
                             </button>
                         )}
-                        {isGestor ? (
+                        {isGestorOuAdmin ? (
                             <>
                                 <button className="btn btn-outline-white hover-lift" onClick={onNavigateToCadastrarProduto}>
                                     📦 Cadastrar Produto
@@ -131,6 +143,7 @@ function HomePageFuncionario({
                                 🛒 Consultar Produtos
                             </button>
                         )}
+
                         <button className="btn btn-outline-white hover-lift" onClick={onLogout}>
                             🚪 Sair
                         </button>
@@ -168,7 +181,7 @@ function HomePageFuncionario({
                     <h2 className="section-title">Por que usar o sistema PetLife?</h2>
                     <p className="section-description">
                         Um sistema completo e seguro para gerenciar seu negócio de forma profissional.
-                    </p>
+                    </V>
                     <div className="grid-3">
                         {differentials.map((item, index) => (
                             <div key={index} className="feature-card animate-fade-in-up" style={{ animationDelay: `${index * 0.1}s` }}>

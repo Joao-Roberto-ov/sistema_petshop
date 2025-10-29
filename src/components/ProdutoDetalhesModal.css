@@ -159,3 +159,28 @@
         font-size: 2rem;
     }
 }
+
+.botao-adicionar-carrinho {
+    margin-top: 1.5rem;
+    padding: 1rem 1.5rem;
+    font-size: 1.1rem;
+    font-weight: 600;
+    border: none;
+    border-radius: 12px;
+    background: linear-gradient(90deg, #22c55e, #16a34a);
+    color: white;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 10px rgba(22, 163, 74, 0.3);
+}
+
+.botao-adicionar-carrinho:hover:not(:disabled) {
+    transform: scale(1.03);
+    box-shadow: 0 6px 15px rgba(22, 163, 74, 0.4);
+}
+
+.botao-adicionar-carrinho:disabled {
+    background: #9ca3af;
+    cursor: not-allowed;
+    box-shadow: none;
+}

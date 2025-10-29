@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import axios from '../api/axios'; //
+import axios from '../api/axios';
 import '../App.css';
-import './FuncionarioCompleto.css'; //
+// Adicionado o CSS específico que faltava
+import './FuncionarioCompleto.css';
 
-// IDs dos Cargos (do backend util/cargos.py)
 const CARGOS = {
     GESTOR: 1,
     FUNCIONARIO: 2,
@@ -12,7 +12,7 @@ const CARGOS = {
 };
 
 function CadastroFuncionarioCompleto({ onNavigateToHome }) {
-    // ... (estados existentes: nome, cargoId, email, etc.)
+    // Estados para os campos do formulário
     const [nome, setNome] = useState('');
     const [cargoId, setCargoId] = useState('');
     const [email, setEmail] = useState('');
@@ -31,18 +31,17 @@ function CadastroFuncionarioCompleto({ onNavigateToHome }) {
     const [isLoading, setIsLoading] = useState(false);
     const [fieldErrors, setFieldErrors] = useState({});
 
-    // --- NOVOS ESTADOS (REQ 2) ---
+    // --- NOVOS ESTADOS (do primeiro arquivo) ---
     const [catalogoServicos, setCatalogoServicos] = useState([]);
     const [especialidades, setEspecialidades] = useState([]); // Guarda os IDs [1, 3, 5]
     // --- FIM DOS NOVOS ESTADOS ---
 
     const diasSemana = ['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado', 'Domingo'];
 
-    // Busca o catálogo de serviços para o campo de especialidades
+    // Busca o catálogo de serviços (do primeiro arquivo)
     useEffect(() => {
         const fetchServicos = async () => {
             try {
-                // /servicos é mapeado para /api/servicos pelo axios.js
                 const response = await axios.get('/servicos');
                 setCatalogoServicos(response.data || []);
             } catch (err) {
@@ -54,7 +53,7 @@ function CadastroFuncionarioCompleto({ onNavigateToHome }) {
         fetchServicos();
     }, []); // Executa apenas uma vez
 
-    // ... (função validarCampos permanece a mesma) ...
+    // Função para validar campos obrigatórios (mantida)
     const validarCampos = () => {
         const errors = {};
         if (!nome || !nome.trim()) errors.nome = 'Nome completo é obrigatório';
@@ -76,7 +75,7 @@ function CadastroFuncionarioCompleto({ onNavigateToHome }) {
         setDiasTrabalho(prev => prev.includes(dia) ? prev.filter(d => d !== dia) : [...prev, dia]);
     };
 
-    // --- NOVOS HANDLERS (REQ 2) ---
+    // --- NOVOS HANDLERS (do primeiro arquivo) ---
     const handleEspecialidadeChange = (servicoId) => {
         setEspecialidades(prev => {
             if (prev.includes(servicoId)) {
@@ -89,15 +88,14 @@ function CadastroFuncionarioCompleto({ onNavigateToHome }) {
 
     const handleServicosGerais = (e) => {
         if (e.target.checked) {
-            // Marca todos
             setEspecialidades(catalogoServicos.map(s => s.id));
         } else {
-            // Desmarca todos
             setEspecialidades([]);
         }
     };
     // --- FIM DOS NOVOS HANDLERS ---
 
+    // Funções de formatação (mantidas)
     const formatarCPF = (value) => {
         const numeros = value.replace(/\D/g, '');
         return numeros.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
@@ -107,7 +105,6 @@ function CadastroFuncionarioCompleto({ onNavigateToHome }) {
         if (numeros.length <= 10) return numeros.replace(/(\d{2})(\d{4})(\d{4})/, '($1) $2-$3');
         return numeros.replace(/(\d{2})(\d{5})(\d{4})/, '($1) $2-$3');
     };
-
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -140,12 +137,10 @@ function CadastroFuncionarioCompleto({ onNavigateToHome }) {
                 dias_trabalho: diasTrabalho.join(','),
                 senha: senha,
                 is_ativo: isAtivo,
-                // --- DADO ADICIONADO (REQ 2) ---
-                // Envia a lista de IDs de especialidades SE for o cargo 2, senão envia lista vazia
+                // --- DADO ADICIONADO (do primeiro arquivo) ---
                 especialidades: cargoIdInt === CARGOS.FUNCIONARIO ? especialidades : []
             };
 
-            //
             const response = await axios.post('/funcionario/cadastrar', dadosFuncionario, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
@@ -176,12 +171,13 @@ function CadastroFuncionarioCompleto({ onNavigateToHome }) {
         }
     };
 
-    // --- LÓGICA AUXILIAR PARA "SERVIÇOS GERAIS" ---
+    // --- LÓGICA AUXILIAR PARA "SERVIÇOS GERAIS" (do primeiro arquivo) ---
     const isServicosGerais = catalogoServicos.length > 0 && especialidades.length === catalogoServicos.length;
 
     return (
         <div className="login-container">
-            <div className="login-card" style={{ maxWidth: '800px' }}> {/* Aumentado o max-width */}
+            {/* Mantido o maxWidth maior do primeiro arquivo */}
+            <div className="login-card" style={{ maxWidth: '800px' }}>
                 <div className="login-header">
                     <h1>Cadastro de Funcionário</h1>
                     <p>Preencha todos os dados obrigatórios para cadastrar um novo funcionário</p>
@@ -213,6 +209,7 @@ function CadastroFuncionarioCompleto({ onNavigateToHome }) {
                             onChange={(e) => setCargoId(e.target.value)}
                         >
                             <option value="">Selecione um cargo</option>
+                            {/* Ordem dos cargos ajustada para consistência */}
                             <option value={CARGOS.GESTOR}>Gestor</option>
                             <option value={CARGOS.FUNCIONARIO}>Funcionário</option>
                             <option value={CARGOS.VETERINARIO}>Veterinário</option>
@@ -221,7 +218,7 @@ function CadastroFuncionarioCompleto({ onNavigateToHome }) {
                         {fieldErrors.cargoId && <span className="field-error">{fieldErrors.cargoId}</span>}
                     </div>
 
-                    {/* --- CAMPO CONDICIONAL DE ESPECIALIDADES (REQ 2) --- */}
+                    {/* --- CAMPO CONDICIONAL DE ESPECIALIDADES (do primeiro arquivo) --- */}
                     {cargoId === String(CARGOS.FUNCIONARIO) && (
                         <div className="form-group especialidades-container">
                             <label className="form-label">Especialidades (Opcional)</label>

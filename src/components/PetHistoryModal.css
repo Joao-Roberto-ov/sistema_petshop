@@ -69,9 +69,9 @@
     color: #666;
 }
 
-/* Estilo para as observações do pet no modal */
+/*estilo para as observaçoes do pet no modal*/
 .pet-observations-modal {
-    background-color: #f0f9ff; /* Azul claro para destaque */
+    background-color: #f0f9ff;
     border: 1px solid #bae6fd;
     padding: 1rem;
     border-radius: 8px;

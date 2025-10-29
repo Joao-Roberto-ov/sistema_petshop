@@ -3,7 +3,7 @@ from psycopg2 import IntegrityError
 from seguranca import cria_hash_senha, verifica_senha, cria_token_de_acesso
 from repositories.funcionario_repository import RepositorioFuncionario
 from services.email_service import EmailService
-# --- MODIFICAÇÕES DE IMPORTAÇÃO ---
+# --- MODIFICAÇÕES DE IMPORTAÇÃO (do arquivo 1) ---
 from modelos import (
     ForgotPasswordRequest, RedefinirSenhaRequest, FuncionarioCadastroPorAdmin,
     FuncionarioCadastro, FuncionarioUpdate
@@ -16,7 +16,7 @@ from passlib.context import CryptContext
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
-# (Req 2) ID do Cargo "Funcionário"
+# (Req 2) ID do Cargo "Funcionário" (Adicionado do arquivo 1)
 CARGO_FUNCIONARIO_ID = 2
 
 
@@ -62,6 +62,7 @@ class ServicosFuncionario:
         except Exception as e:
             raise HTTPException(status_code=500, detail=f"Erro interno no login de funcionário: {str(e)}")
 
+    # --- FUNÇÃO ATUALIZADA (do arquivo 1) ---
     def buscar_pelo_id(self, user_id: int):
         """
         Busca os dados completos do funcionário.
@@ -125,7 +126,7 @@ class ServicosFuncionario:
         except Exception as e:
             raise HTTPException(status_code=500, detail=f"Erro ao cadastrar funcionário: {str(e)}")
 
-    # --- FUNÇÃO MODIFICADA (REQ 2) ---
+    # --- FUNÇÃO MODIFICADA (do arquivo 1) ---
     def cadastrar_funcionario_completo(self, funcionario_data: FuncionarioCadastro):
         """
         Cadastra um novo funcionário e, se for Cargo 2, guarda as suas especialidades.
@@ -163,7 +164,7 @@ class ServicosFuncionario:
                 cargo_funcao=funcionario_data.cargo_funcao
             )
 
-            # --- LÓGICA DE ESPECIALIDADE (REQ 2) ---
+            # --- LÓGICA DE ESPECIALIDADE (REQ 2) (Adicionada do arquivo 1) ---
             # Se o cargo for "Funcionário" (ID 2) e especialidades foram enviadas
             if funcionario_data.especialidades is not None and funcionario_data.cargo_id == CARGO_FUNCIONARIO_ID:
                 self.repo.atualizar_especialidades(user_id, funcionario_data.especialidades)
@@ -211,7 +212,7 @@ class ServicosFuncionario:
         except Exception as e:
             raise HTTPException(status_code=500, detail=f"Erro ao buscar funcionário: {str(e)}")
 
-    # --- FUNÇÃO MODIFICADA (REQ 3) ---
+    # --- FUNÇÃO MODIFICADA (do arquivo 1) ---
     def atualizar_funcionario(self, funcionario_id: int, dados_atualizacao: FuncionarioUpdate):
         """
         Atualiza dados de um funcionário existente, incluindo especialidades (Req 3).
@@ -282,16 +283,13 @@ class ServicosFuncionario:
             traceback.print_exc()
             raise HTTPException(status_code=500, detail=f"Erro ao atualizar funcionário: {str(e)}")
 
-    # --- NOVA FUNÇÃO ADICIONADA (REQ 5) ---
+    # --- NOVA FUNÇÃO ADICIONADA (do arquivo 1) ---
     def buscar_especialistas_por_servico(self, servico_id: int):
         """
         Retorna funcionários (ID, Nome) que são especialistas em um serviço (ou todos os funcionários do cargo 2).
         """
         try:
             especialistas = self.repo.buscar_especialistas_por_servico(servico_id)
-            # Nota: Req 2 menciona "Serviços Gerais". Se quisermos que funcionários sem
-            # especialidade apareçam aqui, a lógica no repositório precisa ser alterada.
-            # Por enquanto, retorna apenas quem tem a especialidade exata.
             return especialistas
         except Exception as e:
             print(f"Erro ao buscar especialistas: {e}")

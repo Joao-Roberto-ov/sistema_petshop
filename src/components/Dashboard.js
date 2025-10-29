@@ -1,9 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from '../api/axios';
-import './Dashboard.css'; // Importa o novo CSS
+import './Dashboard.css';
 
-// --- ÍCONES ADICIONADOS ---
-// Ícone de Lixeira (Cancelar)
 const IconTrash = () => (
     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <polyline points="3 6 5 6 21 6"></polyline>
@@ -11,21 +9,19 @@ const IconTrash = () => (
     </svg>
 );
 
-// Ícone de Lápis (Reagendar/Editar)
+// Ícone de Lápis
 const IconPencil = () => (
     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
         <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
     </svg>
 );
-// --- FIM DOS ÍCONES ---
+
 
 function Dashboard({
     userData,
     onLogout,
     onNavigateToHome,
-    // *** PROP MODIFICADA (AC3) ***
-    // onNavigateToAgendarServico foi trocado por onIniciarReagendamento
     onIniciarReagendamento
 }) {
     const [pets, setPets] = useState([]);
@@ -76,7 +72,7 @@ function Dashboard({
         };
 
         fetchData();
-    // Adicionamos agendamentos.length para recarregar se um item for cancelado
+    //adicionado agendamentos.length para recarregar se um item for cancelado
     }, [onLogout, agendamentos.length]);
 
     const formatarDataHora = (isoString) => {
@@ -113,8 +109,6 @@ function Dashboard({
     };
 
     const agendamentosFiltrados = filtrarAgendamentos();
-
-    // AC2: Lógica de Cancelamento (Permanece igual)
     const handleCancelar = async (agendamento) => {
         const agora = new Date();
         const dataInicio = new Date(agendamento.data_hora_inicio);
@@ -136,7 +130,6 @@ function Dashboard({
                     { headers: { 'Authorization': `Bearer ${token}` } }
                 );
                 alert(response.data.message || "Agendamento cancelado.");
-                // AC4: Reflete imediatamente
                 setAgendamentos(prev =>
                     prev.map(ag =>
                         ag.id === agendamento.id ? { ...ag, status: 'Cancelado', status_motivo: response.data.motivo } : ag
@@ -149,10 +142,7 @@ function Dashboard({
         }
     };
 
-    // *** LÓGICA DE REAGENDAR MODIFICADA (AC3) ***
     const handleReagendar = (agendamento) => {
-        // Não cancela mais. Apenas chama a prop do App.js
-        // que colocará o agendamento no estado e navegará para a tela de seleção.
         onIniciarReagendamento(agendamento);
     };
 
@@ -265,7 +255,6 @@ function Dashboard({
                                                         >
                                                             <IconTrash />
                                                         </button>
-                                                        {/* *** onClick ATUALIZADO (AC3) *** */}
                                                         <button
                                                             className="action-btn btn-reagendar"
                                                             onClick={() => handleReagendar(ag)}

@@ -148,7 +148,7 @@ function VisualizarClientes({ onBack }) {
             fetchClientes();
             setToggleStatusSuccess(`Cliente ${cliente.nome} ${newStatus ? 'ativado' : 'desativado'} com sucesso!`);
             setTimeout(() => setToggleStatusSuccess(''), 3000);
-            
+
         } catch (err) {
             if (err.response?.status === 401) {
                 setToggleStatusError('Sessão expirada. Faça login novamente.');
@@ -220,12 +220,12 @@ function VisualizarClientes({ onBack }) {
         if (!clienteSelecionado) {
             return <div className="error-message">Cliente não encontrado para cadastro de pet.</div>;
         }
-        
+
         return (
             <>
                 {toggleStatusSuccess && <div className="success-message fixed-top-right">{toggleStatusSuccess}</div>}
                 {toggleStatusError && <div className="error-message fixed-top-right">{toggleStatusError}</div>}
-                <CadastroPetFuncionario 
+                <CadastroPetFuncionario
                     clienteId={petRegisteringId}
                     clienteNome={clienteSelecionado.nome}
                     onSuccess={handlePetRegisterSuccess}
@@ -239,7 +239,7 @@ function VisualizarClientes({ onBack }) {
         <>
             {toggleStatusSuccess && <div className="success-message fixed-top-right">{toggleStatusSuccess}</div>}
             {toggleStatusError && <div className="error-message fixed-top-right">{toggleStatusError}</div>}
-            
+
             <section className="hero">
                 <div className="container">
                     <h1 className="animate-fade-in-up">Gerenciar Clientes</h1>
@@ -449,7 +449,7 @@ function VisualizarClientes({ onBack }) {
                                             <td style={{ padding: '1rem', textAlign: 'center' }}>
                                                 <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center' }}>
                                                     {/* Botão Cadastrar Pet (AC1) - Agora com ícone de pata */}
-                                                    <button 
+                                                    <button
                                                         style={{
                                                             background: 'linear-gradient(135deg, #2ecc71 0%, #27ae60 100%)', // Verde
                                                             color: 'white',
@@ -479,7 +479,7 @@ function VisualizarClientes({ onBack }) {
                                                     >
                                                         <IconPaw />
                                                     </button>
-                                                    <button 
+                                                    <button
                                                         style={{
                                                             background: 'linear-gradient(135deg, #3498db 0%, #2980b9 100%)',
                                                             color: 'white',

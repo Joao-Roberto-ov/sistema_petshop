@@ -217,11 +217,11 @@ class ServicosCliente:
         user_email = user_db[2]
         senha_hashed_do_banco = user_db[4]
 
-        # Verificação 1: Senha atual incorreta
+        #senha atual incorreta
         if not verifica_senha(request_data.senha_atual, senha_hashed_do_banco):
             raise HTTPException(status_code=401, detail="A senha atual está incorreta.")
 
-        # Verificação 2: Nova senha não pode ser igual à atual
+        #nova senha não pode ser igual a atual
         if verifica_senha(request_data.nova_senha, senha_hashed_do_banco):
             raise HTTPException(status_code=400, detail="A nova senha não pode ser igual à senha atual.")
 
@@ -316,10 +316,6 @@ class ServicosCliente:
             #armazena o token no banco de dados associado ao cliente
             self.repo.salvar_token_redefinicao(user_id, token, expiracao)
 
-            # AC1: envia o e-mail com o link de redefinição
-            # AC2: email não revela a senha atual
-            # AC4: link deve ser de uso unico e com prazo de expiraçao
-            # AC5: link deve direcionar para a pagina de redefiniçao de senha
             link_redefinicao = f"http://localhost:3000/reset-password?token={token}&email={user_email}"
             self.email_service.enviar_link_redefinicao(user_email, link_redefinicao)
             return {"message": "Se um usuário com este e-mail existir, um link de redefinição será enviado."}
@@ -342,7 +338,7 @@ class ServicosCliente:
             self.repo.invalidar_token_redefinicao(request_data.token) #invalida o token expirado
             raise HTTPException(status_code=400, detail="Token inválido ou expirado.")
 
-        # Hash da nova senha antes de salvar
+        #hash da nova senha antes de salvar
         senha_hashed = cria_hash_senha(request_data.nova_senha)
         self.repo.atualizar_cliente(user_id, {'senha': senha_hashed})
         self.repo.invalidar_token_redefinicao(request_data.token) #invalida o token apos o uso
@@ -363,8 +359,6 @@ class ServicosCliente:
                 raise HTTPException(status_code=404, detail="Cliente não encontrado.")
 
             print(f"Cliente encontrado: {cliente_existente[1]} (ID: {cliente_existente[0]})")
-
-            # TESTE: Verificar se o metodo existe
             print(f"Métodos disponíveis no repo: {[method for method in dir(self.repo) if not method.startswith('_')]}")
 
             self.repo.atualizar_status_cliente(cliente_id, is_ativo)

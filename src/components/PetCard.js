@@ -56,6 +56,7 @@ function PetCard({ pet, onViewHistory, onPetUpdated }) {
 
     const handleInputChange = (e) => {
         const { name, value } = e.target;
+
         if (name === 'nome') {
             setFormData(prev => ({ ...prev, [name]: capitalizeName(value) }));
         } else {
@@ -222,22 +223,11 @@ function PetCard({ pet, onViewHistory, onPetUpdated }) {
                                 />
                             </div>
                         </div>
+                        {error && <small className="error-text">{error}</small>}
 
                         <div className="edit-buttons">
-                            <button type="submit" className="btn-save">
-                                Salvar Alterações
-                            </button>
-                            <button
-                                type="button"
-                                className="btn-cancel"
-                                onClick={() => {
-                                    setIsEditing(false);
-                                    setError('');
-                                    setSuccess('');
-                                }}
-                            >
-                                Cancelar
-                            </button>
+                            <button type="submit" className="btn-save">Salvar Alterações</button>
+                            <button type="button" className="btn-cancel" onClick={() => { setIsEditing(false); setError(''); setSuccess('');}}>Cancelar</button>
                         </div>
                     </form>
                 ) : (

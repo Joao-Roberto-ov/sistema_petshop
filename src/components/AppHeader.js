@@ -21,6 +21,15 @@ function AppHeader({
 }) {
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
     const dropdownRef = useRef(null);
+    const handleServicosClick = (e) => {
+        e.preventDefault();
+        if (onNavigateToServicosCliente) {
+            onNavigateToServicosCliente();
+        } else {
+            console.warn("onNavigateToServicosCliente não foi fornecida ao AppHeader");
+            alert('Erro: Função de navegação para serviços não definida.');
+        }
+    };
 
     useEffect(() => {
         function handleClickOutside(event) {
@@ -38,9 +47,9 @@ function AppHeader({
         (userData.cargo === 'FUNCIONARIO' || userData.cargo === 'GESTOR');
 
     const cargoLower = userData?.cargo?.toLowerCase();
-    const isAdmin = userData?.cargo === 'GESTOR' || 
-                   userData?.cargo === 'ADMINISTRADOR' || 
-                   cargoLower === 'gestor' || 
+    const isAdmin = userData?.cargo === 'GESTOR' ||
+                   userData?.cargo === 'ADMINISTRADOR' ||
+                   cargoLower === 'gestor' ||
                    cargoLower === 'administrador';
 
     const handleProdutosClick = (e) => {
@@ -57,11 +66,6 @@ function AppHeader({
         }
     };
 
-    const handleServicosClick = (e) => {
-        e.preventDefault();
-        onNavigateToServicosCliente();
-    };
-
     return (
         <header className="header">
             <nav className="nav container">
@@ -73,17 +77,14 @@ function AppHeader({
                 <ul className="nav-menu">
                     <li><a href="#" className="nav-link" onClick={(e) => { e.preventDefault(); onNavigateToHome(); }}>Início</a></li>
 
-                    {/* Links para Cliente Logado */}
                     {isLoggedIn && !isFuncionarioOuAdmin && (
                         <>
                             <li><a href="#" className="nav-link" onClick={(e) => { e.preventDefault(); onNavigateToDashboard(); }}>Dashboard</a></li>
                             <li><a href="#" className="nav-link" onClick={(e) => { e.preventDefault(); onNavigateToMeusPets(); }}>Meus Pets</a></li>
-                            {/* CORREÇÃO: Chamando a função correta */}
                             <li><a href="#" className="nav-link" onClick={handleServicosClick}>Serviços</a></li>
                         </>
                     )}
 
-                    {/* Links para Funcionário/Gestor Logado */}
                     {isLoggedIn && isFuncionarioOuAdmin && (
                         <>
                             <li>
@@ -126,12 +127,10 @@ function AppHeader({
                                     </li>
                                 </>
                             )}
-                            {/* CORREÇÃO: Chamando a função correta */}
                             <li><a href="#" className="nav-link" onClick={handleServicosClick}>Serviços</a></li>
                         </>
                     )}
 
-                    {/* Botão de Produtos - Sempre Visível */}
                     <li>
                         <a
                             href="#"
@@ -142,9 +141,7 @@ function AppHeader({
                         </a>
                     </li>
 
-                    {/* Link de Serviços - Visível apenas para deslogados */}
                     {!isLoggedIn && (
-                        /* CORREÇÃO: Chamando a função correta */
                         <li><a href="#" className="nav-link" onClick={handleServicosClick}>Serviços</a></li>
                     )}
                 </ul>

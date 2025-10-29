@@ -3,7 +3,6 @@ from repositories.produto_repository import RepositorioProduto
 from models.checkout_model import CheckoutRequest, CheckoutResponse
 from datetime import datetime
 
-
 class CheckoutService:
     def __init__(self):
         self.repo = CheckoutRepository()

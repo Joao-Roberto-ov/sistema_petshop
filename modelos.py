@@ -214,7 +214,9 @@ class FuncionarioCadastro(BaseModel):
         import re
         if not v or not v.strip():
             raise ValueError('Horário é obrigatório')
+        # Aceita formato HH:MM ou HH:MM:SS
         if re.match(r'^([01]?[0-9]|2[0-3]):[0-5][0-9](:[0-5][0-9])?$', v):
+            # Normaliza para HH:MM removendo segundos se existirem
             return v[:5] if len(v) > 5 else v
         raise ValueError('Horário deve estar no formato HH:MM ou HH:MM:SS (ex: 08:00)')
 
@@ -232,8 +234,7 @@ class FuncionarioCadastro(BaseModel):
 
 class FuncionarioUpdate(BaseModel):
     nome: Optional[str] = None
-    cargo_id: Optional[int] = Field(None, ge=1, le=4,
-                                    description="ID do cargo deve ser 1 (Gestor), 2 (Funcionário), 3 (Veterinário) ou 4 (Atendente)")
+    cargo_id: Optional[int] = Field(None, ge=1, le=4, description="ID do cargo deve ser 1 (Gestor), 2 (Funcionário), 3 (Veterinário) ou 4 (Atendente)")
     email: Optional[EmailStr] = None
     telefone: Optional[str] = None
     cpf: Optional[str] = None
@@ -258,7 +259,9 @@ class FuncionarioUpdate(BaseModel):
         if v is None:
             return v
         import re
+        # Aceita formato HH:MM ou HH:MM:SS
         if re.match(r'^([01]?[0-9]|2[0-3]):[0-5][0-9](:[0-5][0-9])?$', v):
+            # Normaliza para HH:MM removendo segundos se existirem
             return v[:5] if len(v) > 5 else v
         raise ValueError('Horário deve estar no formato HH:MM ou HH:MM:SS (ex: 08:00)')
 
@@ -272,6 +275,7 @@ class FuncionarioUpdate(BaseModel):
             if dia not in dias_validos:
                 raise ValueError(f'Dia inválido: {dia}. Dias válidos: {", ".join(dias_validos)}')
         return v
+
 
 class ProdutoCadastro(BaseModel):
     barcode: str
@@ -291,6 +295,18 @@ class ServicoModel(BaseModel):
     preco: float = Field(..., gt=0, description="Preço do serviço em reais")
     criador_id: Optional[int] = None
 
+class CriarItemVenda(BaseModel):
+    tipo: str
+    id_item: int
+    nome: str
+    quantidade: int
+    preco_unitario: float
+
+class CriarVenda(BaseModel):
+    cliente_id: int
+    forma_pagamento: str
+    status_pagamento: str = "pendente"
+    itens: List[CriarItemVenda]
 
 class AgendamentoBase(BaseModel):
     cliente_id: int

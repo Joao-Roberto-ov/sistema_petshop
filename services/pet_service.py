@@ -26,7 +26,7 @@ class ServicosPet:
         )
         if pet_existente:
             raise HTTPException(status_code=409,
-                                detail="Você já possui um pet cadastrado com o mesmo nome, espécie e raça.")
+                detail="Você já possui um pet cadastrado com o mesmo nome, espécie e raça.")
 
         try:
             self.repo.cadastrar_pet(pet_dados, cliente_id)
