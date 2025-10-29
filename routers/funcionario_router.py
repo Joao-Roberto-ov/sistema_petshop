@@ -41,11 +41,14 @@ async def pegar_id_do_funcionario(token: str = Depends(dupla_autenticacao)) -> i
         )
     return int(user_id)
 
-@router.post("/cadastrar-cliente", status_code=status.HTTP_201_CREATED) # Usa status
+# --- MODIFICAÇÃO: Adiciona verificação de permissão admin ---
+@router.post("/cadastrar-cliente", status_code=status.HTTP_201_CREATED)
 async def cadastrar_cliente_por_funcionario(
     dados_cliente: ClienteCadastroPorFuncionario,
+    admin_id: Annotated[int, Depends(verificar_permissao_admin)],  # Verifica se é admin/gestor
     service: ServicosCliente = Depends(pegar_servicos_cliente)
 ):
+# --- FIM DA MODIFICAÇÃO ---
     try:
         resultado = service.cadastrar_por_funcionario(dados_cliente)
         return {
