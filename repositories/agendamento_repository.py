@@ -1,5 +1,3 @@
-# repositories/agendamento_repository.py
-
 from bancoDeDados import conectar, encerra_conexao
 from datetime import datetime, timezone
 from typing import List, Tuple, Optional
@@ -9,7 +7,7 @@ from psycopg2 import sql # Para construção segura de queries
 class RepositorioAgendamento:
 
     def criar_agendamento(self, cliente_id: int, pet_id: int, servico_id: int, data_hora_inicio: datetime, data_hora_fim: datetime, observacoes: Optional[str] = None, funcionario_id: Optional[int] = None) -> int:
-        """Cria um novo agendamento e retorna o ID."""
+        #cria um novo agendamento e retorna o id
         conn = None
         cursor = None
         try:
@@ -31,29 +29,27 @@ class RepositorioAgendamento:
             if conn:
                 conn.rollback()
             print(f"Erro ao criar agendamento no banco: {e}")
-            # Verifica se é erro de concorrência
-            if e.pgcode == '23505': # Código de erro para unique violation
-                 # Verifica qual constraint falhou
+            #verifica se é erro de concorrencia
+            if e.pgcode == '23505':
+                 #verifica qual constraint ta dando erro
                  if 'agendamentos_funcionario_id_data_hora_inicio_key' in str(e).lower():
                       raise psycopg2.IntegrityError("Conflito: O funcionário selecionado já tem um agendamento neste horário.")
                  elif 'agendamentos_pet_id_data_hora_inicio_key' in str(e).lower():
                       raise psycopg2.IntegrityError("Conflito: Este pet já tem um agendamento neste horário.")
                  else:
                       raise psycopg2.IntegrityError("Conflito de horário ao criar agendamento.") # Mensagem mais genérica
-            raise # Relança outros erros
+            raise
         finally:
             if cursor: cursor.close()
             if conn: encerra_conexao(conn)
 
     def buscar_agendamentos_por_intervalo(self, inicio: datetime, fim: datetime, exclude_id: Optional[int] = None) -> List[Tuple]:
-        """Busca agendamentos que colidem com um intervalo, opcionalmente excluindo um ID."""
+        #procura os agendamentos que colidem com um intervalo, opcionalmente excluindo um id
         conn = None
         cursor = None
         try:
             conn = conectar()
             cursor = conn.cursor()
-
-            # Adiciona seleção de mais colunas para debug, se necessário
             sql_query = """
                 SELECT id, cliente_id, pet_id, servico_id, funcionario_id, data_hora_inicio, data_hora_fim, status
                 FROM Agendamentos
@@ -80,7 +76,7 @@ class RepositorioAgendamento:
             if conn: encerra_conexao(conn)
 
     def buscar_agendamentos_cliente(self, cliente_id: int) -> List[Tuple]:
-        """Busca todos os agendamentos de um cliente específico."""
+        #procura todos os agendamentos de um cliente específico
         conn = None
         cursor = None
         try:
@@ -112,13 +108,12 @@ class RepositorioAgendamento:
             if conn: encerra_conexao(conn)
 
     def buscar_agendamento_por_id(self, agendamento_id: int) -> Optional[Tuple]:
-        """Busca um agendamento específico pelo ID."""
+        #busca um agendamento específico pelo ID
         conn = None
         cursor = None
         try:
             conn = conectar()
             cursor = conn.cursor()
-            # Seleciona também o status_motivo, caso exista
             sql_query = """
                 SELECT id, cliente_id, pet_id, servico_id, data_hora_inicio, data_hora_fim, status, status_motivo
                 FROM Agendamentos
@@ -133,16 +128,14 @@ class RepositorioAgendamento:
             if cursor: cursor.close()
             if conn: encerra_conexao(conn)
 
-    # --- MÉTODO MODIFICADO ---
     def reagendar_agendamento(self, agendamento_id: int, nova_data_hora_inicio: datetime,
-                              nova_data_hora_fim: datetime, motivo: str = "Reagendado pelo cliente") -> bool: # Adicionado parâmetro motivo com valor padrão
-        """Atualiza a data/hora e o motivo de um agendamento existente."""
+                              nova_data_hora_fim: datetime, motivo: str = "Reagendado pelo cliente") -> bool:
+        #atualiza a data, a hora e o motivo de um agendamento existente.
         conn = None
         cursor = None
         try:
             conn = conectar()
             cursor = conn.cursor()
-            # Adiciona status_motivo = %s ao UPDATE
             sql_query = """
                         UPDATE Agendamentos
                         SET data_hora_inicio = %s,
@@ -151,22 +144,19 @@ class RepositorioAgendamento:
                             status_motivo    = %s
                         WHERE id = %s;
                         """
-            # Passa o 'motivo' como parâmetro na execução
             cursor.execute(sql_query, (nova_data_hora_inicio, nova_data_hora_fim, motivo, agendamento_id))
             conn.commit()
-            return cursor.rowcount > 0 # Retorna True se alguma linha foi atualizada
+            return cursor.rowcount > 0
         except psycopg2.Error as e:
             if conn:
                 conn.rollback()
             print(f"Erro ao reagendar agendamento {agendamento_id}: {e}")
-            if e.pgcode == '23505': # Código de erro para violação de chave única
-                raise psycopg2.IntegrityError("Conflito de horário ao reagendar.") # Lança para o service tratar
-            # Considerar relançar outros erros ou retornar False
+            if e.pgcode == '23505':
+                raise psycopg2.IntegrityError("Conflito de horário ao reagendar.")
             return False
         finally:
             if cursor: cursor.close()
             if conn: encerra_conexao(conn)
-    # --- FIM DA MODIFICAÇÃO ---
 
     def atualizar_status_agendamento(self, agendamento_id: int, novo_status: str, motivo: str) -> bool:
         conn = None
@@ -181,7 +171,7 @@ class RepositorioAgendamento:
             """
             cursor.execute(sql_query, (novo_status, motivo, agendamento_id))
             conn.commit()
-            return cursor.rowcount > 0 # Retorna True se alguma linha foi mudada
+            return cursor.rowcount > 0
         except psycopg2.Error as e:
             if conn:
                 conn.rollback()
@@ -192,13 +182,11 @@ class RepositorioAgendamento:
             if conn: encerra_conexao(conn)
 
     def buscar_agendamentos_proximos(self) -> List[Tuple]:
-        """
-        Busca todos os agendamentos futuros (status 'Agendado') para o dashboard de funcionários.
-        Inclui informações necessárias para filtragem por especialidade. (Req 4)
-        """
+         #procura todos os agendamentos futuros para o dashboard de funcionários.
+
         conn = None
         cursor = None
-        agora = datetime.now(timezone.utc) # Pega a hora atual com fuso horário UTC
+        agora = datetime.now(timezone.utc)
         try:
             conn = conectar()
             cursor = conn.cursor()
@@ -256,7 +244,7 @@ class RepositorioAgendamento:
                          JOIN Pets p ON a.pet_id = p.id
                          JOIN Clientes c ON a.cliente_id = c.id
                          LEFT JOIN Funcionarios f ON a.funcionario_id = f.id
-                ORDER BY a.data_hora_inicio DESC; -- Mais recentes primeiro
+                ORDER BY a.data_hora_inicio DESC;
                 """
             cursor.execute(sql_query)
             return cursor.fetchall()
