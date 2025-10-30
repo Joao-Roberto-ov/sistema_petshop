@@ -1,31 +1,25 @@
+# routers/agendamento_router.py
+
 from fastapi import APIRouter, Depends, HTTPException, status
-from datetime import date
-from typing import List, Optional, Annotated  # Adicionado Annotated
-from fastapi.security import OAuth2PasswordBearer  # <-- ADIÇÃO 1
+from datetime import date, datetime # Adicionado datetime para AgendamentoReagendar
+from typing import List, Optional, Annotated
+from fastapi.security import OAuth2PasswordBearer
+import traceback # Adicionado para tratamento de erro
 
 from services.agendamento_service import ServicosAgendamento
 from modelos import AgendamentoCreate, DisponibilidadeResponse, Agendamento, AgendamentoReagendar
-# --- MODIFICAÇÃO DE IMPORTAÇÃO (REQ 1, 4, 6) ---
-from seguranca import pegar_id_do_usuario_logado, verificar_permissao_admin, \
-    decodifica_token  # Trocado verifica_token por decodifica_token
+from seguranca import pegar_id_do_usuario_logado, verificar_permissao_admin, decodifica_token
 
 router = APIRouter(prefix="/api/agendamentos", tags=["Agendamentos"])
 
-# --- ADIÇÃO (Necessário para a nova dependência) ---
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/login")  # Usa a rota de login unificada
-
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/login")
 
 # Dependência para obter o serviço de agendamento
 def pegar_servicos_agendamento():
     return ServicosAgendamento()
 
-
-# --- CORREÇÃO NA DEPENDÊNCIA (REQ 4) ---
-# A função estava a depender de 'verifica_token' incorretamente.
-# Agora depende de 'oauth2_scheme' e usa 'decodifica_token',
-# igual às outras funções de segurança.
 async def verificar_funcionario_logado(token: str = Depends(oauth2_scheme)) -> int:
-    payload = decodifica_token(token)  # Usa decodifica_token para obter o payload
+    payload = decodifica_token(token)
 
     if not payload or payload.get("tipo") != "funcionario":
         raise HTTPException(
@@ -42,17 +36,12 @@ async def verificar_funcionario_logado(token: str = Depends(oauth2_scheme)) -> i
     return int(user_id)
 
 
-# --- FIM DA CORREÇÃO ---
-
-
 @router.get("/disponibilidade", response_model=DisponibilidadeResponse)
 async def rota_buscar_disponibilidade(
         servico_id: int,
         data_consulta: date,
-        agendamento_id_excluir: Optional[int] = None,  # Para reagendamento
+        agendamento_id_excluir: Optional[int] = None,
         service: ServicosAgendamento = Depends(pegar_servicos_agendamento)
-        # Removido o 'current_user_id' daqui, pois a busca pode ser pública
-        # Se precisar de login, adicione: current_user_id: int = Depends(pegar_id_do_usuario_logado)
 ):
     """
     Retorna os horários de início disponíveis para um serviço numa data específica.
@@ -79,7 +68,7 @@ async def rota_buscar_disponibilidade(
 async def rota_criar_agendamento(
         agendamento_data: AgendamentoCreate,
         service: ServicosAgendamento = Depends(pegar_servicos_agendamento),
-        current_user_id: int = Depends(pegar_id_do_usuario_logado)  # Requer login (cliente)
+        current_user_id: int = Depends(pegar_id_do_usuario_logado)
 ):
     """
     Cria um novo agendamento para o cliente logado.
@@ -100,7 +89,7 @@ async def rota_criar_agendamento(
 @router.get("/meus", response_model=List[dict])
 async def rota_listar_meus_agendamentos(
         service: ServicosAgendamento = Depends(pegar_servicos_agendamento),
-        current_user_id: int = Depends(pegar_id_do_usuario_logado)  # Requer login (cliente)
+        current_user_id: int = Depends(pegar_id_do_usuario_logado)
 ):
     """Lista os agendamentos (incluindo cancelados) do cliente logado."""
     try:
@@ -121,14 +110,14 @@ async def rota_reagendar_agendamento(
         agendamento_id: int,
         reagendamento_data: AgendamentoReagendar,
         service: ServicosAgendamento = Depends(pegar_servicos_agendamento),
-        current_user_id: int = Depends(pegar_id_do_usuario_logado)  # Requer login (cliente)
+        current_user_id: int = Depends(pegar_id_do_usuario_logado)
 ):
     """
-    Reagenda um agendamento existente (AC3, AC4).
+    Reagenda um agendamento existente (Cliente).
     Verifica posse, validade do novo horário e conflitos (excluindo a si mesmo).
     """
     try:
-        resultado = service.reagendar_agendamento(
+        resultado = service.reagendar_agendamento( # Chama o método do cliente
             agendamento_id,
             reagendamento_data.nova_data_hora_inicio,
             current_user_id
@@ -148,12 +137,11 @@ async def rota_reagendar_agendamento(
 async def rota_cancelar_agendamento(
         agendamento_id: int,
         service: ServicosAgendamento = Depends(pegar_servicos_agendamento),
-        current_user_id: int = Depends(pegar_id_do_usuario_logado)  # Requer login (cliente)
+        current_user_id: int = Depends(pegar_id_do_usuario_logado)
 ):
     """
-    Cancela um agendamento existente (AC1, AC2, AC4).
-    Apenas o próprio cliente pode cancelar.
-    Aplica regras de negócio de 24h de antecedência.
+    Cancela um agendamento existente (Cliente).
+    Apenas o próprio cliente pode cancelar. Aplica regras de negócio.
     """
     try:
         resultado = service.cancelar_agendamento(agendamento_id, current_user_id)
@@ -168,18 +156,16 @@ async def rota_cancelar_agendamento(
         )
 
 
-# --- NOVAS ROTAS PARA DASHBOARDS (REQ 4 e 6) ---
+# --- ROTAS PARA FUNCIONÁRIOS / GESTORES ---
 
 @router.get("/proximos", response_model=List[dict])
 async def rota_listar_agendamentos_proximos(
-        # Parâmetro sem default (Dependência) vem primeiro
         current_funcionario_id: int = Depends(verificar_funcionario_logado),
-        # Parâmetro com default vem depois
         service: ServicosAgendamento = Depends(pegar_servicos_agendamento)
 ):
     """
     Lista os próximos agendamentos (status 'Agendado' e data futura).
-    Usado pelo dashboard do funcionário. Requer login de funcionário. (Req 4)
+    Usado pelo dashboard do funcionário. Requer login de funcionário.
     """
     try:
         agendamentos = service.listar_agendamentos_proximos()
@@ -196,11 +182,13 @@ async def rota_listar_agendamentos_proximos(
 
 @router.get("/todos-gestor", response_model=List[dict])
 async def rota_listar_todos_agendamentos_gestor(
-        # Parâmetro sem default (Dependência) vem primeiro
         admin_id: Annotated[int, Depends(verificar_permissao_admin)],
-        # Parâmetro com default vem depois
         service: ServicosAgendamento = Depends(pegar_servicos_agendamento)
 ):
+    """
+    Lista TODOS os agendamentos do sistema (passados e futuros, todos os status).
+    Usado pelo dashboard do gestor. Requer permissão de admin (gestor).
+    """
     try:
         agendamentos = service.listar_todos_agendamentos_gestor()
         return agendamentos
@@ -219,7 +207,9 @@ async def rota_cancelar_agendamento_gestor(
     admin_id: Annotated[int, Depends(verificar_permissao_admin)],
     service: ServicosAgendamento = Depends(pegar_servicos_agendamento)
 ):
-
+    """
+    Permite que um Gestor cancele qualquer agendamento futuro.
+    """
     try:
         resultado = service.cancelar_agendamento_gestor(agendamento_id)
         return resultado
@@ -229,5 +219,36 @@ async def rota_cancelar_agendamento_gestor(
         print(f"Erro ao cancelar agendamento (gestor) {agendamento_id}: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Erro interno ao processar o cancelamento."
+            detail="Erro interno ao processar o cancelamento pelo gestor."
         )
+
+# --- ROTA DE REAGENDAMENTO PELO GESTOR (ADICIONADA AQUI) ---
+@router.put("/admin/{agendamento_id}/reagendar", status_code=status.HTTP_200_OK)
+async def rota_reagendar_agendamento_gestor(
+    agendamento_id: int,
+    reagendamento_data: AgendamentoReagendar, # Reutiliza o mesmo modelo de dados
+    admin_id: Annotated[int, Depends(verificar_permissao_admin)], # Garante que é um gestor
+    service: ServicosAgendamento = Depends(pegar_servicos_agendamento)
+):
+    """
+    Permite que um Gestor reagende qualquer agendamento existente.
+    """
+    try:
+        # Chama o método do serviço específico para gestor
+        resultado = service.reagendar_agendamento_gestor(
+            agendamento_id,
+            reagendamento_data.nova_data_hora_inicio
+        )
+        return resultado
+    except HTTPException as e:
+        # Relança exceções HTTP (como 404, 400, 409) vindas do serviço
+        raise e
+    except Exception as e:
+        # Captura erros inesperados
+        print(f"Erro inesperado ao reagendar (gestor) agendamento {agendamento_id}: {e}")
+        traceback.print_exc() # Imprime o stack trace para depuração
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Erro interno ao processar o reagendamento pelo gestor."
+        )
+# --- FIM DA ROTA ADICIONADA ---

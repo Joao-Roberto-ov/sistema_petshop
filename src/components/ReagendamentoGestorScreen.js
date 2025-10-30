@@ -117,7 +117,8 @@ function ReagendamentoGestorScreen({
         }
     }
 
-    // handleSubmit simplificado: SOMENTE reagendamento
+    // --- CÓDIGO SUBSTITUÍDO (DO SNIPPET 1) ---
+    // handleSubmit agora chama a rota /admin/ e tem o tratamento de erro correto
     const handleSubmit = async () => {
         const slotObj = getSelectedSlotObject();
 
@@ -135,14 +136,15 @@ function ReagendamentoGestorScreen({
                 nova_data_hora_inicio: slotObj.inicio
             };
 
-            // ATENÇÃO: Esta rota /reagendar precisa ser adaptada no backend
-            // para permitir que um funcionário (Gestor) a utilize.
-            // Atualmente, ela só permite que o próprio cliente reagende.
+            // --- ALTERAÇÃO DA ROTA AQUI ---
+            // Muda de /agendamentos/{id}/reagendar para /agendamentos/admin/{id}/reagendar
             const response = await axios.put(
-                `/agendamentos/${agendamentoParaReagendar.id}/reagendar`,
+                `/agendamentos/admin/${agendamentoParaReagendar.id}/reagendar`, // Rota do admin
                 reagendarData,
                 { headers: { 'Authorization': `Bearer ${token}` } }
             );
+            // --- FIM DA ALTERAÇÃO ---
+
             setSuccess(response.data.message || 'Agendamento reagendado com sucesso!');
 
             setSelectedSlot('');
@@ -150,11 +152,10 @@ function ReagendamentoGestorScreen({
                  setTimeout(() => onAgendamentoSuccess(), 2000);
              }
         } catch (err) {
-            console.error("Erro ao submeter reagendamento:", err);
+            console.error("Erro ao submeter reagendamento (gestor):", err);
              let errorMsg = `Erro ao reagendar.`;
-             if (err.response?.status === 403) {
-                 errorMsg = "Acesso negado. O backend precisa ser ajustado para permitir que Gestores reagendem.";
-             } else if (err.response?.status === 409) {
+             // Remove a verificação específica de 403, pois a rota admin deve funcionar para gestor
+             if (err.response?.status === 409) {
                  errorMsg = err.response?.data?.detail || 'Ops! Este horário foi ocupado. Por favor, escolha outro.';
                  // Refresca os horários
                  const currentSelectedDate = selectedDate;
@@ -168,6 +169,7 @@ function ReagendamentoGestorScreen({
             setAgendando(false);
         }
     };
+    // --- FIM DO CÓDIGO SUBSTITUÍDO ---
 
     const today = formatDateForInput(new Date());
     const selectedSlotObj = getSelectedSlotObject();

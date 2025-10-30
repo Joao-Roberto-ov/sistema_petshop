@@ -173,7 +173,7 @@ function App() {
 
         const telasCliente = ['dashboard', 'meu-perfil', 'agendar-servico',
                               'checkout', 'visualizar-produtos-cliente',
-                              'pet-cadastro', 'selecionar-horario'];
+                              'pet-cadastro'];
         if (isFuncionarioLogado && telasCliente.includes(currentScreen)) {
             console.warn("Acesso negado: Funcionário tentando acessar área de cliente. Redirecionando para home.");
             navigateToHome(userData, true); return null;
