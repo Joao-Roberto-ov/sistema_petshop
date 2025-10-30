@@ -148,6 +148,7 @@ class RepositorioPet:
         finally:
             if cursor: cursor.close()
             if conn: encerra_conexao(conn)
+            
     def buscar_todos_pets_com_cliente(self):
         """
         Busca todos os pets do sistema com informações do cliente para gestores.
@@ -159,7 +160,9 @@ class RepositorioPet:
             conn = conectar()
             cursor = conn.cursor()
             sql = """
-                SELECT p.id, p.nome, p.tipo, p.raca, p.idade, p.peso, p.sexo_biologico, p.observacoes, p.cliente_id, c.nome as cliente_nome
+                SELECT p.id, p.nome, p.tipo, p.raca, p.idade, p.peso, 
+                    p.sexo_biologico, p.observacoes, p.cliente_id, 
+                    c.nome as cliente_nome
                 FROM Pets p
                 INNER JOIN Clientes c ON p.cliente_id = c.id
                 ORDER BY p.nome, c.nome

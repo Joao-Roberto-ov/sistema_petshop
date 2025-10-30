@@ -24,7 +24,7 @@ import CadastrarProdutoScreen from './components/CadastrarProduto';
 import VisualizarProdutosGestor from './components/VisualizarProdutosGestor';
 import VisualizarProdutosFuncionario from './components/VisualizarProdutosFuncionario';
 import VisualizarProdutosCliente from './components/VisualizarProdutosCliente';
-import VisualizarPetsGestor from './components/VisualizarPetsGestor';
+import VisualizarPets from './components/VisualizarPets';
 import RegistrarVenda from './components/RegistrarVenda';
 import VisualizarServicosCliente from './components/VisualizarServicosCliente';
 import AgendarServicoScreen from './components/AgendarServicoScreen';
@@ -45,11 +45,9 @@ function App() {
     const [checkoutCarrinho, setCheckoutCarrinho] = useState([]);
 
     useEffect(() => {
-
         const urlParams = new URLSearchParams(window.location.search);
         const token = urlParams.get('token');
         if (token && currentScreen !== 'reset-password') {
-
             navigateTo('reset-password');
             return;
         }
@@ -75,9 +73,7 @@ function App() {
             }
         }
 
-
         const handleNavigate = (event) => {
-
             setCurrentScreen(prevScreen => {
                 if (event.detail !== prevScreen) {
                     console.log(`Navegando de ${prevScreen} para ${event.detail}`);
@@ -95,7 +91,6 @@ function App() {
 
     const navigateToHome = (user = userData, forced = false) => {
         const targetScreen = (user?.cargo_id || user?.cargo) ? 'homeFuncionario' : 'home';
-
         navigateTo(targetScreen);
     };
 
@@ -104,11 +99,13 @@ function App() {
             navigateTo('login');
         } else {
             const cargoId = userData?.cargo_id;
-            const cargoString = userData?.cargo?.toUpperCase();
+            const cargoString = userData?.cargo?.toLowerCase();
             let targetScreen = 'dashboard';
 
-            if (cargoId === CARGO.GESTOR || cargoString === 'GESTOR' || cargoString === 'ADMINISTRADOR') {
+            if (cargoId === CARGO.GESTOR || cargoString === 'gestor' || cargoString === 'administrador') {
                 targetScreen = 'dashboard-gestor';
+            } else if (cargoId === CARGO.VETERINARIO || cargoString === 'veterinário' || cargoString === 'veterinario') {
+                targetScreen = 'dashboard-funcionario';
             } else if (cargoId || cargoString) {
                 targetScreen = 'dashboard-funcionario';
             }
@@ -151,50 +148,67 @@ function App() {
 
     const renderScreen = () => {
         if (isLoggedIn && (currentScreen === 'login' || currentScreen === 'signup')) {
-
             navigateToHome();
             return null;
         }
 
         const cargoId = userData?.cargo_id;
-        const cargoString = userData?.cargo;
+        const cargoString = userData?.cargo?.toLowerCase();
         const isFuncionarioLogado = !!(cargoId || cargoString);
         const isClienteLogado = isLoggedIn && !isFuncionarioLogado;
+        
+        // Definições de permissões
+        const isGestor = cargoId === CARGO.GESTOR || cargoString === 'gestor' || cargoString === 'administrador';
+        const isVeterinario = cargoId === CARGO.VETERINARIO || cargoString === 'veterinário' || cargoString === 'veterinario';
+        const isGestorOuVeterinario = isGestor || isVeterinario;
+
+        // Telas que só gestores podem acessar
+        const telasGestor = ['visualizarServicos', 'cadastro-funcionario-completo',
+                            'listar-funcionarios', 'cadastrarProduto',
+                            'visualizar-produtos-gestor', 'funcionario-cadastro-admin', 
+                            'gerenciar-agendamentos'];
+
+        // Telas que gestores E veterinários podem acessar
+        const telasGestorVeterinario = ['visualizar-pets', 'dashboard-gestor'];
+
+        // Telas de funcionário (todos os funcionários)
         const telasFuncionario = ['homeFuncionario', 'dashboard-funcionario', 'dashboard-gestor',
-                                  'visualizarClientes', 'visualizarServicos', 'cadastro-funcionario-completo',
-                                  'listar-funcionarios',
-                                  'visualizar-pets-gestor', 'cadastrarProduto',
-                                  'visualizar-produtos-gestor', 'visualizar-produtos-funcionario', 'registrar-venda',
-                                  'funcionario-cadastro-admin', 'gerenciar-agendamentos'];
+                                  'visualizarClientes', 'registrar-venda',
+                                  'visualizar-produtos-funcionario'];
+
+        // Verificações de permissão
         if (isClienteLogado && telasFuncionario.includes(currentScreen)) {
-            console.warn("Acesso negado: Cliente tentando acessar área de funcionário. Redirecionando para home.");
-            navigateToHome(null, true); return null;
+            navigateToHome(null, true); 
+            return null;
+        }
+
+        if (isFuncionarioLogado) {
+            // Telas exclusivas para gestores
+            if (!isGestor && telasGestor.includes(currentScreen)) {
+                navigateToHome(userData, true); 
+                return null;
+            }
+            
+            // Telas para gestores e veterinários
+            if (!isGestorOuVeterinario && telasGestorVeterinario.includes(currentScreen)) {
+                navigateToHome(userData, true); 
+                return null;
+            }
         }
 
         const telasCliente = ['dashboard', 'meu-perfil', 'agendar-servico',
                               'checkout', 'visualizar-produtos-cliente',
-                              'pet-cadastro'];
+                              'pet-cadastro', 'meus-pets', 'visualizar-servicos-cliente'];
+        
         if (isFuncionarioLogado && telasCliente.includes(currentScreen)) {
-            console.warn("Acesso negado: Funcionário tentando acessar área de cliente. Redirecionando para home.");
-            navigateToHome(userData, true); return null;
-        }
-
-        const isGestor = (cargoId === CARGO.GESTOR || cargoString === 'GESTOR' || cargoString === 'ADMINISTRADOR' || cargoString === 'gestor');
-        const telasGestor = ['dashboard-gestor', 'visualizarServicos', 'cadastro-funcionario-completo',
-                             'listar-funcionarios',
-                             'visualizar-pets-gestor', 'cadastrarProduto',
-                             'visualizar-produtos-gestor', 'funcionario-cadastro-admin', 'gerenciar-agendamentos',
-                             'gerenciar-pets'];
-        if (isFuncionarioLogado && !isGestor && telasGestor.includes(currentScreen)) {
-            console.warn("Acesso negado: Funcionário não-gestor tentando acessar área de gestor.");
-            navigateToHome(userData, true); return null;
+            navigateToHome(userData, true); 
+            return null;
         }
 
         switch (currentScreen) {
             case 'login':
                 return <LoginScreen
                     onLogin={handleLogin}
-
                     onNavigateToSignup={() => navigateTo('signup')}
                     onNavigateToForgotPassword={() => navigateTo('forgot-password')}
                     setUserData={setUserData}
@@ -224,19 +238,19 @@ function App() {
                     onNavigateToAgendarServico={iniciarNovoAgendamento}
                 />;
 
-             case 'dashboard-funcionario':
-                 return <DashboardFuncionario
-                            userData={userData}
-                            onLogout={handleLogout}
-                            onNavigateToHome={() => navigateToHome(userData, true)}
-                        />;
+            case 'dashboard-funcionario':
+                return <DashboardFuncionario
+                    userData={userData}
+                    onLogout={handleLogout}
+                    onNavigateToHome={() => navigateToHome(userData, true)}
+                />;
 
-             case 'dashboard-gestor':
-                  return <DashboardGestor
-                             userData={userData}
-                             onLogout={handleLogout}
-                             onNavigateToHome={() => navigateToHome(userData, true)}
-                         />;
+            case 'dashboard-gestor':
+                return <DashboardGestor
+                    userData={userData}
+                    onLogout={handleLogout}
+                    onNavigateToHome={() => navigateToHome(userData, true)}
+                />;
 
             case 'pet-cadastro':
                 return <PetCadastroScreen
@@ -261,28 +275,27 @@ function App() {
                     onBack={() => navigateToHome(userData)}
                 />;
 
-             case 'homeFuncionario':
-                 return <HomePageFuncionario
-                     userData={userData}
-                     onNavigateToDashboard={navigateToDashboard}
-                     onNavigateToVisualizarClientes={() => navigateTo("visualizarClientes")}
-                     onNavigateToVisualizarServicos={() => navigateTo('visualizarServicos')}
-                     onNavigateToCadastrarProduto={() => navigateTo('cadastrarProduto')}
-                     onNavigateToCadastroFuncionarioCompleto={() => navigateTo('cadastro-funcionario-completo')}
-                     onNavigateToGerenciarFuncionarios={() => navigateTo('listar-funcionarios')}
-                     onNavigateToVisualizarPets={() => navigateTo('visualizar-pets-gestor')}
-                     onNavigateToRegistrarVenda={() => navigateTo('registrar-venda')}
-                     onNavigateToGerenciarAgendamentos={() => navigateTo('gerenciar-agendamentos')}
-                     onNavigateToVisualizarProdutos={() => {
-                         const cargoLower = userData?.cargo?.toLowerCase();
-                         if (cargoLower === 'gestor' || cargoLower === 'administrador') {
-                             navigateTo('visualizar-produtos-gestor');
-                         } else {
-                             navigateTo('visualizar-produtos-funcionario');
-                         }
-                     }}
-                     onLogout={handleLogout}
-                 />;
+            case 'homeFuncionario':
+                return <HomePageFuncionario
+                    userData={userData}
+                    onNavigateToDashboard={navigateToDashboard}
+                    onNavigateToVisualizarClientes={() => navigateTo("visualizarClientes")}
+                    onNavigateToVisualizarServicos={() => navigateTo('visualizarServicos')}
+                    onNavigateToCadastrarProduto={() => navigateTo('cadastrarProduto')}
+                    onNavigateToCadastroFuncionarioCompleto={() => navigateTo('cadastro-funcionario-completo')}
+                    onNavigateToGerenciarFuncionarios={() => navigateTo('listar-funcionarios')}
+                    onNavigateToVisualizarPets={() => navigateTo('visualizar-pets')}
+                    onNavigateToRegistrarVenda={() => navigateTo('registrar-venda')}
+                    onNavigateToGerenciarAgendamentos={() => navigateTo('gerenciar-agendamentos')}
+                    onNavigateToVisualizarProdutos={() => {
+                        if (isGestor) {
+                            navigateTo('visualizar-produtos-gestor');
+                        } else {
+                            navigateTo('visualizar-produtos-funcionario');
+                        }
+                    }}
+                    onLogout={handleLogout}
+                />;
 
             case 'checkout':
                 return <Checkout
@@ -290,9 +303,15 @@ function App() {
                     onBack={() => navigateTo('visualizar-produtos-cliente')}
                 />;
 
-            case 'registrar-venda': return <RegistrarVenda onBack={() => navigateToHome(userData)} />;
-            case 'visualizar-produtos-gestor': return <VisualizarProdutosGestor onBack={() => navigateToHome(userData)} />;
-            case 'visualizar-produtos-funcionario': return <VisualizarProdutosFuncionario onBack={() => navigateToHome(userData)} />;
+            case 'registrar-venda':
+                return <RegistrarVenda onBack={() => navigateToHome(userData)} />;
+
+            case 'visualizar-produtos-gestor':
+                return <VisualizarProdutosGestor onBack={() => navigateToHome(userData)} />;
+
+            case 'visualizar-produtos-funcionario':
+                return <VisualizarProdutosFuncionario onBack={() => navigateToHome(userData)} />;
+
             case 'visualizar-produtos-cliente':
                 return (
                     <VisualizarProdutosCliente
@@ -301,50 +320,61 @@ function App() {
                     />
                 );
 
-            case 'visualizarClientes':return <VisualizarClientes userData={userData} onBack={() => navigateToHome(userData)}/>;
-            case 'visualizar-pets-gestor': return <VisualizarPetsGestor onBack={() => navigateToHome(userData)} />;
+            case 'visualizarClientes':
+                return <VisualizarClientes userData={userData} onBack={() => navigateToHome(userData)}/>;
+
+            case 'visualizar-pets':
+                return <VisualizarPets onBack={() => navigateToHome(userData)} />;
+
             case 'visualizarServicos':
-                 if (!isGestor) {
-                     return (
-                         <div className="container" style={{ padding: '2rem' }}>
-                             <h2>Acesso Negado</h2>
-                             <p>Você não tem permissão para gerenciar serviços.</p>
-                             <button className="btn btn-secondary" onClick={() => navigateToHome(userData)}>Voltar</button>
-                         </div>
-                     );
-                 }
-                 return <VisualizarServicos onBack={() => navigateToHome(userData)} />;
+                if (!isGestor) {
+                    return (
+                        <div className="container" style={{ padding: '2rem' }}>
+                            <h2>Acesso Negado</h2>
+                            <p>Você não tem permissão para gerenciar serviços.</p>
+                            <button className="btn btn-secondary" onClick={() => navigateToHome(userData)}>Voltar</button>
+                        </div>
+                    );
+                }
+                return <VisualizarServicos onBack={() => navigateToHome(userData)} />;
 
             case 'funcionario-cadastro-admin':
-                  return <FuncionarioCadastroAdminScreen onNavigateToHome={() => navigateToHome(userData)} />;
+                return <FuncionarioCadastroAdminScreen onNavigateToHome={() => navigateToHome(userData)} />;
 
-            case 'cadastro-funcionario-completo': return <CadastroFuncionarioCompleto onNavigateToHome={() => navigateToHome(userData)} />;
-            case 'listar-funcionarios': return <GerenciarFuncionarios onNavigateToHome={() => navigateToHome(userData)} />;
-            case 'cadastrarProduto': return <CadastrarProdutoScreen onNavigateToHome={() => navigateToHome(userData)} />;
+            case 'cadastro-funcionario-completo':
+                return <CadastroFuncionarioCompleto onNavigateToHome={() => navigateToHome(userData)} />;
+
+            case 'listar-funcionarios':
+                return <GerenciarFuncionarios onNavigateToHome={() => navigateToHome(userData)} />;
+
+            case 'cadastrarProduto':
+                return <CadastrarProdutoScreen onNavigateToHome={() => navigateToHome(userData)} />;
 
             case 'agendar-servico':
-                 return <AgendarServicoScreen
-                             onBack={() => navigateToHome(userData)}
-                             onNavigateToAgendamento={(servico) => {
-                                 setServicoParaAgendar(servico);
-                                 setAgendamentoParaReagendar(null);
-                                 navigateTo('selecionar-horario');
-                             }}
-                         />;
-             case 'selecionar-horario':
-                  const isReagendamentoGestor = modoReagendamento && isGestor;
+                return <AgendarServicoScreen
+                    onBack={() => navigateToHome(userData)}
+                    onNavigateToAgendamento={(servico) => {
+                        setServicoParaAgendar(servico);
+                        setAgendamentoParaReagendar(null);
+                        navigateTo('selecionar-horario');
+                    }}
+                />;
 
-                  return isReagendamentoGestor ? (
-                     <ReagendamentoGestorScreen
+            case 'selecionar-horario':
+                const modoReagendamento = Boolean(agendamentoParaReagendar);
+                const isReagendamentoGestor = modoReagendamento && isGestor;
+
+                return isReagendamentoGestor ? (
+                    <ReagendamentoGestorScreen
                         agendamentoParaReagendar={agendamentoParaReagendar}
                         onBack={() => navigateTo('gerenciar-agendamentos')}
                         onAgendamentoSuccess={() => {
                             setAgendamentoParaReagendar(null);
                             navigateTo('gerenciar-agendamentos');
                         }}
-                     />
-                  ) : (
-                     <SelecionarHorarioScreen
+                    />
+                ) : (
+                    <SelecionarHorarioScreen
                         servico={servicoParaAgendar}
                         agendamentoParaReagendar={agendamentoParaReagendar}
                         onBack={() => modoReagendamento ? navigateToDashboard() : navigateTo('agendar-servico')}
@@ -353,15 +383,15 @@ function App() {
                             setAgendamentoParaReagendar(null);
                             navigateToDashboard();
                         }}
-                     />
-                  );
-            case 'gerenciar-agendamentos':
-                    return <GerenciarAgendamentosGestor
-                        userData={userData}
-                        onNavigateToHome={() => navigateToHome(userData)}
-                        onIniciarReagendamento={iniciarReagendamento}
-                    />;
+                    />
+                );
 
+            case 'gerenciar-agendamentos':
+                return <GerenciarAgendamentosGestor
+                    userData={userData}
+                    onNavigateToHome={() => navigateToHome(userData)}
+                    onIniciarReagendamento={iniciarReagendamento}
+                />;
 
             case 'home':
             default:
@@ -378,8 +408,6 @@ function App() {
                 />;
         }
     };
-
-    const modoReagendamento = Boolean(agendamentoParaReagendar);
 
     return (
         <div className="App">
@@ -409,4 +437,5 @@ function App() {
         </div>
     );
 }
+
 export default App;

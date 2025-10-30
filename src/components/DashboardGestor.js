@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import axios from '../api/axios';
 import './Dashboard.css';
-import './DashboardGestor.css';
+
 
 const formatarValor = (valor) => {
     return (valor || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });

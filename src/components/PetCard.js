@@ -30,6 +30,7 @@ function PetCard({ pet, onViewHistory, onPetUpdated }) {
     });
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
+    const [loading, setLoading] = useState(false);
 
     useEffect(() => {
         if (isEditing) {
@@ -68,40 +69,71 @@ function PetCard({ pet, onViewHistory, onPetUpdated }) {
         e.preventDefault();
         setError('');
         setSuccess('');
+        setLoading(true);
 
+        // Validações
         if (parseInt(formData.idade) < 0) {
             setError('A idade não pode ser negativa.');
+            setLoading(false);
             return;
         }
 
         if (formData.peso && parseFloat(formData.peso) < 0) {
             setError('O peso não pode ser negativo.');
+            setLoading(false);
             return;
         }
 
         try {
             const token = localStorage.getItem('token');
+            const userData = JSON.parse(localStorage.getItem('userData'));
+            const userType = userData?.tipo;
+            
+            // Preparar dados para envio
             const dataToUpdate = {
                 nome: formData.nome,
                 tipo: formData.tipo,
                 raca: formData.raca,
-                idade: parseInt(formData.idade),
+                idade: formData.idade ? parseInt(formData.idade) : null,
                 peso: formData.peso ? parseFloat(formData.peso) : null,
-                sexo_biologico: formData.sexo_biologico,
-                observacoes: formData.observacoes,
+                sexo_biologico: formData.sexo_biologico || null,
+                observacoes: formData.observacoes || null,
             };
 
+            console.log('Enviando atualização para pet:', pet.id, dataToUpdate);
+
+            // Clientes sempre usam o endpoint /pets/{id}
             const response = await axios.put(`/pets/${pet.id}`, dataToUpdate, {
-                headers: { Authorization: `Bearer ${token}` },
+                headers: { 
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
             });
 
+            console.log('Resposta da atualização:', response.data);
+            
             onPetUpdated(response.data);
             setIsEditing(false);
             setSuccess('Pet atualizado com sucesso!');
             setTimeout(() => setSuccess(''), 3000);
         } catch (err) {
-            setError(err.response?.data?.detail || 'Erro ao salvar.');
-            setTimeout(() => setError(''), 3000);
+            console.error('Erro detalhado ao atualizar pet:', err);
+            console.error('Resposta do erro:', err.response);
+            
+            if (err.response?.status === 403) {
+                setError('Acesso negado: Você não tem permissão para editar este pet.');
+            } else if (err.response?.status === 401) {
+                setError('Sessão expirada. Faça login novamente.');
+            } else if (err.response?.data?.detail) {
+                setError(err.response.data.detail);
+            } else if (err.message) {
+                setError(`Erro: ${err.message}`);
+            } else {
+                setError('Erro ao salvar as alterações. Tente novamente.');
+            }
+            setTimeout(() => setError(''), 5000);
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -136,10 +168,16 @@ function PetCard({ pet, onViewHistory, onPetUpdated }) {
                             setError('');
                             setSuccess('');
                         }}
+                        disabled={loading}
                     >
                         <IconPencil />
                     </button>
-                    <button className="action-btn" title="Ver Histórico" onClick={onViewHistory}>
+                    <button 
+                        className="action-btn" 
+                        title="Ver Histórico" 
+                        onClick={onViewHistory}
+                        disabled={loading}
+                    >
                         <IconHistoryLog />
                     </button>
                 </div>
@@ -151,7 +189,12 @@ function PetCard({ pet, onViewHistory, onPetUpdated }) {
                         <div className="form-grid">
                             <div className="form-group-edit">
                                 <label>Sexo</label>
-                                <select name="sexo_biologico" value={formData.sexo_biologico} onChange={handleInputChange} required>
+                                <select 
+                                    name="sexo_biologico" 
+                                    value={formData.sexo_biologico} 
+                                    onChange={handleInputChange}
+                                    disabled={loading}
+                                >
                                     <option value="">Selecione</option>
                                     <option value="Macho">Macho</option>
                                     <option value="Fêmea">Fêmea</option>
@@ -159,44 +202,57 @@ function PetCard({ pet, onViewHistory, onPetUpdated }) {
                             </div>
 
                             <div className="form-group-edit">
-                                <label>Nome</label>
+                                <label>Nome *</label>
                                 <input
                                     name="nome"
                                     type="text"
                                     value={formData.nome}
                                     onChange={handleInputChange}
                                     required
+                                    disabled={loading}
                                 />
                             </div>
 
                             <div className="form-group-edit">
-                                <label>Tipo</label>
-                                <select name="tipo" value={formData.tipo} onChange={handleInputChange} required>
+                                <label>Tipo *</label>
+                                <select 
+                                    name="tipo" 
+                                    value={formData.tipo} 
+                                    onChange={handleInputChange} 
+                                    required
+                                    disabled={loading}
+                                >
                                     <option value="Cão">Cão</option>
                                     <option value="Gato">Gato</option>
+                                    <option value="Ave">Ave</option>
+                                    <option value="Roedor">Roedor</option>
+                                    <option value="Réptil">Réptil</option>
+                                    <option value="Outro">Outro</option>
                                 </select>
                             </div>
 
                             <div className="form-group-edit">
-                                <label>Raça</label>
+                                <label>Raça *</label>
                                 <input
                                     name="raca"
                                     type="text"
                                     value={formData.raca}
                                     onChange={handleInputChange}
                                     required
+                                    disabled={loading}
                                 />
                             </div>
 
                             <div className="form-group-edit">
-                                <label>Idade</label>
+                                <label>Idade (anos)</label>
                                 <input
                                     name="idade"
                                     type="number"
                                     value={formData.idade}
                                     onChange={handleInputChange}
                                     min="0"
-                                    required
+                                    max="50"
+                                    disabled={loading}
                                 />
                             </div>
 
@@ -209,6 +265,7 @@ function PetCard({ pet, onViewHistory, onPetUpdated }) {
                                     value={formData.peso}
                                     onChange={handleInputChange}
                                     min="0"
+                                    disabled={loading}
                                 />
                             </div>
 
@@ -220,14 +277,31 @@ function PetCard({ pet, onViewHistory, onPetUpdated }) {
                                     onChange={handleInputChange}
                                     rows="3"
                                     placeholder="Informações adicionais sobre o pet (opcional)"
+                                    disabled={loading}
                                 />
                             </div>
                         </div>
-                        {error && <small className="error-text">{error}</small>}
 
                         <div className="edit-buttons">
-                            <button type="submit" className="btn-save">Salvar Alterações</button>
-                            <button type="button" className="btn-cancel" onClick={() => { setIsEditing(false); setError(''); setSuccess('');}}>Cancelar</button>
+                            <button 
+                                type="submit" 
+                                className="btn-save" 
+                                disabled={loading}
+                            >
+                                {loading ? 'Salvando...' : 'Salvar Alterações'}
+                            </button>
+                            <button 
+                                type="button" 
+                                className="btn-cancel" 
+                                onClick={() => { 
+                                    setIsEditing(false); 
+                                    setError(''); 
+                                    setSuccess('');
+                                }}
+                                disabled={loading}
+                            >
+                                Cancelar
+                            </button>
                         </div>
                     </form>
                 ) : (
@@ -252,7 +326,13 @@ function PetCard({ pet, onViewHistory, onPetUpdated }) {
                             <span>Peso</span>
                             <p>{pet.peso ? `${pet.peso} kg` : 'Não informado'}</p>
                         </div>
-                        </div>
+                        {pet.observacoes && (
+                            <div className="info-item full-width">
+                                <span>Observações</span>
+                                <p>{pet.observacoes}</p>
+                            </div>
+                        )}
+                    </div>
                 )}
             </div>
         </div>

@@ -17,7 +17,33 @@ function HomePageFuncionario({
 
     const cargoLower = userData?.cargo?.toLowerCase();
     const cargoId = userData?.cargo_id;
-    const isGestorOuAdmin = cargoId === 1 || cargoLower === 'gestor' || cargoLower === 'administrador';
+    
+    // Lógica corrigida para funcionar com cargo_id numérico E cargo string
+    const isGestorOuAdmin = cargoId === 1 || 
+                           cargoLower === 'gestor' || 
+                           cargoLower === 'administrador' ||
+                           cargoLower?.includes('gestor') ||
+                           cargoLower?.includes('admin');
+    
+    const isVeterinario = cargoId === 3 || 
+                         cargoLower === 'veterinario' || 
+                         cargoLower === 'veterinário' ||
+                         cargoLower?.includes('veterin');
+    
+    // Nova variável para verificar permissão de visualizar pets
+    const podeVisualizarPets = isGestorOuAdmin || isVeterinario;
+
+    // Debug - dentro da função
+    console.log('Dados do usuário (CORRIGIDO):', {
+        userData,
+        cargoId: userData?.cargo_id,
+        cargo: userData?.cargo,
+        cargoLower: cargoLower,
+        isGestorOuAdmin: isGestorOuAdmin,
+        isVeterinario: isVeterinario,
+        podeVisualizarPets: podeVisualizarPets
+    });
+
     const services = [
         {
             icon: '📊',
@@ -58,18 +84,23 @@ function HomePageFuncionario({
                 onClick: onNavigateToGerenciarFuncionarios
             },
             {
-                icon: '🐾',
-                title: "Gerenciar Pets",
-                description: "Visualize e edite as informações de todos os pets.",
-                onClick: onNavigateToVisualizarPets
-            },
-            {
                 icon: '📅',
                 title: "Gerenciar Agendamentos",
                 description: "Visualize, cancele ou reagende os próximos serviços.",
                 onClick: onNavigateToGerenciarAgendamentos
             }
         ] : []), // Fim do bloco condicional para Gestor/Admin
+        
+        // Item que aparece para Veterinário E Gestor
+        ...(podeVisualizarPets ? [
+            {
+                icon: '🐾',
+                title: "Visualizar Pets",
+                description: "Visualize as informações de todos os pets cadastrados.",
+                onClick: onNavigateToVisualizarPets
+            }
+        ] : []),
+        
         // Item que aparece para todos os funcionários
         {
             icon: '🔍',
@@ -109,6 +140,8 @@ function HomePageFuncionario({
                     <p className="animate-fade-in-up">
                         {isGestorOuAdmin
                             ? 'Gerencie clientes, funcionários e mantenha tudo organizado na PetLife.'
+                            : isVeterinario
+                            ? 'Acesse informações dos pets e gerencie seus atendimentos na PetLife.'
                             : 'Gerencie os clientes e mantenha tudo organizado na PetLife.'}
                     </p>
 
@@ -117,11 +150,15 @@ function HomePageFuncionario({
                         <button className="btn btn-outline-white hover-lift" onClick={onNavigateToVisualizarClientes}>
                             👥 Visualizar Clientes
                         </button>
+                        
+                        {/* Botão Cadastrar Funcionário - apenas para gestores */}
                         {isGestorOuAdmin && (
                             <button className="btn btn-outline-white hover-lift" onClick={onNavigateToCadastroFuncionarioCompleto}>
                                 ➕ Cadastrar Funcionário
                             </button>
                         )}
+                        
+                        {/* Botões de Produtos */}
                         {isGestorOuAdmin ? (
                             <>
                                 <button className="btn btn-outline-white hover-lift" onClick={onNavigateToCadastrarProduto}>
@@ -139,6 +176,14 @@ function HomePageFuncionario({
                                 🛒 Consultar Produtos
                             </button>
                         )}
+                        
+                        {/* Botão Visualizar Pets para Veterinários e Gestores */}
+                        {podeVisualizarPets && (
+                            <button className="btn btn-outline-white hover-lift" onClick={onNavigateToVisualizarPets}>
+                                🐾 Visualizar Pets
+                            </button>
+                        )}
+                        
                         <button className="btn btn-outline-white hover-lift" onClick={onLogout}>
                             🚪 Sair
                         </button>
@@ -154,9 +199,10 @@ function HomePageFuncionario({
                             Acesse as ferramentas necessárias para gerenciar o sistema de forma eficiente.
                         </p>
                     </div>
-                    {/* Renderiza os cards baseados na lista 'services' filtrada */}
+                    
+                    {/* Cards de Serviços */}
                     <div className="services-grid">
-                        {services.map((service, index) =>
+                        {services.map((service, index) => (
                             <div
                                 key={index}
                                 className="service-card hover-lift animate-fade-in-up"
@@ -167,7 +213,7 @@ function HomePageFuncionario({
                                 <h3>{service.title}</h3>
                                 <p>{service.description}</p>
                             </div>
-                        )}
+                        ))}
                     </div>
                 </div>
             </section>

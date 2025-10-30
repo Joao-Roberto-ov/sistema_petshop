@@ -32,12 +32,21 @@ function MeusPetsScreen({ onNavigateToPetCadastro }) {
             setError('');
             try {
                 const token = localStorage.getItem('token');
+                const userData = JSON.parse(localStorage.getItem('userData'));
+                
                 const response = await axios.get('/pets', {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
-                // Filtrar apenas pets ativos para exibir na tela do cliente
-                const petsAtivos = response.data.filter(pet => pet.is_active !== false);
-                setPets(petsAtivos);
+                
+                // Para a tela "Meus Pets", SEMPRE adicionar o nome do usuário logado como dono
+                const petsComDono = response.data.map(pet => ({
+                    ...pet,
+                    dono: {
+                        nome: userData?.nome || 'Meu pet'
+                    }
+                }));
+                
+                setPets(petsComDono);
             } catch (err) {
                 setError('Não foi possível buscar os pets. Tente novamente mais tarde.');
             } finally {

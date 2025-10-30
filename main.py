@@ -46,7 +46,7 @@ async def list_routes():
             })
     return routes
 
-app.mount("/static", StaticFiles(directory="build/static"), name="static")
+# app.mount("/static", StaticFiles(directory="build/static"), name="static")
 app.include_router(cliente_router.router)
 app.include_router(funcionario_router.router)
 app.include_router(login_router.router)
