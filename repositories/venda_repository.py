@@ -128,7 +128,7 @@ class RepositorioVenda:
             valores.append(status_pagamento)
 
         if not campos:
-            return False  # Nada a atualizar
+            return False
 
         valores.append(venda_id)
         query = f"UPDATE Vendas SET {', '.join(campos)} WHERE id = %s;"
@@ -145,7 +145,6 @@ class RepositorioVenda:
     def delete_venda(self, venda_id):
         try:
             with self.conn.cursor() as cur:
-                # Exclui itens e venda (ON DELETE CASCADE já cobre, mas é seguro garantir)
                 cur.execute("DELETE FROM ItensVenda WHERE venda_id = %s;", (venda_id,))
                 cur.execute("DELETE FROM Vendas WHERE id = %s;", (venda_id,))
                 self.conn.commit()

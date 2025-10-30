@@ -58,7 +58,6 @@ function MeuPerfilScreen({ onNavigateToHome, onNavigateToForgotPassword }) {
 
     const isNewPasswordValid = Object.values(passwordChecks).every(Boolean);
 
-    // --- FUNÇÕES DE FORMATAÇÃO ADICIONADAS ---
     const formatPhone = (value) => {
         if (!value) return "";
         const digits = value.replace(/\D/g, "").slice(0, 11);
@@ -90,7 +89,6 @@ function MeuPerfilScreen({ onNavigateToHome, onNavigateToForgotPassword }) {
         }
         return digits;
     };
-    // --- FIM DAS FUNÇÕES ---
 
     useEffect(() => {
         const fetchUserData = async () => {
@@ -131,7 +129,7 @@ function MeuPerfilScreen({ onNavigateToHome, onNavigateToForgotPassword }) {
         setLoading(true); setError(''); setSuccess('');
         try {
             const token = localStorage.getItem('token');
-            // Envia os dados sem máscara para a API
+            // Envia os dados sem mascara para a API
             const dataToSend = {
                 ...profileData,
                 telefone: profileData.telefone.replace(/\D/g, ''),

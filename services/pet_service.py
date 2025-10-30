@@ -61,10 +61,8 @@ class ServicosPet:
         return pets
 
     def buscar_historico_do_pet(self, pet_id: int, cliente_id: int):
-        # 1. VERIFICAÇÃO DE SEGURANÇA QUE ESTAVA FALTANDO
         self._verificar_dono_do_pet(pet_id, cliente_id)
 
-        # 2. Lógica original para buscar os dados
         consultas_data = self.repo.buscar_consultas_por_pet_id(pet_id)
         servicos_data = self.repo.buscar_servicos_por_pet_id(pet_id)
 

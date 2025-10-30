@@ -32,7 +32,6 @@ async def forgot_password_request(
             return {"message": "Se um usuário com este e-mail existir, um link de redefinição de senha será enviado.", "status": "success"}
         raise e
     except Exception as e:
-        # Em caso de qualquer outro erro, ainda retorna sucesso genérico para evitar enumeração
         print(f"Erro inesperado ao solicitar redefinição de senha para cliente: {e}")
         return {"message": "Se um usuário com este e-mail existir, um link de redefinição de senha será enviado.", "status": "success"}
 
@@ -53,7 +52,6 @@ async def reset_password_confirm(
         service_cliente.redefinir_senha_com_token(reset_data.token, reset_data.nova_senha)
         return {"message": "Senha redefinida com sucesso!", "status": "success"}
     except HTTPException as e:
-        # Se for um erro de token inválido/expirado, ou usuário não encontrado
         if e.status_code in [status.HTTP_400_BAD_REQUEST, status.HTTP_404_NOT_FOUND, status.HTTP_401_UNAUTHORIZED]:
             raise e
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Erro interno ao redefinir senha de cliente: {e}")

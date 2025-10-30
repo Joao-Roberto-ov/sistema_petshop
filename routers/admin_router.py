@@ -81,7 +81,7 @@ async def rota_desativar_cliente(
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
                                 detail="Apenas funcionários podem acessar esta funcionalidade.")
 
-        cargos_permitidos = [Cargo.GESTOR.value]  # Usando o Enum importado
+        cargos_permitidos = [Cargo.GESTOR.value]
 
         if cargo_id not in cargos_permitidos:
             print(f"❌ Permissão negada - cargo_id {cargo_id} não é GESTOR ({Cargo.GESTOR.value})")

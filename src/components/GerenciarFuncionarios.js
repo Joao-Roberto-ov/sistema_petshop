@@ -25,13 +25,13 @@ const IconActivate = () => (
     </svg>
 );
 
-// ID do Cargo "Funcionário" (adicionado do arquivo 1)
+// ID do cargo Funcionário
 const CARGO_FUNCIONARIO_ID = 2;
 
-// Estilos para especialidades (adicionados do arquivo 1)
+// Estilos para especialidades
 const especialidadeStyles = {
     container: {
-        gridColumn: '1 / -1', // Ocupa a linha inteira
+        gridColumn: '1 / -1',
         backgroundColor: '#f8f9fa',
         border: '1px solid #e9ecef',
         borderRadius: '8px',
@@ -73,20 +73,15 @@ function GerenciarFuncionarios({ onNavigateToHome }) {
     const [searchTerm, setSearchTerm] = useState('');
     const [statusFilter, setStatusFilter] = useState('todos');
     const [cargoFilter, setCargoFilter] = useState('todos');
-
-    // --- NOVO ESTADO (adicionado do arquivo 1) ---
     const [catalogoServicos, setCatalogoServicos] = useState([]);
-
     const [showEditModal, setShowEditModal] = useState(false);
     const [editingFuncionario, setEditingFuncionario] = useState(null);
-    const [editFormData, setEditFormData] = useState({}); // Agora vai incluir 'especialidades'
+    const [editFormData, setEditFormData] = useState({});
     const [editLoading, setEditLoading] = useState(false);
-
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [deletingFuncionario, setDeletingFuncionario] = useState(null);
     const [deleteLoading, setDeleteLoading] = useState(false);
 
-    // Modificado para carregar funcionários E serviços (lógica do arquivo 1)
     useEffect(() => {
         const carregarDadosIniciais = async () => {
             setLoading(true);
@@ -144,7 +139,7 @@ function GerenciarFuncionarios({ onNavigateToHome }) {
         return cargos[cargoId] || 'Cargo Desconhecido';
     };
 
-    // Filtrar funcionários (agora lê 'especialidades' que já está no objeto)
+    // Filtrar funcionários
     const funcionariosFiltrados = Array.isArray(funcionarios) ? funcionarios.filter(funcionario => {
         const matchSearch = !searchTerm ||
             funcionario.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -187,7 +182,6 @@ function GerenciarFuncionarios({ onNavigateToHome }) {
         return data.toLocaleDateString('pt-BR');
     };
 
-    // --- MODIFICADO (lógica do arquivo 1) ---
     const abrirModalEdicao = (funcionario) => {
         setEditingFuncionario(funcionario);
         setEditFormData({
@@ -201,13 +195,11 @@ function GerenciarFuncionarios({ onNavigateToHome }) {
             horario_fim: funcionario.horario_fim,
             dias_trabalho: funcionario.dias_trabalho,
             is_ativo: funcionario.is_ativo,
-            // Adiciona as especialidades ao formulário (garante que seja array)
             especialidades: Array.isArray(funcionario.especialidades) ? funcionario.especialidades : []
         });
         setShowEditModal(true);
     };
 
-    // --- NOVOS HANDLERS PARA O MODAL (adicionados do arquivo 1) ---
     const handleModalEspecialidadeChange = (servicoId) => {
         setEditFormData(prev => {
             const especialidades = prev.especialidades || [];
@@ -226,12 +218,7 @@ function GerenciarFuncionarios({ onNavigateToHome }) {
             setEditFormData(prev => ({ ...prev, especialidades: [] }));
         }
     };
-    // --- FIM DOS NOVOS HANDLERS ---
 
-
-    // --- MODIFICADO (lógica do arquivo 1) ---
-    // Substituído para incluir a lógica de 'especialidades' e
-    // atualizar o estado a partir da RESPOSTA do servidor.
     const salvarEdicao = async () => {
         if (!editingFuncionario) return;
 
@@ -239,7 +226,7 @@ function GerenciarFuncionarios({ onNavigateToHome }) {
             setEditLoading(true);
             const token = localStorage.getItem('token');
 
-            // Prepara os dados para enviar (baseado no modelo FuncionarioUpdate)
+            // Prepara os dados para enviar
             const dadosAtualizacao = {
                 nome: editFormData.nome?.trim(),
                 cargo_id: editFormData.cargo_id,
@@ -251,7 +238,6 @@ function GerenciarFuncionarios({ onNavigateToHome }) {
                 horario_fim: editFormData.horario_fim,
                 dias_trabalho: editFormData.dias_trabalho?.trim(),
                 is_ativo: editFormData.is_ativo,
-                // Adiciona o campo de especialidades
                 especialidades: editFormData.especialidades
             };
 
@@ -284,7 +270,7 @@ function GerenciarFuncionarios({ onNavigateToHome }) {
                 }
             });
 
-            // Atualiza a lista local com os dados retornados (que incluem as especialidades corretas)
+            // Atualiza a lista local com os dados retornados
             const funcionarioAtualizado = response.data.data.funcionario;
             setFuncionarios(prevFuncionarios =>
                 prevFuncionarios.map(f =>
@@ -300,7 +286,6 @@ function GerenciarFuncionarios({ onNavigateToHome }) {
 
         } catch (err) {
             console.error('Erro ao atualizar funcionário:', err);
-            // Mantendo as mensagens de erro mais detalhadas do arquivo 2
             if (err.response?.data?.detail === 'Erro de integridade dos dados.') {
                 alert('❌ Erro: Dados em conflito com o sistema.\n\nSolução: Recarregue a página e verifique os dados.');
             } else if (err.response?.data?.detail?.includes('email')) {
@@ -316,7 +301,7 @@ function GerenciarFuncionarios({ onNavigateToHome }) {
     };
 
 
-    // Funções de Desativar/Ativar (permanecem iguais)
+    // Funções de Desativar/Ativar
     const abrirModalExclusao = (funcionario) => {
         setDeletingFuncionario(funcionario);
         setShowDeleteModal(true);
@@ -786,7 +771,7 @@ function GerenciarFuncionarios({ onNavigateToHome }) {
                 </div>
             </section>
 
-            {/* Modal de Edição (MODIFICADO COM A LÓGICA DO ARQUIVO 1) */}
+            {/* Modal de Edição */}
             {showEditModal && (
                 <div style={{
                     position: 'fixed',
@@ -999,7 +984,7 @@ function GerenciarFuncionarios({ onNavigateToHome }) {
                                 />
                             </div>
 
-                            {/* --- CAMPO CONDICIONAL DE ESPECIALIDADES (adicionado do Arq 1) --- */}
+                            {/* campo condicional das especialidades  */}
                             {editFormData.cargo_id === CARGO_FUNCIONARIO_ID && (
                                 <div style={especialidadeStyles.container}>
                                     <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '600', color: '#2c3e50' }}>Especialidades</label>
@@ -1040,7 +1025,6 @@ function GerenciarFuncionarios({ onNavigateToHome }) {
                                     </div>
                                 </div>
                             )}
-                            {/* --- FIM DO CAMPO CONDICIONAL --- */}
 
                             <div style={{ gridColumn: '1 / -1' }}>
                                 <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: '600', color: '#2c3e50' }}>
@@ -1074,7 +1058,7 @@ function GerenciarFuncionarios({ onNavigateToHome }) {
                 </div>
             )}
 
-            {/* Modal de Confirmação de Exclusão (estilo do arquivo 2 mantido) */}
+            {/* Modal de Confirmação de Exclusão */}
             {showDeleteModal && (
                 <div style={{
                     position: 'fixed',

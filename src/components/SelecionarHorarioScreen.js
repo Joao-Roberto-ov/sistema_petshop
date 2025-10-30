@@ -48,7 +48,7 @@ function SelecionarHorarioScreen({
     const [selectedSlot, setSelectedSlot] = useState('');
     const [especialistas, setEspecialistas] = useState([]);
     const [loadingEspecialistas, setLoadingEspecialistas] = useState(false);
-    const [selectedFuncionarioId, setSelectedFuncionarioId] = useState(''); // '' = Qualquer um
+    const [selectedFuncionarioId, setSelectedFuncionarioId] = useState('');
     const [agendando, setAgendando] = useState(false);
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
@@ -69,9 +69,8 @@ function SelecionarHorarioScreen({
             setError('');
             try {
                 const token = localStorage.getItem('token');
-
+                    //reagendamento do gestor
                 if (modoReagendamento) {
-                    // MODO GESTOR (REAGENDAMENTO): Pula a busca de /users/me (que é só para clientes)
                     setClienteId(agendamentoParaReagendar.cliente_id || true); // Define um valor para passar na validação
                     setSelectedPetId(agendamentoParaReagendar.pet_id);
                     setMeusPets([{
@@ -80,7 +79,7 @@ function SelecionarHorarioScreen({
                         raca: '(Reagendamento)'
                     }]);
                 } else {
-                    // MODO CLIENTE (NOVO AGENDAMENTO): Busca dados do cliente
+                    // novo agendamento cliente: Busca dados do cliente
                     const userDataRes = await axios.get('/users/me', {
                         headers: { 'Authorization': `Bearer ${token}` }
                     });
@@ -96,7 +95,6 @@ function SelecionarHorarioScreen({
                 }
             } catch (err) {
                 console.error("Erro ao buscar dados:", err);
-                // Fallback caso a lógica falhe, mas ainda estamos em modo de reagendamento
                 if (modoReagendamento) {
                     setClienteId(agendamentoParaReagendar.cliente_id || true);
                     setSelectedPetId(agendamentoParaReagendar.pet_id);
@@ -339,9 +337,6 @@ function SelecionarHorarioScreen({
                             className="form-input-agendamento"
                             value={selectedSlot}
                             onChange={(e) => setSelectedSlot(e.target.value)}
-                            // --- CORREÇÃO FINAL APLICADA AQUI ---
-                            // !selectedSlot foi removido.
-                            // !selectedPetId é a chave (que falhava antes)
                             disabled={agendando || loadingSlots || loadingPets || !selectedPetId || (meusPets.length === 0 && !modoReagendamento)}
                         >
                             <option value="">-- Escolha um horário --</option>

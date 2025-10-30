@@ -108,7 +108,7 @@ function RegistrarVenda({ onBack }) {
     }
   };
 
-  // ==================== ESTILOS ====================
+  //estilos
   const styles = {
     container: {
       display: "flex",
@@ -240,7 +240,7 @@ function RegistrarVenda({ onBack }) {
     },
   };
 
-  // ==================== JSX ====================
+  //jsx
   return (
     <div style={styles.container}>
       {/* Painel esquerdo */}

@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from '../api/axios';
 import '../App.css';
-// Adicionado o CSS específico que faltava
 import './FuncionarioCompleto.css';
 
 const CARGOS = {
@@ -25,20 +24,15 @@ function CadastroFuncionarioCompleto({ onNavigateToHome }) {
     const [senha, setSenha] = useState('');
     const [confirmarSenha, setConfirmarSenha] = useState('');
     const [isAtivo, setIsAtivo] = useState(true);
-
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [fieldErrors, setFieldErrors] = useState({});
-
-    // --- NOVOS ESTADOS (do primeiro arquivo) ---
     const [catalogoServicos, setCatalogoServicos] = useState([]);
-    const [especialidades, setEspecialidades] = useState([]); // Guarda os IDs [1, 3, 5]
-    // --- FIM DOS NOVOS ESTADOS ---
-
+    const [especialidades, setEspecialidades] = useState([]);
     const diasSemana = ['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado', 'Domingo'];
 
-    // Busca o catálogo de serviços (do primeiro arquivo)
+    // Busca o catálogo de serviços
     useEffect(() => {
         const fetchServicos = async () => {
             try {
@@ -53,7 +47,7 @@ function CadastroFuncionarioCompleto({ onNavigateToHome }) {
         fetchServicos();
     }, []); // Executa apenas uma vez
 
-    // Função para validar campos obrigatórios (mantida)
+    // Função para validar campos obrigatórios
     const validarCampos = () => {
         const errors = {};
         if (!nome || !nome.trim()) errors.nome = 'Nome completo é obrigatório';
@@ -74,8 +68,6 @@ function CadastroFuncionarioCompleto({ onNavigateToHome }) {
     const handleDiaTrabalhoChange = (dia) => {
         setDiasTrabalho(prev => prev.includes(dia) ? prev.filter(d => d !== dia) : [...prev, dia]);
     };
-
-    // --- NOVOS HANDLERS (do primeiro arquivo) ---
     const handleEspecialidadeChange = (servicoId) => {
         setEspecialidades(prev => {
             if (prev.includes(servicoId)) {
@@ -93,9 +85,8 @@ function CadastroFuncionarioCompleto({ onNavigateToHome }) {
             setEspecialidades([]);
         }
     };
-    // --- FIM DOS NOVOS HANDLERS ---
 
-    // Funções de formatação (mantidas)
+    // Funções de formatação
     const formatarCPF = (value) => {
         const numeros = value.replace(/\D/g, '');
         return numeros.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
@@ -137,7 +128,6 @@ function CadastroFuncionarioCompleto({ onNavigateToHome }) {
                 dias_trabalho: diasTrabalho.join(','),
                 senha: senha,
                 is_ativo: isAtivo,
-                // --- DADO ADICIONADO (do primeiro arquivo) ---
                 especialidades: cargoIdInt === CARGOS.FUNCIONARIO ? especialidades : []
             };
 
@@ -170,13 +160,10 @@ function CadastroFuncionarioCompleto({ onNavigateToHome }) {
             setIsLoading(false);
         }
     };
-
-    // --- LÓGICA AUXILIAR PARA "SERVIÇOS GERAIS" (do primeiro arquivo) ---
     const isServicosGerais = catalogoServicos.length > 0 && especialidades.length === catalogoServicos.length;
 
     return (
         <div className="login-container">
-            {/* Mantido o maxWidth maior do primeiro arquivo */}
             <div className="login-card" style={{ maxWidth: '800px' }}>
                 <div className="login-header">
                     <h1>Cadastro de Funcionário</h1>
@@ -209,7 +196,6 @@ function CadastroFuncionarioCompleto({ onNavigateToHome }) {
                             onChange={(e) => setCargoId(e.target.value)}
                         >
                             <option value="">Selecione um cargo</option>
-                            {/* Ordem dos cargos ajustada para consistência */}
                             <option value={CARGOS.GESTOR}>Gestor</option>
                             <option value={CARGOS.FUNCIONARIO}>Funcionário</option>
                             <option value={CARGOS.VETERINARIO}>Veterinário</option>
@@ -218,7 +204,6 @@ function CadastroFuncionarioCompleto({ onNavigateToHome }) {
                         {fieldErrors.cargoId && <span className="field-error">{fieldErrors.cargoId}</span>}
                     </div>
 
-                    {/* --- CAMPO CONDICIONAL DE ESPECIALIDADES (do primeiro arquivo) --- */}
                     {cargoId === String(CARGOS.FUNCIONARIO) && (
                         <div className="form-group especialidades-container">
                             <label className="form-label">Especialidades (Opcional)</label>
@@ -256,9 +241,6 @@ function CadastroFuncionarioCompleto({ onNavigateToHome }) {
                             </div>
                         </div>
                     )}
-                    {/* --- FIM DO CAMPO CONDICIONAL --- */}
-
-
                     {/* Informações de Contato */}
                     <div className="form-row">
                         <div className="form-group">

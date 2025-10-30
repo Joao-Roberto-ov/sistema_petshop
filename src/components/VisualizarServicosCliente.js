@@ -1,5 +1,3 @@
-// Crie este novo arquivo em: joao-roberto-ov/sistema_petshop/sistema_petshop-dev/src/components/VisualizarServicosCliente.js
-
 import React, { useEffect, useState } from 'react';
 import axios from '../api/axios';
 import './VisualizarServicosCliente.css';

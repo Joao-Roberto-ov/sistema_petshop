@@ -118,7 +118,7 @@ class ServicosCliente:
 
         except HTTPException:
             print("=== HTTPException relançada ===")
-            raise  # Re-raise HTTPExceptions
+            raise
         except Exception as e:
             print(f"=== ERRO CRÍTICO NO LOGIN: {str(e)} ===")
             import traceback
@@ -311,7 +311,7 @@ class ServicosCliente:
 
             user_id, _, user_email = user_db
             token = secrets.token_urlsafe(32) # Gera um token seguro
-            expiracao = datetime.now(timezone.utc) + timedelta(minutes=15) # AC4: Token expira em 15 minutos
+            expiracao = datetime.now(timezone.utc) + timedelta(minutes=15) #token expira em 15 minutos
 
             #armazena o token no banco de dados associado ao cliente
             self.repo.salvar_token_redefinicao(user_id, token, expiracao)

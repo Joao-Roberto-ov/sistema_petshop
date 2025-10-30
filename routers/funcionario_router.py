@@ -41,14 +41,12 @@ async def pegar_id_do_funcionario(token: str = Depends(dupla_autenticacao)) -> i
         )
     return int(user_id)
 
-# --- MODIFICAÇÃO: Adiciona verificação de permissão admin ---
 @router.post("/cadastrar-cliente", status_code=status.HTTP_201_CREATED)
 async def cadastrar_cliente_por_funcionario(
     dados_cliente: ClienteCadastroPorFuncionario,
     admin_id: Annotated[int, Depends(verificar_permissao_admin)],  # Verifica se é admin/gestor
     service: ServicosCliente = Depends(pegar_servicos_cliente)
 ):
-# --- FIM DA MODIFICAÇÃO ---
     try:
         resultado = service.cadastrar_por_funcionario(dados_cliente)
         return {
@@ -62,13 +60,12 @@ async def cadastrar_cliente_por_funcionario(
         traceback.print_exc()
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Ocorreu um erro interno ao cadastrar cliente.")
 
-@router.put("/editar-cliente/{cliente_id}", status_code=status.HTTP_200_OK) # Usa status
+@router.put("/editar-cliente/{cliente_id}", status_code=status.HTTP_200_OK)
 async def editar_cliente_por_funcionario(
     cliente_id: int,
     dados_edicao: ClienteEdicaoPorFuncionario,
-    admin_id: Annotated[int, Depends(verificar_permissao_admin)], # Mantido
+    admin_id: Annotated[int, Depends(verificar_permissao_admin)],
     service: ServicosCliente = Depends(pegar_servicos_cliente)
-    # Removido service_funcionario não utilizado
 ):
     try:
         cliente_editado = service.editar_cliente(
@@ -78,7 +75,7 @@ async def editar_cliente_por_funcionario(
             telefone=dados_edicao.telefone,
             endereco=dados_edicao.endereco
         )
-        if not cliente_editado: # Checagem
+        if not cliente_editado:
              raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Cliente não encontrado ou erro ao editar.")
 
         return {"message": f"Cliente ID {cliente_id} editado com sucesso!"}
@@ -103,7 +100,7 @@ async def login_funcionario(
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Erro interno no servidor durante o login.")
 
 
-@router.post("/cadastrar", status_code=status.HTTP_201_CREATED) # Usa status
+@router.post("/cadastrar", status_code=status.HTTP_201_CREATED)
 async def cadastrar_funcionario(
     dados_funcionario: FuncionarioCadastro,
     admin_id: Annotated[int, Depends(verificar_permissao_admin)],
@@ -184,7 +181,7 @@ async def atualizar_funcionario(
         traceback.print_exc()
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Ocorreu um erro interno ao atualizar funcionário.")
 
-@router.put("/{funcionario_id}/desativar", status_code=status.HTTP_200_OK) # Usa status
+@router.put("/{funcionario_id}/desativar", status_code=status.HTTP_200_OK)
 async def desativar_funcionario_rota(
     funcionario_id: int,
     admin_id: Annotated[int, Depends(verificar_permissao_admin)],
@@ -203,7 +200,7 @@ async def desativar_funcionario_rota(
         traceback.print_exc()
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Ocorreu um erro interno ao desativar funcionário.")
 
-@router.put("/{funcionario_id}/ativar", status_code=status.HTTP_200_OK) # Usa status
+@router.put("/{funcionario_id}/ativar", status_code=status.HTTP_200_OK)
 async def ativar_funcionario_rota(
     funcionario_id: int,
     admin_id: Annotated[int, Depends(verificar_permissao_admin)],
@@ -222,7 +219,7 @@ async def ativar_funcionario_rota(
         traceback.print_exc()
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Ocorreu um erro interno ao ativar funcionário.")
 
-@router.post("/registrar-venda", status_code=status.HTTP_201_CREATED) # Usa status
+@router.post("/registrar-venda", status_code=status.HTTP_201_CREATED)
 async def registrar_venda_por_funcionario(
     dados_venda: CriarVenda,
     funcionario_id: int = Depends(pegar_id_do_funcionario), # Usa o auth helper atualizado

@@ -55,7 +55,7 @@ class RepositorioCliente:
             cursor = conn.cursor()
             sql = "SELECT id FROM Clientes WHERE cpf = %s"
             cursor.execute(sql, (cpf,))
-            return cursor.fetchone()  # retorna None ou (id,)
+            return cursor.fetchone()  # retorna None ou (id)
         finally:
             if cursor: cursor.close()
             if conn: self.encerra_conexao(conn)
@@ -100,7 +100,7 @@ class RepositorioCliente:
                         "telefone": c[3],
                         "endereco": c[4],
                         "cpf": c[5],
-                        "is_ativo": True  # Valor padrão
+                        "is_ativo": True
                     } for c in clientes
                 ]
                 
@@ -127,10 +127,10 @@ class RepositorioCliente:
             coluna_existe = cursor.fetchone()
             
             if coluna_existe:
-                #se a coluna existe, incluir na query
+                #se a coluna existe, inclue na query
                 sql = "SELECT id, nome, email, telefone, endereco, cpf, is_ativo FROM clientes WHERE id = %s"
             else:
-                #se não existe, usar valor padrão
+                #se não existe, usa valor padrão
                 sql = "SELECT id, nome, email, telefone, endereco, cpf FROM clientes WHERE id = %s"
             
             cursor.execute(sql, (user_id,))
@@ -430,8 +430,7 @@ class RepositorioCliente:
                 cursor.execute("ALTER TABLE clientes ADD COLUMN is_ativo BOOLEAN DEFAULT TRUE")
                 conn.commit()
                 print("Coluna 'is_ativo' criada com sucesso")
-            
-            # AGORA atualizar o status
+
             sql = "UPDATE clientes SET is_ativo = %s WHERE id = %s"
             print(f"Executando: {sql} com valores: ({is_ativo}, {cliente_id})")
             cursor.execute(sql, (is_ativo, cliente_id))

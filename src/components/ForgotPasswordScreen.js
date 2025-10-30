@@ -1,4 +1,3 @@
-// ForgotPasswordScreen.js com verificação no frontend
 import React, { useState, useEffect } from 'react';
 import axios from '../api/axios';
 

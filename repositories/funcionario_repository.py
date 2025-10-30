@@ -6,7 +6,7 @@ from psycopg2.extras import execute_values
 class RepositorioFuncionario:
 
     def buscar_pelo_email(self, email: str):
-        #retorna (id, senha) do funcionário pelo email (case-insensitive).
+        #retorna (id, senha) do funcionário pelo email
         conn = None
         cursor = None
 
@@ -25,7 +25,6 @@ class RepositorioFuncionario:
             if conn: encerra_conexao(conn)
 
     def procurar_pelo_id(self, user_id: int):
-        #retorna os dados completos do funcionário pelo id, INCLUINDO especialidades (Req 2).
         conn = None
         cursor = None
 
@@ -73,7 +72,7 @@ class RepositorioFuncionario:
                     "cargo": row[11],
                     "is_ativo": row[12],
                     "data_cadastro": row[13],
-                    "especialidades": row[14]  # Campo adicionado
+                    "especialidades": row[14]
                 }
             return None
         except Exception as e:
@@ -204,8 +203,6 @@ class RepositorioFuncionario:
             if conn: encerra_conexao(conn)
 
     def atualizar_funcionario(self, user_id: int, campos: dict):
-
-        #atualiza dados do funcionario
 
         conn = None
         cursor = None

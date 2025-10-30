@@ -39,8 +39,8 @@ async def listar_todos_pets(
             detail="Apenas funcionários podem acessar esta funcionalidade."
         )
     
-    # Verificar se tem permissão de gestor/admin (cargos 1, 2, 405, 524)
-    cargos_admin = [1, 2, 405, 524]
+    # Verificar se tem permissão de gestor/admin
+    cargos_admin = [1, 2]
     
     if cargo_id not in cargos_admin:
         raise HTTPException(
@@ -86,8 +86,8 @@ async def atualizar_pet_gestor(
             detail="Apenas funcionários podem acessar esta funcionalidade."
         )
     
-    # Verificar se tem permissão de gestor/admin (cargos 1, 2, 405, 524)
-    cargos_admin = [1, 2, 405, 524]
+    # Verificar se tem permissão de gestor/admin (cargos 1, 2)
+    cargos_admin = [1, 2]
     
     if cargo_id not in cargos_admin:
         raise HTTPException(

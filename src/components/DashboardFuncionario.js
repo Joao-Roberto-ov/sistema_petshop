@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import axios from '../api/axios';
-// Reutilizaremos o CSS do Dashboard do cliente por enquanto
 import './Dashboard.css';
 
 function DashboardFuncionario({ userData, onLogout, onNavigateToHome }) {
@@ -9,9 +8,6 @@ function DashboardFuncionario({ userData, onLogout, onNavigateToHome }) {
     const [meusAgendamentos, setMeusAgendamentos] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
-
-    // Assume que userData.especialidades é um array de IDs [1, 5, ...]
-    // Se não vier do App.js, precisaríamos buscar aqui com /funcionario/{userData.id}
     const minhasEspecialidades = userData?.especialidades || [];
     const meuId = userData?.id;
 
@@ -31,41 +27,33 @@ function DashboardFuncionario({ userData, onLogout, onNavigateToHome }) {
                     throw new Error("Token não encontrado.");
                 }
 
-                // Busca TODOS os próximos agendamentos (a filtragem será feita no frontend)
-                // Rota /proximos
+                //procura todos os proximos agendamentos
+                //rota /proximos
                 const response = await axios.get('/agendamentos/proximos', {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
 
                 const todosProximosAgendamentos = response.data || [];
-
-                // --- FILTRAGEM (REQ 4) ---
                 const agendamentosFiltrados = todosProximosAgendamentos.filter(ag => {
-                    // Caso 1: Agendamento está diretamente atribuído a mim
+                    //agendamento está diretamente atribuído ao funcionario
                     if (ag.funcionario_id === meuId) {
                         return true;
                     }
-                    // Caso 2: Agendamento NÃO tem funcionário E o serviço é minha especialidade
+                    //agendamento nao tem funcionário e o serviço é minha especialidade
                     if (ag.funcionario_id === null || ag.funcionario_id === undefined) {
                         // Verifica se o ID do serviço do agendamento está na minha lista
                         if (minhasEspecialidades.includes(ag.servico_id)) {
                             return true;
                         }
                     }
-                    // Caso 3: Funcionário "Serviços Gerais" (sem especialidades)?
-                    // Se o funcionário não tem especialidades E o agendamento está sem funcionário
-                    // Mostra o agendamento? (Vamos implementar isso)
+                    //funcionário "Serviços Gerais"
                     if (ag.funcionario_id === null || ag.funcionario_id === undefined) {
                          if (minhasEspecialidades.length === 0) {
-                              // Se eu sou "Serviços Gerais", vejo todos os agendamentos não atribuídos
                               return true;
                          }
                     }
-
-                    // Se não caiu em nenhum caso acima, não mostra
                     return false;
                 });
-                // --- FIM DA FILTRAGEM ---
 
                 setMeusAgendamentos(agendamentosFiltrados);
 
@@ -88,10 +76,9 @@ function DashboardFuncionario({ userData, onLogout, onNavigateToHome }) {
         };
 
         fetchAgendamentos();
-    // Depende do ID do usuário e do comprimento das especialidades (caso mudem)
     }, [meuId, minhasEspecialidades.length, onLogout]);
 
-    // Função para formatar a data (igual ao Dashboard do cliente)
+    // Função para formatar a data
     const formatarDataHora = (isoString) => {
         const data = new Date(isoString);
         return data.toLocaleDateString('pt-BR', {
@@ -115,16 +102,13 @@ function DashboardFuncionario({ userData, onLogout, onNavigateToHome }) {
     }
 
     return (
-        <div className="dashboard-container"> {/* Reutiliza o container principal */}
-
-            {/* Poderíamos ter uma sidebar aqui também, se necessário */}
+        <div className="dashboard-container">
 
             {/* Conteúdo Principal */}
             <main className="dashboard-main" style={{ gridColumn: '1 / -1' }}> {/* Ocupa toda a largura */}
                  <div className="agendamentos-header">
                     <h2>Meus Próximos Agendamentos</h2>
                     <p>Agendamentos atribuídos a você ou de suas especialidades.</p>
-                    {/* Poderíamos adicionar filtros de data aqui também, se útil */}
                  </div>
 
                  {/* Tabela de Agendamentos */}
@@ -141,7 +125,7 @@ function DashboardFuncionario({ userData, onLogout, onNavigateToHome }) {
                                     <th>Serviço</th>
                                     <th>Cliente</th>
                                     <th>Pet</th>
-                                    <th>Atribuído</th> {/* Mostra se foi direto ou por especialidade */}
+                                    <th>Atribuído</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -154,7 +138,6 @@ function DashboardFuncionario({ userData, onLogout, onNavigateToHome }) {
                                             <span className="agendamento-servico">{ag.servico_nome}</span>
                                         </td>
                                          <td>
-                                            {/* Idealmente teríamos link para detalhes do cliente */}
                                             {ag.cliente_nome}
                                         </td>
                                         <td>
@@ -166,7 +149,6 @@ function DashboardFuncionario({ userData, onLogout, onNavigateToHome }) {
                                                 : <span style={{color: 'orange'}}>Não (Especialidade/Geral)</span>
                                             }
                                         </td>
-                                        {/* Funcionários não têm botões de ação aqui */}
                                     </tr>
                                 ))}
                             </tbody>

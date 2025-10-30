@@ -1,11 +1,9 @@
 import React, { useState } from 'react';
 import axios from '../api/axios';
 
-// Gera as opções de intervalo de peso
+//cria as opções de intervalo de peso
 const gerarOpcoesPeso = () => {
     const opcoes = [];
-    // REMOVIDA a linha que adicionava a opção vazia inicial
-    // opcoes.push({ value: '', label: 'Selecione uma faixa ou Outro' });
     for (let i = 0; i < 30; i += 2) {
         const optionValue = `${i} - ${i + 2} kg`;
         opcoes.push({ value: optionValue, label: optionValue });
@@ -23,7 +21,6 @@ function CadastroPetFuncionario({ clienteId, clienteNome, onSuccess, onCancel })
         sexo_biologico: '',
         observacoes: ''
     });
-    // O estado inicial de pesoSelecionado agora é '', mas não haverá <option> com value=''
     const [pesoSelecionado, setPesoSelecionado] = useState('');
     const [pesoOutroValor, setPesoOutroValor] = useState('');
     const [mostrarInputPeso, setMostrarInputPeso] = useState(false);
@@ -33,7 +30,7 @@ function CadastroPetFuncionario({ clienteId, clienteNome, onSuccess, onCancel })
     const [loading, setLoading] = useState(false);
     const pesoOptions = gerarOpcoesPeso();
 
-    // Remove caracteres não-letra (exceto espaço) e capitaliza o início das palavras.
+    // Remove caracteres não-letra e capitaliza o início das palavras.
     const capitalizeAndCleanInput = (value) => {
         if (!value) return '';
         let cleanedValue = value.replace(/[^a-zA-Z\s]/g, '');
@@ -76,7 +73,6 @@ function CadastroPetFuncionario({ clienteId, clienteNome, onSuccess, onCancel })
         }
     };
 
-    // Handler onKeyDown para o campo Idade
     const handleAgeKeyDown = (e) => {
         if ([46, 8, 9, 27, 13, 35, 36, 37, 39].includes(e.keyCode) ||
             (e.keyCode === 65 && (e.ctrlKey === true || e.metaKey === true)) ||
@@ -129,8 +125,6 @@ function CadastroPetFuncionario({ clienteId, clienteNome, onSuccess, onCancel })
                 console.warn("Não foi possível extrair peso da faixa selecionada:", pesoSelecionado);
             }
         }
-        // Se pesoSelecionado for '', pesoFinal continua null (comportamento de campo opcional mantido)
-
 
         const nomeFinal = formData.nome.trim().replace(/\s{2,}/g, ' ');
         const racaFinal = formData.raca.trim().replace(/\s{2,}/g, ' ');
@@ -274,8 +268,6 @@ function CadastroPetFuncionario({ clienteId, clienteNome, onSuccess, onCancel })
                             value={pesoSelecionado}
                             onChange={handleInputChange}
                         >
-                            {/* --- Opção inicial removida daqui --- */}
-                            {/* Renderiza as opções geradas */}
                             {pesoOptions.map(option => (
                                 <option key={option.value} value={option.value}>
                                     {option.label}
@@ -284,7 +276,7 @@ function CadastroPetFuncionario({ clienteId, clienteNome, onSuccess, onCancel })
                         </select>
                     </div>
 
-                    {/* Campo Peso Numérico (condicional) */}
+                    {/* Campo Peso Numérico */}
                     {mostrarInputPeso && (
                         <div className="form-group">
                             <label className="form-label">Digite o peso exato (kg):</label>

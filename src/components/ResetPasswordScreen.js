@@ -1,9 +1,7 @@
-// Arquivo completo e final para: src/components/ResetPasswordScreen.js
-
 import React, { useState, useEffect } from 'react';
 import axios from '../api/axios';
 
-// --- NOVO: Componente do medidor de força da senha (integrado) ---
+//medidor de força de senha
 const PasswordStrengthMeter = ({ checks }) => {
     const checkItems = [
         { key: 'length', text: 'Pelo menos 8 caracteres' },
@@ -36,7 +34,7 @@ function ResetPasswordScreen({ onNavigateToLogin }) {
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
 
-    // --- NOVO: Estados para o medidor de senha ---
+    //estados para o medidor de senha
     const [isPasswordFocused, setIsPasswordFocused] = useState(false);
     const [passwordChecks, setPasswordChecks] = useState({
         length: false,
@@ -45,7 +43,7 @@ function ResetPasswordScreen({ onNavigateToLogin }) {
         special: false,
     });
 
-    // --- NOVO: Efeito para validar a nova senha em tempo real ---
+    //feito para validar a nova senha em tempo real
     useEffect(() => {
         const validatePassword = (password) => {
             const checks = {
@@ -85,7 +83,7 @@ function ResetPasswordScreen({ onNavigateToLogin }) {
             return;
         }
 
-        // --- ATUALIZADO: Usar validação completa da nova senha ---
+        //usa validação completa da nova senha
         if (!isNewPasswordValid) {
             setError('A nova senha não atende a todos os requisitos de segurança.');
             setLoading(false);

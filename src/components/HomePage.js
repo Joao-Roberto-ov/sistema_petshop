@@ -48,7 +48,7 @@ function HomePage({
                     <div className="hero-buttons">
                         <button
                             className="btn btn-outline-white hover-lift"
-                            onClick={isLoggedIn && !userData?.cargo ? onNavigateToAgendamento : onNavigateToLogin} // Chama onNavigateToAgendamento se for cliente logado, senão login
+                            onClick={isLoggedIn && !userData?.cargo ? onNavigateToAgendamento : onNavigateToLogin}
                         >
                             📅 Agendar Serviço
                         </button>

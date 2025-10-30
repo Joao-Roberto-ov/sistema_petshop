@@ -1,10 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import axios from '../api/axios';
-// Reutiliza os estilos dos dashboards
 import './Dashboard.css';
-import './DashboardGestor.css'; // Reutiliza estilos do gestor também
+import './DashboardGestor.css';
 
-// Ícones (copiados do Dashboard.js)
+// Ícones
 const IconTrash = () => (
     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <polyline points="3 6 5 6 21 6"></polyline>
@@ -70,7 +69,6 @@ function GerenciarAgendamentosGestor({ userData, onNavigateToHome, onIniciarReag
         if (window.confirm(`Tem certeza que deseja cancelar o agendamento de "${agendamento.servico_nome}" para ${agendamento.cliente_nome}?`)) {
             try {
                 const token = localStorage.getItem('token');
-                // *** CHAMA A NOVA ROTA DE ADMIN ***
                 const response = await axios.put(
                     `/agendamentos/admin/${agendamento.id}/cancelar`,
                     {},
@@ -89,9 +87,8 @@ function GerenciarAgendamentosGestor({ userData, onNavigateToHome, onIniciarReag
         }
     };
 
-    // Lógica de Reagendamento (Chama a prop do App.js)
+    // Lógica de Reagendamento
     const handleReagendar = (agendamento) => {
-        // O App.js precisa saber qual agendamento estamos editando
         onIniciarReagendamento(agendamento);
     };
 

@@ -52,8 +52,6 @@ function DashboardGestor({ userData, onLogout, onNavigateToHome }) {
             try {
                 const token = localStorage.getItem('token');
                 if (!token) { throw new Error("Token não encontrado."); }
-
-                //
                 const response = await axios.get('/agendamentos/todos-gestor', {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
@@ -187,7 +185,7 @@ function DashboardGestor({ userData, onLogout, onNavigateToHome }) {
                 </div>
             </div>
 
-            {/* Tabela de Agendamentos (Req 6) */}
+            {/* Tabela de Agendamentos */}
              <main className="dashboard-main" style={{ marginTop: '2rem' }}>
                 <h2>Lista de Agendamentos ({filtroTempo})</h2>
                 {agendamentosFiltrados.length === 0 ? (

@@ -3,20 +3,16 @@ from psycopg2 import IntegrityError
 from seguranca import cria_hash_senha, verifica_senha, cria_token_de_acesso
 from repositories.funcionario_repository import RepositorioFuncionario
 from services.email_service import EmailService
-# --- MODIFICAÇÕES DE IMPORTAÇÃO (do arquivo 1) ---
 from modelos import (
     ForgotPasswordRequest, RedefinirSenhaRequest, FuncionarioCadastroPorAdmin,
     FuncionarioCadastro, FuncionarioUpdate
 )
 from typing import List, Optional
-# --- FIM DAS MODIFICAÇÕES ---
 import secrets
 from datetime import datetime, timedelta, timezone
 from passlib.context import CryptContext
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-
-# (Req 2) ID do Cargo "Funcionário" (Adicionado do arquivo 1)
 CARGO_FUNCIONARIO_ID = 2
 
 
@@ -62,18 +58,15 @@ class ServicosFuncionario:
         except Exception as e:
             raise HTTPException(status_code=500, detail=f"Erro interno no login de funcionário: {str(e)}")
 
-    # --- FUNÇÃO ATUALIZADA (do arquivo 1) ---
     def buscar_pelo_id(self, user_id: int):
         """
         Busca os dados completos do funcionário.
         O repositório já retorna um dict incluindo 'especialidades'.
         """
         try:
-            user_data = self.repo.procurar_pelo_id(user_id)  # Esta função foi modificada no repo
+            user_data = self.repo.procurar_pelo_id(user_id)
             if not user_data:
                 return None
-
-            # Apenas retorna o dicionário que o repositório já montou
             return user_data
 
         except Exception as e:
@@ -126,13 +119,12 @@ class ServicosFuncionario:
         except Exception as e:
             raise HTTPException(status_code=500, detail=f"Erro ao cadastrar funcionário: {str(e)}")
 
-    # --- FUNÇÃO MODIFICADA (do arquivo 1) ---
     def cadastrar_funcionario_completo(self, funcionario_data: FuncionarioCadastro):
         """
         Cadastra um novo funcionário e, se for Cargo 2, guarda as suas especialidades.
         """
         try:
-            # Validação dos campos obrigatórios (AC3)
+            # Validação dos campos obrigatórios
             if not funcionario_data.nome or not funcionario_data.nome.strip():
                 raise HTTPException(status_code=400, detail="Nome é obrigatório e não pode ficar em branco.")
             if not funcionario_data.cargo_id:
@@ -148,7 +140,7 @@ class ServicosFuncionario:
 
             senha_hash = cria_hash_senha(funcionario_data.senha)
 
-            # Cadastro no banco de dados (AC2)
+            # Cadastro no banco de dados
             user_id = self.repo.cadastrar_funcionario(
                 nome=funcionario_data.nome,
                 email=funcionario_data.email,
@@ -164,11 +156,11 @@ class ServicosFuncionario:
                 cargo_funcao=funcionario_data.cargo_funcao
             )
 
-            # --- LÓGICA DE ESPECIALIDADE (REQ 2) (Adicionada do arquivo 1) ---
-            # Se o cargo for "Funcionário" (ID 2) e especialidades foram enviadas
+
+            # Se o cargo for Funcionário e especialidades foram enviadas
             if funcionario_data.especialidades is not None and funcionario_data.cargo_id == CARGO_FUNCIONARIO_ID:
                 self.repo.atualizar_especialidades(user_id, funcionario_data.especialidades)
-            # --- FIM DA LÓGICA ---
+            #
 
             return {
                 "id": user_id,
@@ -212,35 +204,34 @@ class ServicosFuncionario:
         except Exception as e:
             raise HTTPException(status_code=500, detail=f"Erro ao buscar funcionário: {str(e)}")
 
-    # --- FUNÇÃO MODIFICADA (do arquivo 1) ---
     def atualizar_funcionario(self, funcionario_id: int, dados_atualizacao: FuncionarioUpdate):
         """
         Atualiza dados de um funcionário existente, incluindo especialidades (Req 3).
         """
         try:
-            # 1. Separa as especialidades dos outros campos
+            #separa as especialidades dos outros campos
             especialidades_para_atualizar = dados_atualizacao.especialidades
 
-            # 2. Pega os outros campos que foram enviados (excluindo os que são None)
+            #pega os outros campos que foram enviados (excluindo os que são None)
             campos_atualizacao = dados_atualizacao.model_dump(exclude_unset=True, exclude={'especialidades'})
 
             funcionario_atual = self.repo.procurar_pelo_id(funcionario_id)
             if not funcionario_atual:
                 raise HTTPException(status_code=404, detail="Funcionário não encontrado.")
 
-            # 3. Lógica de atualização de especialidades (Req 3)
+            #logica de atualização de especialidades
             if especialidades_para_atualizar is not None:
                 # O cargo final é o novo cargo (se enviado) ou o cargo antigo
                 cargo_final = campos_atualizacao.get('cargo_id', funcionario_atual.get('cargo_id'))
 
                 if cargo_final == CARGO_FUNCIONARIO_ID:
-                    # Se for cargo "Funcionário", atualiza as especialidades
+                    # Se for cargo Funcionário, atualiza as especialidades
                     self.repo.atualizar_especialidades(funcionario_id, especialidades_para_atualizar)
                 else:
-                    # Se mudou para um cargo que não tem especialidade (ex: Gestor), limpa a lista
+                    # Se mudou para um cargo que não tem especialidade, limpa a lista
                     self.repo.atualizar_especialidades(funcionario_id, [])
 
-            # 4. Verifica se há outros campos (além de especialidades) para atualizar
+            #verifica se tem outros campos para atualizar
             if not campos_atualizacao:
                 if especialidades_para_atualizar is not None:
                     # Só atualizou especialidades
@@ -253,13 +244,13 @@ class ServicosFuncionario:
                     # Não enviou nada para atualizar
                     raise HTTPException(status_code=400, detail="Nenhum campo válido fornecido para atualização.")
 
-            # 5. Atualiza os outros campos na tabela Funcionarios
+            #atualiza os outros campos na tabela Funcionarios
             funcionario_atualizado_base = self.repo.atualizar_funcionario(funcionario_id, campos_atualizacao)
 
             if not funcionario_atualizado_base:
                 raise HTTPException(status_code=404, detail="Erro ao atualizar funcionário.")
 
-            # 6. Busca o funcionário completo novamente para retornar os dados corretos
+            #busca o funcionário completo novamente para retornar os dados corretos
             funcionario_final = self.repo.procurar_pelo_id(funcionario_id)
 
             return {
@@ -283,7 +274,6 @@ class ServicosFuncionario:
             traceback.print_exc()
             raise HTTPException(status_code=500, detail=f"Erro ao atualizar funcionário: {str(e)}")
 
-    # --- NOVA FUNÇÃO ADICIONADA (do arquivo 1) ---
     def buscar_especialistas_por_servico(self, servico_id: int):
         """
         Retorna funcionários (ID, Nome) que são especialistas em um serviço (ou todos os funcionários do cargo 2).

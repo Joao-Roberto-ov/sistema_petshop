@@ -59,7 +59,7 @@ class ServicosAgendamento:
             if minutos_restantes <= minutos_disponiveis_manha:
                 # Serviço termina antes do almoço
                 fim_calculado = inicio_servico + timedelta(minutes=minutos_restantes)
-                # Verifica se o término calculado EXATAMENTE no fim da manhã ou antes
+                # Verifica se o término calculado exatamente no fim da manhã ou antes
                 if fim_calculado > fim_manha:
                      return None # Não pode terminar depois do fim da manhã
                 return fim_calculado
@@ -235,12 +235,11 @@ class ServicosAgendamento:
                 # Verifica se a colisão é com o funcionário específico, se um foi escolhido
                 if agendamento_data.funcionario_id:
                     for ag_colidente in agendamentos_colidentes:
-                        # ag_colidente[4] é o funcionario_id do agendamento existente
                         if ag_colidente[4] == agendamento_data.funcionario_id:
                             raise HTTPException(status_code=status.HTTP_409_CONFLICT,
                                                 detail="O funcionário selecionado já está ocupado neste horário.")
                 else:
-                    # Se nenhum funcionário foi escolhido, qualquer colisão geral (independente de funcionário) impede.
+                    # Se nenhum funcionário foi escolhido, qualquer colisão geral impede
                     raise HTTPException(status_code=status.HTTP_409_CONFLICT,
                                         detail="O horário solicitado já está ocupado.")
 
@@ -339,9 +338,9 @@ class ServicosAgendamento:
         diferenca_tempo = agendamento["data_hora_inicio"] - agora
         motivo_cancelamento = ""
         if diferenca_tempo > timedelta(hours=24):
-            motivo_cancelamento = "Cancelado pelo cliente com antecedência." # Simplificado
+            motivo_cancelamento = "Cancelado pelo cliente com antecedência."
         else:
-            motivo_cancelamento = "Cancelado pelo cliente com menos de 24h." # Simplificado
+            motivo_cancelamento = "Cancelado pelo cliente com menos de 24h."
 
         # Atualiza o status no banco
         sucesso = self.repo_agendamento.atualizar_status_agendamento(

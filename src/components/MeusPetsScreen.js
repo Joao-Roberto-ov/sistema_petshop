@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from '../api/axios';
 import PetCard from './PetCard';
 import PetHistoryModal from './PetHistoryModal';
-import './MeusPetsScreen.css'; // O CSS correspondente está abaixo
+import './MeusPetsScreen.css';
 
 // --- Ícones SVG para um visual mais limpo ---
 const IconPlus = () => (

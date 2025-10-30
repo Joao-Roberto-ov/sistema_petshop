@@ -158,8 +158,7 @@ async def rota_listar_agendamentos_proximos(
         service: ServicosAgendamento = Depends(pegar_servicos_agendamento)
 ):
 
-    #lista os próximos agendamentos (Agendado e datas futuras)
-    #usa isso pelo dashboard do funcionário
+    #lista os próximos agendamentos (Agendado e datas futuras), usa isso pelo dashboard do funcionário
 
     try:
         agendamentos = service.listar_agendamentos_proximos()
@@ -180,8 +179,7 @@ async def rota_listar_todos_agendamentos_gestor(
         service: ServicosAgendamento = Depends(pegar_servicos_agendamento)
 ):
 
-    #mostra todos os agendamentos do sistema (passados e futuros, cancelados e ativos)
-    #usa isso pelo dashboard do gestor
+    #mostra todos os agendamentos do sistema (passados e futuros, cancelados e ativos), usa isso pelo dashboard do gestor
 
     try:
         agendamentos = service.listar_todos_agendamentos_gestor()
@@ -234,7 +232,7 @@ async def rota_reagendar_agendamento_gestor(
     except Exception as e:
         # Captura erros inesperados
         print(f"Erro inesperado ao reagendar (gestor) agendamento {agendamento_id}: {e}")
-        traceback.print_exc() # Imprime o stack trace para depuração
+        traceback.print_exc()
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Erro interno ao processar o reagendamento pelo gestor."

@@ -347,7 +347,7 @@ function App() {
                      <SelecionarHorarioScreen
                         servico={servicoParaAgendar}
                         agendamentoParaReagendar={agendamentoParaReagendar}
-                        onBack={() => modoReagendamento ? navigateToDashboard() : navigateTo('agendar-servico')} // Go back appropriately
+                        onBack={() => modoReagendamento ? navigateToDashboard() : navigateTo('agendar-servico')}
                         onAgendamentoSuccess={() => {
                             setServicoParaAgendar(null);
                             setAgendamentoParaReagendar(null);

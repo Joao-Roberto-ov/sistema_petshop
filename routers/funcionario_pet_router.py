@@ -1,9 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
-from fastapi.security import OAuth2PasswordBearer
-from typing import Annotated
 from modelos import PetCadastroFuncionario
 from services.pet_service import ServicosPet
-from seguranca import verificar_permissao_atendente
+
 
 router = APIRouter(prefix="/api/funcionario", tags=["Funcionario - Pets"])
 
@@ -13,7 +11,6 @@ def pegar_servicos_pet():
 @router.post("/pets", status_code=status.HTTP_201_CREATED)
 async def cadastrar_pet_por_funcionario(
     pet_dados: PetCadastroFuncionario,
-    atendente_id: Annotated[int, Depends(verificar_permissao_atendente)],
     service: ServicosPet = Depends(pegar_servicos_pet)
 ):
     try:

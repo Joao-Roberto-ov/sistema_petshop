@@ -4,7 +4,6 @@ import axios from '../api/axios';
 function PetCadastroScreen({ onNavigateToHome, cliente, onBack }) {
     const [formData, setFormData] = useState({
         nome: '',
-        // Renomeado 'especie' para 'tipo' para corresponder ao backend/modelo Pydantic
         tipo: 'Cão',
         raca: '',
         idade: '',
@@ -72,7 +71,7 @@ function PetCadastroScreen({ onNavigateToHome, cliente, onBack }) {
 
             let url = '/pets';
 
-            // Verifica se está cadastrando como funcionário (se a prop 'cliente' foi passada)
+            // Verifica se está cadastrando como funcionário
             if (cliente) {
                 url = '/pets/funcionario'; // Rota para funcionário cadastrar pet para cliente
                 dadosParaEnviar.cliente_id = cliente.id; // Adiciona o ID do cliente
@@ -93,25 +92,19 @@ function PetCadastroScreen({ onNavigateToHome, cliente, onBack }) {
                 sexo_biologico: '',
                 observacoes: ''
             });
-             // Chamar onBack ou onNavigateToHome aqui se desejar fechar/navegar após sucesso
-             // if (onBack) onBack(); else if (onNavigateToHome) onNavigateToHome();
 
         } catch (err) {
-            // --- CORREÇÃO AQUI ---
             let errorMessage = 'Erro ao cadastrar o pet.'; // Mensagem padrão
             if (err.response?.data?.detail) {
-                // Se 'detail' for um array (erro de validação Pydantic), pega a primeira mensagem
                 if (Array.isArray(err.response.data.detail)) {
                     errorMessage = err.response.data.detail[0]?.msg || errorMessage;
                 }
-                // Se 'detail' for uma string
                 else if (typeof err.response.data.detail === 'string') {
                     errorMessage = err.response.data.detail;
                 }
             }
             setError(errorMessage); // Salva apenas a string da mensagem no estado
-            // --- FIM DA CORREÇÃO ---
-            setTimeout(() => setError(''), 3000); // Mantém o timeout
+            setTimeout(() => setError(''), 3000);
         } finally {
             setLoading(false);
         }
@@ -125,7 +118,6 @@ function PetCadastroScreen({ onNavigateToHome, cliente, onBack }) {
                     {/* Exibe o nome do cliente se estiver cadastrando como funcionário */}
                     <p>{cliente ? `Para o cliente: ${cliente.nome}` : 'Preencha as informações do seu companheiro.'}</p>
                 </div>
-                {/* Agora 'error' será sempre uma string, corrigindo o erro de renderização */}
                 {error && <div className="error-message">{error}</div>}
                 {success && <div className="success-message">{success}</div>}
                 <form onSubmit={handleSubmit}>
@@ -140,11 +132,10 @@ function PetCadastroScreen({ onNavigateToHome, cliente, onBack }) {
                             required
                         />
                     </div>
-                    {/* Campo 'especie' renomeado para 'tipo' */}
                     <div className="form-group">
                         <label className="form-label">Tipo *</label>
                         <select
-                            name="tipo" // Mudou de 'especie' para 'tipo'
+                            name="tipo"
                             className="form-input"
                             value={formData.tipo}
                             onChange={handleInputChange}
@@ -152,7 +143,6 @@ function PetCadastroScreen({ onNavigateToHome, cliente, onBack }) {
                         >
                             <option value="Cão">Cão</option>
                             <option value="Gato">Gato</option>
-                            {/* Adicione outras opções se necessário */}
                         </select>
                     </div>
                     <div className="form-group">
@@ -176,7 +166,7 @@ function PetCadastroScreen({ onNavigateToHome, cliente, onBack }) {
                         <input
                             type="number"
                             name="peso"
-                            step="0.1" // Permite decimais para peso
+                            step="0.1"
                             className="form-input"
                             value={formData.peso}
                             onChange={handleInputChange}
@@ -195,7 +185,6 @@ function PetCadastroScreen({ onNavigateToHome, cliente, onBack }) {
                             <option value="">Selecione</option>
                             <option value="Macho">Macho</option>
                             <option value="Fêmea">Fêmea</option>
-                            {/* <option value="Não Informado">Não Informado</option> */}
                         </select>
                     </div>
 

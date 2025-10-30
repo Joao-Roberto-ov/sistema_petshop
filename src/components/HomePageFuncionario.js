@@ -4,26 +4,20 @@ function HomePageFuncionario({
     userData,
     onNavigateToVisualizarClientes,
     onNavigateToCadastrarProduto,
-    // onNavigateToFuncionarioCadastroAdmin, // Removido para padronizar com o primeiro arquivo
     onNavigateToCadastroFuncionarioCompleto,
     onNavigateToGerenciarFuncionarios,
     onNavigateToVisualizarProdutos,
     onNavigateToVisualizarServicos,
     onNavigateToVisualizarPets,
-    onNavigateToRegistrarVenda, // Prop mantida do segundo arquivo
+    onNavigateToRegistrarVenda,
     onLogout,
-    // Novas props adicionadas do primeiro arquivo
     onNavigateToDashboard,
     onNavigateToGerenciarAgendamentos
 }) {
 
-    // Lógica de permissão robusta (do primeiro arquivo)
     const cargoLower = userData?.cargo?.toLowerCase();
     const cargoId = userData?.cargo_id;
-    // Considera GESTOR ou ADMINISTRADOR como admin/gestor
     const isGestorOuAdmin = cargoId === 1 || cargoLower === 'gestor' || cargoLower === 'administrador';
-
-    // Lista de serviços unificada
     const services = [
         {
             icon: '📊',
@@ -37,7 +31,6 @@ function HomePageFuncionario({
             description: "Gerencie e visualize todos os clientes cadastrados no sistema.",
             onClick: onNavigateToVisualizarClientes
         },
-        // Mantido do segundo arquivo
         {
             icon: '🛒',
             title: "Registrar Venda",
@@ -70,7 +63,6 @@ function HomePageFuncionario({
                 description: "Visualize e edite as informações de todos os pets.",
                 onClick: onNavigateToVisualizarPets
             },
-            // *** ALTERAÇÃO: "Gerenciar Agendamentos" agora está dentro do bloco condicional ***
             {
                 icon: '📅',
                 title: "Gerenciar Agendamentos",
@@ -87,7 +79,6 @@ function HomePageFuncionario({
                 : "Consulte disponibilidade e preços de produtos.",
             onClick: onNavigateToVisualizarProdutos
         },
-        // *** REMOVIDO: O item "Gerenciar Agendamentos" foi movido para o bloco condicional acima ***
     ];
 
     const differentials = [
@@ -121,7 +112,7 @@ function HomePageFuncionario({
                             : 'Gerencie os clientes e mantenha tudo organizado na PetLife.'}
                     </p>
 
-                    {/* Botões do Hero (sem alterações aqui, a lógica principal está nos cards) */}
+                    {/* Botões do Hero */}
                     <div className="hero-buttons">
                         <button className="btn btn-outline-white hover-lift" onClick={onNavigateToVisualizarClientes}>
                             👥 Visualizar Clientes

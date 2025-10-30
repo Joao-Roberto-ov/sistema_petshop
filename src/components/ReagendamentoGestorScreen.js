@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import axios from '../api/axios';
-// Reutiliza o CSS do componente original
 import './SelecionarHorarioScreen.css';
 
 // Ícones
@@ -17,14 +16,13 @@ const IconPencil = () => (
     </svg>
 );
 
-// Este componente é focado APENAS em reagendamento pelo Gestor.
+
 function ReagendamentoGestorScreen({
-    agendamentoParaReagendar, // Prop é obrigatória
+    agendamentoParaReagendar,
     onBack,
     onAgendamentoSuccess
 }) {
 
-    // Deriva detalhes do serviço APENAS do agendamento
     const servicoDetalhes = useMemo(() => {
         if (!agendamentoParaReagendar) return null;
         return {
@@ -55,7 +53,7 @@ function ReagendamentoGestorScreen({
         } catch { return 'Inválido'; }
     };
 
-    // useEffect simplificado: Pega dados do pet e cliente direto da prop
+    //pega os dados do pet e cliente direto da prop
     useEffect(() => {
         setLoadingPets(true);
         setError('');
@@ -91,7 +89,7 @@ function ReagendamentoGestorScreen({
                 const params = {
                     servico_id: servicoDetalhes.id,
                     data_consulta: selectedDate,
-                    agendamento_id_excluir: agendamentoParaReagendar.id // Sempre inclui ID para excluir
+                    agendamento_id_excluir: agendamentoParaReagendar.id //sempre inclui id para excluir
                 };
 
                 const response = await axios.get('/agendamentos/disponibilidade', { params });
@@ -117,8 +115,6 @@ function ReagendamentoGestorScreen({
         }
     }
 
-    // --- CÓDIGO SUBSTITUÍDO (DO SNIPPET 1) ---
-    // handleSubmit agora chama a rota /admin/ e tem o tratamento de erro correto
     const handleSubmit = async () => {
         const slotObj = getSelectedSlotObject();
 
@@ -136,14 +132,11 @@ function ReagendamentoGestorScreen({
                 nova_data_hora_inicio: slotObj.inicio
             };
 
-            // --- ALTERAÇÃO DA ROTA AQUI ---
-            // Muda de /agendamentos/{id}/reagendar para /agendamentos/admin/{id}/reagendar
             const response = await axios.put(
-                `/agendamentos/admin/${agendamentoParaReagendar.id}/reagendar`, // Rota do admin
+                `/agendamentos/admin/${agendamentoParaReagendar.id}/reagendar`, //rota do admin
                 reagendarData,
                 { headers: { 'Authorization': `Bearer ${token}` } }
             );
-            // --- FIM DA ALTERAÇÃO ---
 
             setSuccess(response.data.message || 'Agendamento reagendado com sucesso!');
 
@@ -154,10 +147,9 @@ function ReagendamentoGestorScreen({
         } catch (err) {
             console.error("Erro ao submeter reagendamento (gestor):", err);
              let errorMsg = `Erro ao reagendar.`;
-             // Remove a verificação específica de 403, pois a rota admin deve funcionar para gestor
              if (err.response?.status === 409) {
                  errorMsg = err.response?.data?.detail || 'Ops! Este horário foi ocupado. Por favor, escolha outro.';
-                 // Refresca os horários
+                 //atualiza os horários
                  const currentSelectedDate = selectedDate;
                  setSelectedDate('');
                  setTimeout(() => setSelectedDate(currentSelectedDate), 10);
@@ -169,7 +161,6 @@ function ReagendamentoGestorScreen({
             setAgendando(false);
         }
     };
-    // --- FIM DO CÓDIGO SUBSTITUÍDO ---
 
     const today = formatDateForInput(new Date());
     const selectedSlotObj = getSelectedSlotObject();
@@ -197,7 +188,7 @@ function ReagendamentoGestorScreen({
                             className="form-input-agendamento"
                             value={selectedPetId}
                             onChange={(e) => setSelectedPetId(e.target.value)}
-                            disabled={true} // Sempre desabilitado no modo reagendamento
+                            disabled={true}
                         >
                             {meusPets.map(pet => (<option key={pet.id} value={pet.id}>{pet.nome} {pet.raca ? `(${pet.raca})` : ''}</option>))}
                         </select>
@@ -208,9 +199,6 @@ function ReagendamentoGestorScreen({
                     <label htmlFor="dateSelect">Selecione a Nova Data:</label>
                     <input type="date" id="dateSelect" className="form-input-agendamento" value={selectedDate} min={today} onChange={(e) => setSelectedDate(e.target.value)} disabled={agendando}/>
                 </div>
-
-                {/* Campo de especialista removido */}
-
                 <div className="form-group-agendamento">
                     <label htmlFor="slotSelect">Selecione o Novo Horário de Início:</label>
                     {loadingSlots ? (<p>Verificando horários...</p>)
@@ -221,7 +209,6 @@ function ReagendamentoGestorScreen({
                             className="form-input-agendamento"
                             value={selectedSlot}
                             onChange={(e) => setSelectedSlot(e.target.value)}
-                            // Correção Final: remove !selectedSlot E verifica !selectedPetId
                             disabled={agendando || loadingSlots || loadingPets || !selectedPetId}
                         >
                             <option value="">-- Escolha um horário --</option>
@@ -236,7 +223,6 @@ function ReagendamentoGestorScreen({
                 <button
                     className="btn-confirmar-agendamento"
                     onClick={handleSubmit}
-                    // A validação do botão (que exige !selectedSlot) está correta
                     disabled={agendando || loadingSlots || loadingPets || !selectedPetId || !selectedSlot}
                     style={{backgroundColor: '#3498db'}}
                 >

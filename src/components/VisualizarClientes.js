@@ -450,7 +450,7 @@ function VisualizarClientes({ userData, onBack }) {
                                             </td>
                                             <td style={{ padding: '1rem', textAlign: 'center' }}>
                                                 <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center' }}>
-                                                    {/* Botão Cadastrar Pet - SEMPRE VISÍVEL para todos os funcionários */}
+                                                    {/* Botão Cadastrar Pet, sempre visivel para todos os funcionarios */}
                                                     <button
                                                         style={{
                                                             background: 'linear-gradient(135deg, #2ecc71 0%, #27ae60 100%)',
@@ -482,7 +482,7 @@ function VisualizarClientes({ userData, onBack }) {
                                                         <IconPaw />
                                                     </button>
 
-                                                    {/* Botões de Editar e Ativar/Desativar - APENAS PARA GESTORES */}
+                                                    {/* Botões de editar, ativar e desativar - apenas para gestor */}
                                                     {isGestor && (
                                                         <>
                                                             <button

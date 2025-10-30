@@ -72,7 +72,6 @@ function Dashboard({
         };
 
         fetchData();
-    //adicionado agendamentos.length para recarregar se um item for cancelado
     }, [onLogout, agendamentos.length]);
 
     const formatarDataHora = (isoString) => {

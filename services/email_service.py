@@ -1,5 +1,3 @@
-# Arquivo completo e corrigido para: services/email_service.py
-
 import os
 import smtplib
 from email.mime.text import MIMEText
