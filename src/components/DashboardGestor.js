@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import axios from '../api/axios';
 import './Dashboard.css';
-
+import './DashboardGestor.css'; // O CSS existente já é importado
 
 const formatarValor = (valor) => {
     return (valor || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -40,29 +40,53 @@ const getDataLimite = (filtro) => {
 function DashboardGestor({ userData, onLogout, onNavigateToHome }) {
 
     const [todosAgendamentos, setTodosAgendamentos] = useState([]);
+    const [todasVendas, setTodasVendas] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
+
+    // --- INÍCIO DA MODIFICAÇÃO (Filtros) ---
     const [filtroTempo, setFiltroTempo] = useState('mes'); // Filtro padrão: Mês atual
-    const [filtroStatus, setFiltroStatus] = useState('todos'); // Filtro de status
+
+    // Filtros de status separados
+    const [filtroStatusAgendamento, setFiltroStatusAgendamento] = useState('todos');
+    const [filtroStatusVenda, setFiltroStatusVenda] = useState('todos');
+
+    const [filtroBuscaVendas, setFiltroBuscaVendas] = useState('');
+    // --- FIM DA MODIFICAÇÃO (Filtros) ---
 
     useEffect(() => {
-        const fetchAgendamentos = async () => {
+        // Renomeado para fetchData para buscar ambos
+        const fetchData = async () => {
             setLoading(true);
             setError('');
             try {
                 const token = localStorage.getItem('token');
                 if (!token) { throw new Error("Token não encontrado."); }
-                const response = await axios.get('/agendamentos/todos-gestor', {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
 
-                const agendamentosOrdenados = (response.data || []).sort((a, b) =>
+                // Busca dados de agendamentos e vendas em paralelo
+                const [respAgendamentos, respVendas] = await Promise.all([
+                    axios.get('/agendamentos/todos-gestor', {
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    }),
+                    axios.get('/vendas/', { // Endpoint de Vendas
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    })
+                ]);
+
+                // Processa Agendamentos
+                const agendamentosOrdenados = (respAgendamentos.data || []).sort((a, b) =>
                     new Date(b.data_hora_inicio) - new Date(a.data_hora_inicio)
                 );
                 setTodosAgendamentos(agendamentosOrdenados);
 
+                // Processa Vendas
+                const vendasOrdenadas = (respVendas.data || []).sort((a, b) =>
+                    new Date(b.criado_em) - new Date(a.criado_em)
+                );
+                setTodasVendas(vendasOrdenadas);
+
             } catch (err) {
-                console.error("Erro ao buscar agendamentos do gestor:", err);
+                console.error("Erro ao buscar dados do gestor:", err);
                 if (err.response && (err.response.status === 401 || err.response.status === 403)) {
                     setError('Sessão expirada ou acesso negado. Faça login novamente.');
                     onLogout();
@@ -70,24 +94,24 @@ function DashboardGestor({ userData, onLogout, onNavigateToHome }) {
                      setError('Sessão inválida. Faça login novamente.');
                      onLogout();
                 } else {
-                    setError('Erro ao carregar os agendamentos.');
+                    setError('Erro ao carregar os dados.');
                 }
             } finally {
                 setLoading(false);
             }
         };
 
-        fetchAgendamentos();
+        fetchData();
     }, [onLogout]);
 
-    //calcula o total e filtra a lista para exibição
-    const { agendamentosFiltrados, totalPrevisto, totalRealizado } = useMemo(() => {
+    // useMemo para Agendamentos (cálculos de serviços)
+    const { agendamentosFiltrados, totalPrevisto, totalServicosRealizados } = useMemo(() => {
         const agora = new Date();
         const { inicio, fim } = getDataLimite(filtroTempo);
 
         let filtrados = todosAgendamentos;
 
-        //filtra por tempo
+        // Filtra por tempo
         if (inicio && fim) {
              const inicioAjustado = filtroTempo === 'mes' ? inicio : new Date(inicio.setHours(0, 0, 0, 0));
              const fimAjustado = new Date(fim.setHours(23, 59, 59, 999));
@@ -98,16 +122,16 @@ function DashboardGestor({ userData, onLogout, onNavigateToHome }) {
              });
         }
 
-        //filtra por status
-        if (filtroStatus !== 'todos') {
-             filtrados = filtrados.filter(ag => ag.status.toLowerCase() === filtroStatus.toLowerCase());
+        // --- MODIFICAÇÃO (Usa filtroStatusAgendamento) ---
+        if (filtroStatusAgendamento !== 'todos') {
+             filtrados = filtrados.filter(ag => ag.status.toLowerCase() === filtroStatusAgendamento.toLowerCase());
         }
+        // --- FIM DA MODIFICAÇÃO ---
 
-        //calcula o total com base nos agendamentos filtrados por tempo
+        // Calcula o total com base nos agendamentos filtrados por tempo
         let previsto = 0;
         let realizado = 0;
 
-        //determina a base de calculo
         const agendamentosParaCalculo = (inicio && fim)
              ? todosAgendamentos.filter(ag => {
                    const dataAg = new Date(ag.data_hora_inicio);
@@ -126,9 +150,56 @@ function DashboardGestor({ userData, onLogout, onNavigateToHome }) {
             }
         });
 
-        return { agendamentosFiltrados: filtrados, totalPrevisto: previsto, totalRealizado: realizado };
+        return { agendamentosFiltrados: filtrados, totalPrevisto: previsto, totalServicosRealizados: realizado };
 
-    }, [todosAgendamentos, filtroTempo, filtroStatus]);
+    }, [todosAgendamentos, filtroTempo, filtroStatusAgendamento]); // <-- Dependência atualizada
+
+    // NOVO useMemo para Vendas (cálculos de vendas/produtos)
+    const { vendasFiltradas, totalVendasPagas } = useMemo(() => {
+        const { inicio, fim } = getDataLimite(filtroTempo);
+
+        let vendasParaCalculo = todasVendas;
+
+        // 1. Filtrar Vendas por TEMPO
+        if (inicio && fim) {
+            const inicioAjustado = filtroTempo === 'mes' ? inicio : new Date(inicio.setHours(0, 0, 0, 0));
+            const fimAjustado = new Date(fim.setHours(23, 59, 59, 999));
+
+            vendasParaCalculo = todasVendas.filter(v => {
+                const dataVenda = new Date(v.criado_em);
+                return dataVenda >= inicioAjustado && dataVenda <= fimAjustado;
+            });
+        }
+
+        // 2. Calcular Total de Vendas (Apenas 'pago')
+        const totalPagas = vendasParaCalculo
+            .filter(v => v.status_pagamento === 'pago')
+            .reduce((acc, v) => acc + (parseFloat(v.total) || 0), 0);
+
+        // 3. Filtrar Vendas para a TABELA (considerando status e busca)
+        const filtradas = vendasParaCalculo.filter(v => {
+            // --- MODIFICAÇÃO (Usa filtroStatusVenda) ---
+            if (filtroStatusVenda !== 'todos' && v.status_pagamento.toLowerCase() !== filtroStatusVenda.toLowerCase()) {
+                return false;
+            }
+            // --- FIM DA MODIFICAÇÃO ---
+
+            // Filtro de Busca (Cliente, Funcionário, Forma de Pgto)
+            if (filtroBuscaVendas) {
+                const f = filtroBuscaVendas.toLowerCase();
+                return (
+                    (v.cliente_nome && v.cliente_nome.toLowerCase().includes(f)) ||
+                    (v.funcionario_nome && v.funcionario_nome.toLowerCase().includes(f)) ||
+                    (v.forma_pagamento && v.forma_pagamento.toLowerCase().includes(f))
+                );
+            }
+            return true;
+        });
+
+        return { vendasFiltradas: filtradas, totalVendasPagas: totalPagas };
+
+    }, [todasVendas, filtroTempo, filtroStatusVenda, filtroBuscaVendas]); // <-- Dependência atualizada
+
 
     if (loading) {
         return <div className="loading-message">Carregando Dashboard do Gestor...</div>;
@@ -147,26 +218,33 @@ function DashboardGestor({ userData, onLogout, onNavigateToHome }) {
 
             <div className="summary-cards">
                 <div className="card card-previsto">
-                    <h3>Valor Previsto ({filtroTempo === 'todos' ? 'Total Futuro' : filtroTempo})</h3>
+                    <h3>Serviços Previstos ({filtroTempo === 'todos' ? 'Total Futuro' : filtroTempo})</h3>
                     <p>{formatarValor(totalPrevisto)}</p>
                     <span>Agendamentos futuros</span>
                 </div>
                 <div className="card card-realizado">
-                    <h3>Valor Realizado ({filtroTempo})</h3>
-                    <p>{formatarValor(totalRealizado)}</p>
-                    <span>Agendamentos concluídos</span>
+                    <h3>Serviços Concluídos ({filtroTempo})</h3>
+                    <p>{formatarValor(totalServicosRealizados)}</p>
+                    <span>Agendamentos (status Realizado)</span>
+                </div>
+                <div className="card card-realizado">
+                    <h3>Vendas Pagas ({filtroTempo})</h3>
+                    <p>{formatarValor(totalVendasPagas)}</p>
+                    <span>Checkout + Balcão (status Pago)</span>
                 </div>
                  <div className="card card-total-agendamentos">
                     <h3>Agendamentos ({filtroTempo})</h3>
                     <p>{agendamentosFiltrados.length}</p>
-                    <span>Listados abaixo ({filtroStatus})</span>
+                    {/* --- MODIFICAÇÃO (Texto do card) --- */}
+                    <span>Listados abaixo ({filtroStatusAgendamento})</span>
                 </div>
             </div>
 
-            {/* Filtros da Tabela */}
+
+            {/* --- MODIFICAÇÃO (Filtro de Período Único) --- */}
             <div className="table-filters">
                  <div>
-                    <label>Período:</label>
+                    <label>Período (Geral):</label>
                     <select value={filtroTempo} onChange={(e) => setFiltroTempo(e.target.value)}>
                         <option value="7dias">Próximos 7 dias</option>
                         <option value="14dias">Próximos 14 dias</option>
@@ -174,20 +252,28 @@ function DashboardGestor({ userData, onLogout, onNavigateToHome }) {
                         <option value="todos">Todos</option>
                     </select>
                 </div>
-                 <div>
-                    <label>Status:</label>
-                    <select value={filtroStatus} onChange={(e) => setFiltroStatus(e.target.value)}>
-                        <option value="todos">Todos</option>
-                        <option value="Agendado">Agendado</option>
-                        <option value="Realizado">Realizado</option>
-                        <option value="Cancelado">Cancelado</option>
-                    </select>
-                </div>
+                 {/* O Filtro de Status Geral foi removido daqui */}
             </div>
+            {/* --- FIM DA MODIFICAÇÃO --- */}
 
             {/* Tabela de Agendamentos */}
              <main className="dashboard-main" style={{ marginTop: '2rem' }}>
                 <h2>Lista de Agendamentos ({filtroTempo})</h2>
+
+                {/* --- MODIFICAÇÃO (Filtro de Status Agendamento) --- */}
+                <div className="table-filters" style={{ maxWidth: '400px', marginTop: '1rem' }}>
+                    <div>
+                        <label>Status Agendamento:</label>
+                        <select value={filtroStatusAgendamento} onChange={(e) => setFiltroStatusAgendamento(e.target.value)}>
+                            <option value="todos">Todos</option>
+                            <option value="Agendado">Agendado</option>
+                            <option value="Realizado">Realizado</option>
+                            <option value="Cancelado">Cancelado</option>
+                        </select>
+                    </div>
+                </div>
+                {/* --- FIM DA MODIFICAÇÃO --- */}
+
                 {agendamentosFiltrados.length === 0 ? (
                     <div className="no-agendamentos">
                         <p>Nenhum agendamento encontrado para os filtros selecionados.</p>
@@ -230,6 +316,81 @@ function DashboardGestor({ userData, onLogout, onNavigateToHome }) {
                 )}
              </main>
 
+            {/* Tabela de Vendas */}
+            <main className="dashboard-main" style={{ marginTop: '2rem' }}>
+                <h2>Lista de Vendas e Compras ({filtroTempo})</h2>
+
+                {/* --- MODIFICAÇÃO (Filtros de Vendas) --- */}
+                <div className="table-filters" style={{ maxWidth: '800px', display: 'flex', flexWrap: 'wrap', gap: '1rem', marginTop: '1rem' }}>
+                    {/* Filtro de Busca Específico para Vendas */}
+                    <div style={{ flex: '2 1 300px' }}>
+                        <label>Buscar Vendas:</label>
+                        <input
+                            type="text"
+                            placeholder="Cliente, funcionário, pgto..."
+                            className="form-input"
+                            value={filtroBuscaVendas}
+                            onChange={(e) => setFiltroBuscaVendas(e.target.value)}
+                            style={{ width: '100%' }}
+                        />
+                    </div>
+                    {/* Filtro de Status Específico para Vendas */}
+                    <div style={{ flex: '1 1 200px' }}>
+                        <label>Status Venda:</label>
+                        <select
+                            value={filtroStatusVenda}
+                            onChange={(e) => setFiltroStatusVenda(e.target.value)}
+                            style={{ width: '100%' }}
+                            className="form-input" // Aplicando classe para consistência
+                        >
+                            <option value="todos">Todos</option>
+                            <option value="pago">Pago</option>
+                            <option value="pendente">Pendente</option>
+                        </select>
+                    </div>
+                </div>
+                {/* --- FIM DA MODIFICAÇÃO --- */}
+
+
+                {vendasFiltradas.length === 0 ? (
+                    <div className="no-agendamentos">
+                        <p>Nenhuma venda encontrada para os filtros selecionados.</p>
+                    </div>
+                ) : (
+                    <div style={{ overflowX: 'auto' }}>
+                        <table className="agendamentos-table gestor-table">
+                            <thead>
+                                <tr>
+                                    <th>Data / Hora</th>
+                                    <th>Cliente</th>
+                                    <th>Funcionário (Balcão)</th>
+                                    <th>Forma Pgto.</th>
+                                    <th>Total (R$)</th>
+                                    <th>Status Pgto.</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {vendasFiltradas.map(v => (
+                                    <tr key={v.id} className={`status-${v.status_pagamento.toLowerCase()}`}>
+                                        <td className="agendamento-data">
+                                            {formatarDataHora(v.criado_em)}
+                                        </td>
+                                        <td>{v.cliente_nome}</td>
+                                        <td>{v.funcionario_nome}</td>
+                                        <td>{v.forma_pagamento}</td>
+                                        <td className="agendamento-valor">{formatarValor(v.total)}</td>
+                                        <td>
+                                            <span className={`agendamento-status ${v.status_pagamento.toLowerCase()}`}>
+                                                {v.status_pagamento}
+                                            </span>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                )}
+            </main>
         </div>
     );
 }

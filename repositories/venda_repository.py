@@ -88,30 +88,46 @@ class RepositorioVenda:
         except Exception as e:
             raise e
 
+    # --- INÍCIO DA MODIFICAÇÃO ---
     def get_all_vendas(self):
         try:
             with self.conn.cursor() as cur:
+                # Query atualizada para buscar nomes de cliente e funcionário
                 cur.execute("""
-                    SELECT id, funcionario_id, cliente_id, total, forma_pagamento, status_pagamento, criado_em
-                    FROM Vendas
-                    ORDER BY criado_em DESC;
+                    SELECT 
+                        v.id,
+                        v.total,
+                        v.forma_pagamento,
+                        v.status_pagamento,
+                        v.criado_em,
+                        c.id as cliente_id,
+                        c.nome as cliente_nome,
+                        f.id as funcionario_id,
+                        f.nome as funcionario_nome
+                    FROM Vendas v
+                    LEFT JOIN Clientes c ON v.cliente_id = c.id
+                    LEFT JOIN Funcionarios f ON v.funcionario_id = f.id
+                    ORDER BY v.criado_em DESC;
                 """)
                 vendas = cur.fetchall()
 
                 return [
                     {
                         "id": v[0],
-                        "funcionario_id": v[1],
-                        "cliente_id": v[2],
-                        "total": v[3],
-                        "forma_pagamento": v[4],
-                        "status_pagamento": v[5],
-                        "criado_em": v[6]
+                        "total": v[1],
+                        "forma_pagamento": v[2],
+                        "status_pagamento": v[3],
+                        "criado_em": v[4],
+                        "cliente_id": v[5],
+                        "cliente_nome": v[6] or 'Cliente (Checkout)', # Fallback para vendas de checkout
+                        "funcionario_id": v[7],
+                        "funcionario_nome": v[8] or 'N/A (Checkout)' # Fallback para vendas de checkout
                     }
                     for v in vendas
                 ]
         except Exception as e:
             raise e
+    # --- FIM DA MODIFICAÇÃO ---
 
     def update_venda(self, venda_id, forma_pagamento=None, total=None, status_pagamento=None):
         campos = []
