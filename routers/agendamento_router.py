@@ -237,3 +237,29 @@ async def rota_reagendar_agendamento_gestor(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Erro interno ao processar o reagendamento pelo gestor."
         )
+
+# --- INÍCIO DA NOVA ROTA ---
+@router.put("/{agendamento_id}/assumir", status_code=status.HTTP_200_OK)
+async def rota_assumir_agendamento(
+    agendamento_id: int,
+    funcionario_id: int = Depends(verificar_funcionario_logado),
+    service: ServicosAgendamento = Depends(pegar_servicos_agendamento)
+):
+    """
+    Permite que um funcionário logado assuma um agendamento vago.
+    """
+    try:
+        resultado = service.assumir_agendamento(agendamento_id, funcionario_id)
+        return resultado
+    except HTTPException as e:
+        # Se o erro for 409 (Conflito), retorna a mensagem específica
+        if e.status_code == 409:
+            raise HTTPException(status_code=409, detail=e.detail)
+        raise e
+    except Exception as e:
+        print(f"Erro inesperado ao assumir agendamento {agendamento_id}: {e}")
+        traceback.print_exc()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Erro interno ao processar a solicitação."
+        )

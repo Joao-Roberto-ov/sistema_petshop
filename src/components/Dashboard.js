@@ -88,26 +88,48 @@ function Dashboard({
 
     const filtrarAgendamentos = () => {
         const agora = new Date();
-        let futuros = agendamentos.filter(ag =>
-            new Date(ag.data_hora_inicio) > agora && ag.status === 'Agendado'
-        );
 
-        if (filtroAgendamento === 'todos') {
-            return futuros;
+        let filtrados = agendamentos.filter(ag => {
+            const dataAg = new Date(ag.data_hora_inicio);
+            if (ag.status === 'Agendado' || ag.status === 'C/ Ausência') {
+                return true;
+            }
+            if (filtroAgendamento === 'todos') return true;
+
+            const dataLimite = new Date(agora);
+            if (filtroAgendamento === '7dias') dataLimite.setDate(agora.getDate() + 7);
+            if (filtroAgendamento === '14dias') dataLimite.setDate(agora.getDate() + 14);
+            if (filtroAgendamento === 'mes') dataLimite.setDate(agora.getDate() + 30);
+
+            const dataInicioFiltro = new Date();
+            dataInicioFiltro.setDate(agora.getDate() - 30);
+
+            return dataAg >= dataInicioFiltro && dataAg <= dataLimite;
+        });
+
+        if (filtroAgendamento !== 'todos' && filtroAgendamento !== 'passados') {
+             const dataLimite = new Date(agora);
+             if (filtroAgendamento === '7dias') dataLimite.setDate(agora.getDate() + 7);
+             if (filtroAgendamento === '14dias') dataLimite.setDate(agora.getDate() + 14);
+             if (filtroAgendamento === 'mes') dataLimite.setDate(agora.getDate() + 30);
+
+             filtrados = agendamentos.filter(ag => {
+                 const dataAg = new Date(ag.data_hora_inicio);
+                 return dataAg >= agora && dataAg <= dataLimite;
+             });
         }
-        const dataLimite = new Date(agora);
-        if (filtroAgendamento === '7dias') {
-            dataLimite.setDate(agora.getDate() + 7);
-        } else if (filtroAgendamento === '14dias') {
-            dataLimite.setDate(agora.getDate() + 14);
-        } else if (filtroAgendamento === 'mes') {
-            dataLimite.setMonth(agora.getMonth() + 1);
-            dataLimite.setDate(0);
+
+        if (filtroAgendamento === 'passados') {
+             filtrados = agendamentos.filter(ag => {
+                 return ag.status === 'C/ Ausência' || ag.status === 'Cancelado' || (ag.status === 'Realizado');
+             });
         }
-        return futuros.filter(ag => new Date(ag.data_hora_inicio) <= dataLimite);
+
+        return filtrados;
     };
 
     const agendamentosFiltrados = filtrarAgendamentos();
+
     const handleCancelar = async (agendamento) => {
         const agora = new Date();
         const dataInicio = new Date(agendamento.data_hora_inicio);
@@ -144,6 +166,18 @@ function Dashboard({
     const handleReagendar = (agendamento) => {
         onIniciarReagendamento(agendamento);
     };
+
+    // --- INÍCIO DA MODIFICAÇÃO (Função getStatusClass CORRIGIDA) ---
+    const getStatusClass = (status) => {
+        if (!status) return 'desconhecido';
+        // Trata o caso especial "C/ Ausência"
+        if (status.toLowerCase() === 'c/ ausência') {
+            return 'c-ausencia';
+        }
+        // Trata os outros casos
+        return status.toLowerCase().replace(/[\s/]/g, '-');
+    };
+    // --- FIM DA MODIFICAÇÃO ---
 
     if (loading) {
         return (
@@ -186,7 +220,7 @@ function Dashboard({
 
                 <main className="dashboard-main">
                     <div className="agendamentos-header">
-                        <h2>Próximos Agendamentos</h2>
+                        <h2>Meus Agendamentos</h2>
                         <div className="filter-buttons">
                             <button
                                 className={`filter-btn ${filtroAgendamento === '7dias' ? 'active' : ''}`}
@@ -201,19 +235,19 @@ function Dashboard({
                             <button
                                 className={`filter-btn ${filtroAgendamento === 'mes' ? 'active' : ''}`}
                                 onClick={() => setFiltroAgendamento('mes')}>
-                                No Mês
+                                Próximos 30 dias
                             </button>
                             <button
-                                className={`filter-btn ${filtroAgendamento === 'todos' ? 'active' : ''}`}
-                                onClick={() => setFiltroAgendamento('todos')}>
-                                Todos
+                                className={`filter-btn ${filtroAgendamento === 'passados' ? 'active' : ''}`}
+                                onClick={() => setFiltroAgendamento('passados')}>
+                                Histórico
                             </button>
                         </div>
                     </div>
 
                     {agendamentosFiltrados.length === 0 ? (
                         <div className="no-agendamentos">
-                            <p>Sem agendamentos próximos para o período selecionado.</p>
+                            <p>Sem agendamentos para o período selecionado.</p>
                         </div>
                     ) : (
                         <div style={{ overflowX: 'auto' }}>
@@ -223,6 +257,7 @@ function Dashboard({
                                         <th>Data / Hora</th>
                                         <th>Serviço</th>
                                         <th>Pet</th>
+                                        <th>Funcionário</th>
                                         <th>Status</th>
                                         <th>Ações</th>
                                     </tr>
@@ -240,12 +275,17 @@ function Dashboard({
                                                 <span className="agendamento-pet">{ag.pet_nome}</span>
                                             </td>
                                             <td>
-                                                <span className={`agendamento-status ${ag.status.toLowerCase()}`}>
+                                                <span style={{ fontStyle: 'italic', color: '#555' }}>
+                                                    {ag.funcionario_nome || 'Aguardando'}
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <span className={`agendamento-status ${getStatusClass(ag.status)}`}>
                                                     {ag.status}
                                                 </span>
                                             </td>
                                             <td>
-                                                {ag.status === 'Agendado' && (
+                                                {ag.status === 'Agendado' ? (
                                                     <div className="action-buttons">
                                                         <button
                                                             className="action-btn btn-cancelar"
@@ -262,6 +302,8 @@ function Dashboard({
                                                             <IconPencil />
                                                         </button>
                                                     </div>
+                                                ) : (
+                                                    <span>—</span>
                                                 )}
                                             </td>
                                         </tr>

@@ -10,6 +10,10 @@ function DashboardFuncionario({ userData, onLogout, onNavigateToHome }) {
     const [error, setError] = useState('');
     const minhasEspecialidades = userData?.especialidades || [];
     const meuId = userData?.id;
+    // --- INÍCIO DA MODIFICAÇÃO ---
+    const [loadingAction, setLoadingAction] = useState(null); // Para desabilitar o botão
+    // --- FIM DA MODIFICAÇÃO ---
+
 
     useEffect(() => {
         const fetchAgendamentos = async () => {
@@ -93,6 +97,48 @@ function DashboardFuncionario({ userData, onLogout, onNavigateToHome }) {
         return cargos[cargoId] || 'Desconhecido';
     };
 
+    // --- INÍCIO DA NOVA FUNÇÃO ---
+    const handleAssumir = async (agendamentoId) => {
+        setLoadingAction(agendamentoId);
+        setError('');
+        try {
+            const token = localStorage.getItem('token');
+            const response = await axios.put(
+                `/agendamentos/${agendamentoId}/assumir`,
+                {}, // Corpo vazio
+                { headers: { 'Authorization': `Bearer ${token}` } }
+            );
+
+            // Atualiza o estado local para refletir a mudança imediatamente
+            setMeusAgendamentos(prevAgendamentos =>
+                prevAgendamentos.map(ag => {
+                    if (ag.id === agendamentoId) {
+                        return {
+                            ...ag,
+                            funcionario_id: response.data.funcionario_id,
+                            funcionario_nome: response.data.funcionario_nome,
+                        };
+                    }
+                    return ag;
+                })
+            );
+
+        } catch (err) {
+            console.error("Erro ao assumir agendamento:", err);
+            // Mostra o erro de conflito (se outro funcionário assumiu)
+            if (err.response?.status === 409) {
+                 setError(err.response.data.detail || "Este agendamento já foi assumido.");
+                 // Remove o item da lista, pois não pertence mais a este funcionário
+                 setMeusAgendamentos(prev => prev.filter(ag => ag.id !== agendamentoId));
+            } else {
+                 setError(err.response?.data?.detail || "Erro ao assumir o agendamento.");
+            }
+        } finally {
+            setLoadingAction(null);
+        }
+    };
+    // --- FIM DA NOVA FUNÇÃO ---
+
     if (loading) {
         return <div className="loading-message">Carregando seus agendamentos...</div>;
     }
@@ -111,6 +157,9 @@ function DashboardFuncionario({ userData, onLogout, onNavigateToHome }) {
                     <p>Agendamentos atribuídos a você ou de suas especialidades.</p>
                  </div>
 
+                 {/* Mensagem de erro (para o 'Assumir') */}
+                 {error && <div className="error-message">{error}</div>}
+
                  {/* Tabela de Agendamentos */}
                  {meusAgendamentos.length === 0 ? (
                     <div className="no-agendamentos">
@@ -126,6 +175,9 @@ function DashboardFuncionario({ userData, onLogout, onNavigateToHome }) {
                                     <th>Cliente</th>
                                     <th>Pet</th>
                                     <th>Atribuído</th>
+                                    {/* --- INÍCIO DA MODIFICAÇÃO (TH) --- */}
+                                    <th>Ações</th>
+                                    {/* --- FIM DA MODIFICAÇÃO (TH) --- */}
                                 </tr>
                             </thead>
                             <tbody>
@@ -144,10 +196,35 @@ function DashboardFuncionario({ userData, onLogout, onNavigateToHome }) {
                                             <span className="agendamento-pet">{ag.pet_nome}</span>
                                         </td>
                                         <td>
-                                            {ag.funcionario_id === meuId
-                                                ? <span style={{color: 'green', fontWeight: 'bold'}}>Sim (Direto)</span>
-                                                : <span style={{color: 'orange'}}>Não (Especialidade/Geral)</span>
-                                            }
+                                            {/* --- LÓGICA ATUALIZADA AQUI --- */}
+                                            {ag.funcionario_id === meuId ? (
+                                                <span style={{color: 'green', fontWeight: 'bold'}}>Sim (Direto)</span>
+                                            ) : ag.funcionario_id === null ? (
+                                                <span style={{color: 'orange'}}>Não (Vago)</span>
+                                            ) : (
+                                                <span style={{color: '#888', fontStyle: 'italic'}}>Outro</span>
+                                            )}
+                                        </td>
+                                        {/* --- INÍCIO DA MODIFICAÇÃO (TD) --- */}
+                                        <td className="cell-actions">
+                                            {ag.funcionario_id === null ? (
+                                                <button
+                                                    className="btn-submit"
+                                                    style={{
+                                                        padding: '0.5rem 1rem',
+                                                        fontSize: '0.8rem',
+                                                        backgroundColor: '#27ae60', // Um verde
+                                                        width: '100px',
+                                                        minWidth: '100px'
+                                                    }}
+                                                    onClick={() => handleAssumir(ag.id)}
+                                                    disabled={loadingAction === ag.id}
+                                                >
+                                                    {loadingAction === ag.id ? '...' : 'Assumir'}
+                                                </button>
+                                            ) : (
+                                                <span>—</span>
+                                            )}
                                         </td>
                                     </tr>
                                 ))}

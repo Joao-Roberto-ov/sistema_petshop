@@ -203,6 +203,13 @@
     text-decoration: line-through;
 }
 
+/* --- INÍCIO DA MODIFICAÇÃO (CSS) --- */
+.agendamento-status.c-ausencia {
+    background-color: #fff3cd; /* Laranja claro */
+    color: #856404; /* Laranja/Marrom escuro */
+}
+/* --- FIM DA MODIFICAÇÃO (CSS) --- */
+
 .agendamento-status.realizado {
     background-color: #e5e7eb;
     color: #4b5563;
@@ -257,4 +264,17 @@ tr:has(.agendamento-status.cancelado) .agendamento-data,
 tr:has(.agendamento-status.cancelado) .agendamento-servico {
     text-decoration: line-through;
     color: #999;
+}
+
+/* Estilo para a linha da tabela C/ Ausência */
+tr:has(.agendamento-status.c-ausencia) {
+    background-color: #fffaf0; /* Fundo laranja bem claro */
+    opacity: 0.8;
+}
+
+tr:has(.agendamento-status.c-ausencia) .agendamento-data,
+tr:has(.agendamento-status.c-ausencia) .agendamento-servico {
+    color: #856404; /* Cor escura do status */
+    text-decoration: line-through;
+    text-decoration-style: dashed; /* Tracejado para diferenciar de cancelado */
 }

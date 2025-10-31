@@ -1,5 +1,6 @@
 from bancoDeDados import conectar, encerra_conexao
 
+
 class RepositorioVenda:
     def __init__(self):
         self.conn = conectar()
@@ -7,32 +8,45 @@ class RepositorioVenda:
     def registrar_venda(self, funcionario_id, dados_venda, total):
         try:
             with self.conn.cursor() as curs:
+                # 1. Insere a Venda
                 curs.execute("""
-                    INSERT INTO Vendas (funcionario_id, cliente_id, total, forma_pagamento, status_pagamento)
-                    VALUES (%s, %s, %s, %s, %s)
-                    RETURNING id, criado_em;
-                """, (
-                    funcionario_id,
-                    dados_venda.cliente_id,
-                    total,
-                    dados_venda.forma_pagamento,
-                    dados_venda.status_pagamento
-                ))
+                             INSERT INTO Vendas (funcionario_id, cliente_id, total, forma_pagamento, status_pagamento)
+                             VALUES (%s, %s, %s, %s, %s)
+                             RETURNING id, criado_em;
+                             """, (
+                                 funcionario_id,
+                                 dados_venda.cliente_id,
+                                 total,
+                                 dados_venda.forma_pagamento,
+                                 dados_venda.status_pagamento
+                             ))
                 venda_id, criado_em = curs.fetchone()
 
+                # 2. Insere os Itens da Venda
                 for item in dados_venda.itens:
                     curs.execute("""
-                        INSERT INTO ItensVenda (venda_id, tipo, id_item, nome, quantidade, preco_unitario)
-                        VALUES (%s, %s, %s, %s, %s, %s);
-                    """, (
-                        venda_id,
-                        item.tipo,
-                        item.id_item,
-                        item.nome,
-                        item.quantidade,
-                        item.preco_unitario
-                    ))
+                                 INSERT INTO ItensVenda (venda_id, tipo, id_item, nome, quantidade, preco_unitario)
+                                 VALUES (%s, %s, %s, %s, %s, %s);
+                                 """, (
+                                     venda_id,
+                                     item.tipo,
+                                     item.id_item,
+                                     item.nome,
+                                     item.quantidade,
+                                     item.preco_unitario
+                                 ))
 
+                # --- INÍCIO DA MODIFICAÇÃO (Atualizar Estoque) ---
+                # 3. Atualiza o estoque dos produtos (dentro da mesma transação)
+                for item in dados_venda.itens:
+                    if item.tipo == "produto":
+                        curs.execute(
+                            "UPDATE produtos_cadastrados SET estoque = estoque - %s WHERE id = %s;",
+                            (item.quantidade, item.id_item)
+                        )
+                # --- FIM DA MODIFICAÇÃO ---
+
+                # 4. Confirma a transação (Salva Venda, Itens E Atualiza Estoque)
                 self.conn.commit()
 
                 return {
@@ -42,27 +56,27 @@ class RepositorioVenda:
                 }
 
         except Exception as e:
-            self.conn.rollback()
+            self.conn.rollback()  # Desfaz tudo se houver erro
             raise e
 
     def get_venda_by_id(self, venda_id):
         try:
             with self.conn.cursor() as cur:
                 cur.execute("""
-                    SELECT id, funcionario_id, cliente_id, total, forma_pagamento, status_pagamento, criado_em
-                    FROM Vendas
-                    WHERE id = %s;
-                """, (venda_id,))
+                            SELECT id, funcionario_id, cliente_id, total, forma_pagamento, status_pagamento, criado_em
+                            FROM Vendas
+                            WHERE id = %s;
+                            """, (venda_id,))
                 venda = cur.fetchone()
 
                 if not venda:
                     return None
 
                 cur.execute("""
-                    SELECT id, tipo, id_item, nome, quantidade, preco_unitario
-                    FROM ItensVenda
-                    WHERE venda_id = %s;
-                """, (venda_id,))
+                            SELECT id, tipo, id_item, nome, quantidade, preco_unitario
+                            FROM ItensVenda
+                            WHERE venda_id = %s;
+                            """, (venda_id,))
                 itens = cur.fetchall()
 
                 return {
@@ -88,27 +102,25 @@ class RepositorioVenda:
         except Exception as e:
             raise e
 
-    # --- INÍCIO DA MODIFICAÇÃO ---
     def get_all_vendas(self):
         try:
             with self.conn.cursor() as cur:
                 # Query atualizada para buscar nomes de cliente e funcionário
                 cur.execute("""
-                    SELECT 
-                        v.id,
-                        v.total,
-                        v.forma_pagamento,
-                        v.status_pagamento,
-                        v.criado_em,
-                        c.id as cliente_id,
-                        c.nome as cliente_nome,
-                        f.id as funcionario_id,
-                        f.nome as funcionario_nome
-                    FROM Vendas v
-                    LEFT JOIN Clientes c ON v.cliente_id = c.id
-                    LEFT JOIN Funcionarios f ON v.funcionario_id = f.id
-                    ORDER BY v.criado_em DESC;
-                """)
+                            SELECT v.id,
+                                   v.total,
+                                   v.forma_pagamento,
+                                   v.status_pagamento,
+                                   v.criado_em,
+                                   c.id   as cliente_id,
+                                   c.nome as cliente_nome,
+                                   f.id   as funcionario_id,
+                                   f.nome as funcionario_nome
+                            FROM Vendas v
+                                     LEFT JOIN Clientes c ON v.cliente_id = c.id
+                                     LEFT JOIN Funcionarios f ON v.funcionario_id = f.id
+                            ORDER BY v.criado_em DESC;
+                            """)
                 vendas = cur.fetchall()
 
                 return [
@@ -119,15 +131,14 @@ class RepositorioVenda:
                         "status_pagamento": v[3],
                         "criado_em": v[4],
                         "cliente_id": v[5],
-                        "cliente_nome": v[6] or 'Cliente (Checkout)', # Fallback para vendas de checkout
+                        "cliente_nome": v[6] or 'Cliente (Checkout)',  # Fallback para vendas de checkout
                         "funcionario_id": v[7],
-                        "funcionario_nome": v[8] or 'N/A (Checkout)' # Fallback para vendas de checkout
+                        "funcionario_nome": v[8] or 'N/A (Checkout)'  # Fallback para vendas de checkout
                     }
                     for v in vendas
                 ]
         except Exception as e:
             raise e
-    # --- FIM DA MODIFICAÇÃO ---
 
     def update_venda(self, venda_id, forma_pagamento=None, total=None, status_pagamento=None):
         campos = []
