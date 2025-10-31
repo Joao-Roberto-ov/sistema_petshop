@@ -1,6 +1,35 @@
 import React, { useState, useEffect } from 'react';
 import axios from '../api/axios';
 
+const gerarOpcoesPeso = () => {
+    const opcoes = [];
+    for (let i = 0; i < 30; i += 2) {
+        const optionValue = `${i} - ${i + 2} kg`;
+        opcoes.push({ value: optionValue, label: optionValue });
+    }
+    opcoes.push({ value: 'Outro valor', label: 'Outro valor (digitar)' });
+    return opcoes;
+};
+const pesoOptions = gerarOpcoesPeso();
+const capitalizeAndCleanInput = (value) => {
+    if (!value) return '';
+    let cleanedValue = value.replace(/[^a-zA-Z\s]/g, '');
+    return cleanedValue.replace(/(^|\s)([a-z])/g, (match, p1, p2) => p1 + p2.toUpperCase());
+};
+
+const handleAgeKeyDown = (e) => {
+    if ([46, 8, 9, 27, 13, 35, 36, 37, 39].includes(e.keyCode) ||
+        (e.keyCode === 65 && (e.ctrlKey === true || e.metaKey === true)) ||
+        (e.keyCode === 67 && (e.ctrlKey === true || e.metaKey === true)) ||
+        (e.keyCode === 86 && (e.ctrlKey === true || e.metaKey === true)) ||
+        (e.keyCode === 88 && (e.ctrlKey === true || e.metaKey === true))) {
+             return;
+    }
+    if (e.key.length === 1 && /\D/.test(e.key)) {
+        e.preventDefault();
+    }
+};
+
 const EditarPetModal = ({ pet, onClose, onUpdate }) => {
     const [formData, setFormData] = useState({
         nome: '',
@@ -8,9 +37,12 @@ const EditarPetModal = ({ pet, onClose, onUpdate }) => {
         raca: '',
         sexo_biologico: '',
         idade: '',
-        peso: '',
         observacoes: '',
     });
+
+    const [pesoSelecionado, setPesoSelecionado] = useState('');
+    const [pesoOutroValor, setPesoOutroValor] = useState('');
+    const [mostrarInputPeso, setMostrarInputPeso] = useState(false);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
@@ -23,18 +55,71 @@ const EditarPetModal = ({ pet, onClose, onUpdate }) => {
                 raca: pet.raca || '',
                 sexo_biologico: pet.sexo_biologico || '',
                 idade: pet.idade || '',
-                peso: pet.peso || '',
                 observacoes: pet.observacoes || '',
             });
+
+            const petPeso = pet.peso;
+            let foundOption = false;
+
+            if (petPeso !== null && petPeso !== undefined) {
+                const pesoStr = String(petPeso);
+                for (const option of pesoOptions) {
+                    if (option.value === 'Outro valor') continue;
+                    const rangeStart = option.value.split(' ')[0]; // ex: "4"
+                    if (rangeStart === pesoStr) {
+                        setPesoSelecionado(option.value);
+                        setMostrarInputPeso(false);
+                        setPesoOutroValor('');
+                        foundOption = true;
+                        break;
+                    }
+                }
+
+                if (!foundOption) {
+                    setPesoSelecionado('Outro valor');
+                    setMostrarInputPeso(true);
+                    setPesoOutroValor(pesoStr);
+                }
+            } else {
+
+                setPesoSelecionado('');
+                setMostrarInputPeso(false);
+                setPesoOutroValor('');
+            }
         }
     }, [pet]);
 
     const handleChange = (e) => {
         const { name, value, type, checked } = e.target;
-        setFormData(prev => ({
-            ...prev,
-            [name]: type === 'checkbox' ? checked : value
-        }));
+
+        if (name === 'nome' || name === 'raca') {
+            setFormData(prev => ({ ...prev, [name]: capitalizeAndCleanInput(value) }));
+        } else if (name === 'idade') {
+            const digitsOnly = value.replace(/\D/g, '');
+            setFormData(prev => ({ ...prev, [name]: digitsOnly }));
+        } else if (name === 'pesoSelecionado') {
+            const selectedValue = value;
+            setPesoSelecionado(selectedValue);
+            if (selectedValue === 'Outro valor') {
+                setMostrarInputPeso(true);
+                setPesoOutroValor('');
+            } else {
+                setMostrarInputPeso(false);
+                setPesoOutroValor('');
+            }
+        } else if (name === 'pesoOutroValor') {
+            const numericValue = value
+                .replace(/[^0-9.,]/g, '')
+                .replace(',', '.');
+             if (/^\d*\.?\d*$/.test(numericValue)) {
+                 setPesoOutroValor(numericValue);
+             }
+        } else {
+            setFormData(prev => ({
+                ...prev,
+                [name]: type === 'checkbox' ? checked : value
+            }));
+        }
     };
 
     const handleSubmit = async (e) => {
@@ -43,43 +128,80 @@ const EditarPetModal = ({ pet, onClose, onUpdate }) => {
         setError('');
         setSuccess('');
 
+        // Validação da idade
+        const idadeNum = parseInt(formData.idade);
+        if (isNaN(idadeNum) || idadeNum < 0) { // Permite 0 anos (filhote)
+            setError('A idade deve ser um número válido (0 ou mais).');
+            setLoading(false);
+            return;
+        }
+
+        //logica de peso
+        let pesoFinal = null;
+        if (mostrarInputPeso) {
+            const pesoNum = parseFloat(pesoOutroValor);
+            if (isNaN(pesoNum) || pesoNum < 0) {
+                setError('O peso informado em "Outro valor" é inválido ou negativo.');
+                setLoading(false);
+                return;
+            }
+             if (pesoNum === 0 && mostrarInputPeso) {
+                setError('O peso em "Outro valor" deve ser maior que zero.');
+                setLoading(false);
+                return;
+             }
+            pesoFinal = pesoNum;
+        } else if (pesoSelecionado && pesoSelecionado !== 'Outro valor' && pesoSelecionado !== '') {
+            try {
+                // Pega o primeiro número da faixa
+                pesoFinal = parseFloat(pesoSelecionado.split(' ')[0]);
+            } catch {
+                console.warn("Não foi possível extrair peso da faixa selecionada:", pesoSelecionado);
+            }
+        }
+
+        const nomeFinal = formData.nome.trim().replace(/\s{2,}/g, ' ');
+        const racaFinal = formData.raca.trim().replace(/\s{2,}/g, ' ');
+
+        if (!nomeFinal || !racaFinal) {
+             setError('Nome e Raça não podem consistir apenas de espaços ou caracteres inválidos.');
+             setLoading(false);
+             return;
+        }
+
         try {
             const token = localStorage.getItem('token');
             const userData = JSON.parse(localStorage.getItem('userData'));
             const cargoId = userData?.cargo_id;
             const cargo = userData?.cargo?.toLowerCase();
-            
-            // A verificação de permissão é feita no backend. 
-            // Este modal é usado em VisualizarPetsGestor/VisualizarPets, que são telas de funcionário/gestor.
-            // A edição pelo cliente é feita diretamente no PetCard.js.
-            // Manter a lógica para gestor, mas remover a verificação de cliente, pois este modal não é para clientes.
-            const isGestor = cargoId === 1 || cargo === 'gestor' || cargo === 'administrador';
-            
-            if (!isGestor && !pet.dono) { // Se não é gestor e o pet não tem dono (erro de contexto), ou se for um funcionário que não é gestor
-                // A lógica de permissão mais robusta está no backend.
-                // Aqui, apenas garantimos que a rota correta seja chamada.
-                // Se o usuário não for gestor, o backend deve barrar a requisição.
-                // A rota /pets/{id} é usada para clientes (quando logados como cliente)
-                // A rota /admin/pets/{id} é usada para gestores.
-            }
 
-            // Gestores usam endpoint /admin/pets/{id}, outros usam /pets/{id}
+            const isGestor = cargoId === 1 || cargo === 'gestor' || cargo === 'administrador';
+
             let endpoint;
             if (isGestor) {
                 endpoint = `/admin/pets/${pet.id}`;
             } else {
-                // Se não é gestor, assume-se que é o cliente (dono do pet) ou funcionário sem permissão (que será barrado pelo backend)
-                endpoint = `/pets/${pet.id}`; 
+                endpoint = `/pets/${pet.id}`;
             }
-            
-            console.log('Enviando atualização para:', endpoint, formData);
-            
-            const response = await axios.put(endpoint, formData, {
+
+            // Dados que vao para o banco
+            const dataToUpdate = {
+                ...formData,
+                nome: nomeFinal,
+                raca: racaFinal,
+                idade: idadeNum,
+                peso: pesoFinal,
+            };
+
+            console.log('Enviando atualização para:', endpoint, dataToUpdate);
+
+            const response = await axios.put(endpoint, dataToUpdate, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
-            
+
             setSuccess('Pet atualizado com sucesso!');
-            onUpdate(response.data); 
+            // Atualiza o pet na UI
+            onUpdate(response.data);
         } catch (err) {
             console.error('Erro ao atualizar pet:', err);
             if (err.response?.status === 403) {
@@ -101,16 +223,16 @@ const EditarPetModal = ({ pet, onClose, onUpdate }) => {
     return (
         <div className="modal-backdrop" style={modalBackdropStyle}>
             <div className="modal-content" style={modalContentStyle}>
-                <button 
-                    onClick={onClose} 
+                <button
+                    onClick={onClose}
                     style={closeButtonStyle}
                     title="Fechar"
                 >
                     ×
                 </button>
-                
+
                 <h2 style={modalTitleStyle}>Editar Pet: {pet.nome}</h2>
-                
+
                 <div style={petInfoStyle}>
                     <p><strong>Dono:</strong> {pet.dono?.nome || 'N/A'}</p>
                     <p><strong>ID do Pet:</strong> {pet.id}</p>
@@ -130,6 +252,7 @@ const EditarPetModal = ({ pet, onClose, onUpdate }) => {
                                 onChange={handleChange}
                                 required
                                 disabled={loading}
+                                placeholder="Apenas letras e espaços"
                             />
                         </div>
                         <div style={formGroupStyle}>
@@ -150,7 +273,7 @@ const EditarPetModal = ({ pet, onClose, onUpdate }) => {
                         </div>
                     </div>
 
-                    {/* Linha 2: Raça e Sexo Biológico */}
+                    {/* raça e sexo biologico */}
                     <div style={formRowStyle}>
                         <div style={formGroupStyle}>
                             <label style={labelStyle} htmlFor="raca">Raça *</label>
@@ -163,6 +286,7 @@ const EditarPetModal = ({ pet, onClose, onUpdate }) => {
                                 onChange={handleChange}
                                 required
                                 disabled={loading}
+                                placeholder="Apenas letras e espaços"
                             />
                         </div>
                         <div style={formGroupStyle}>
@@ -182,10 +306,10 @@ const EditarPetModal = ({ pet, onClose, onUpdate }) => {
                         </div>
                     </div>
 
-                    {/* Linha 3: Idade e Peso */}
+                    {/* idade e peso */}
                     <div style={formRowStyle}>
                         <div style={formGroupStyle}>
-                            <label style={labelStyle} htmlFor="idade">Idade (anos)</label>
+                            <label style={labelStyle} htmlFor="idade">Idade (anos) *</label>
                             <input
                                 style={inputStyle}
                                 type="number"
@@ -193,29 +317,54 @@ const EditarPetModal = ({ pet, onClose, onUpdate }) => {
                                 name="idade"
                                 value={formData.idade}
                                 onChange={handleChange}
-                                min="0"
+                                min="1"
                                 max="50"
-                                step="0.1"
+                                required
                                 disabled={loading}
+                                placeholder="Maior que 0"
                             />
                         </div>
                         <div style={formGroupStyle}>
-                            <label style={labelStyle} htmlFor="peso">Peso (kg)</label>
-                            <input
+                            <label style={labelStyle} htmlFor="pesoSelecionado">Peso (kg)</label>
+                            <select
                                 style={inputStyle}
-                                type="number"
-                                id="peso"
-                                name="peso"
-                                value={formData.peso}
+                                id="pesoSelecionado"
+                                name="pesoSelecionado"
+                                value={pesoSelecionado}
                                 onChange={handleChange}
-                                step="0.01"
-                                min="0"
                                 disabled={loading}
-                            />
+                            >
+                                <option value="">Selecione (Opcional)</option>
+                                {pesoOptions.map(option => (
+                                    <option key={option.value} value={option.value}>
+                                        {option.label}
+                                    </option>
+                                ))}
+                            </select>
                         </div>
                     </div>
 
-                    {/* Linha 4: Observações */}
+                    {/* input de peso no caso de outros valores */}
+                    {mostrarInputPeso && (
+                        <div style={{ ...formGroupStyle, marginBottom: '20px' }}>
+                            <label style={labelStyle} htmlFor="pesoOutroValor">Digite o peso exato (kg):</label>
+                            <input
+                                style={inputStyle}
+                                type="number"
+                                step="0.1"
+                                id="pesoOutroValor"
+                                name="pesoOutroValor"
+                                value={pesoOutroValor}
+                                onChange={handleChange}
+                                placeholder="Ex: 5.5"
+                                inputMode="decimal"
+                                required
+                                disabled={loading}
+                            />
+                        </div>
+                    )}
+
+                    {/* observações */}
                     <div style={formGroupStyle}>
                         <label style={labelStyle} htmlFor="observacoes">Observações</label>
                         <textarea
@@ -241,17 +390,17 @@ const EditarPetModal = ({ pet, onClose, onUpdate }) => {
                     )}
 
                     <div style={buttonGroupStyle}>
-                        <button 
-                            type="button" 
-                            onClick={onClose} 
+                        <button
+                            type="button"
+                            onClick={onClose}
                             style={cancelButtonStyle}
                             disabled={loading}
                         >
                             {success ? 'Fechar' : 'Cancelar'}
                         </button>
-                        <button 
-                            type="submit" 
-                            disabled={loading} 
+                        <button
+                            type="submit"
+                            disabled={loading}
                             style={{
                                 ...submitButtonStyle,
                                 opacity: loading ? 0.6 : 1,
@@ -267,7 +416,7 @@ const EditarPetModal = ({ pet, onClose, onUpdate }) => {
     );
 };
 
-// Estilos atualizados
+// Estilos
 const modalBackdropStyle = {
     position: 'fixed',
     top: 0,
