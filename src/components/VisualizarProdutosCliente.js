@@ -3,7 +3,15 @@ import axios from '../api/axios';
 import './VisualizarProdutosCliente.css';
 import ProdutoDetalhesModal from './ProdutoDetalhesModal';
 
-function VisualizarProdutosCliente({ onBack, onNavigateToCheckout }) {
+// --- ATUALIZADO PARA RECEBER NOVAS PROPS ---
+function VisualizarProdutosCliente({
+    onBack,
+    onNavigateToCheckout,
+    carrinho,
+    setCarrinho,
+    isLoggedIn,
+    onNavigateToLogin
+}) {
     const [produtos, setProdutos] = useState([]);
     const [produtosFiltrados, setProdutosFiltrados] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -11,8 +19,10 @@ function VisualizarProdutosCliente({ onBack, onNavigateToCheckout }) {
     const [searchTerm, setSearchTerm] = useState('');
     const [filterCategory, setFilterCategory] = useState('Todos');
     const [produtoSelecionado, setProdutoSelecionado] = useState(null);
-    const [carrinho, setCarrinho] = useState([]);
     const [mostrarCarrinho, setMostrarCarrinho] = useState(false);
+
+    // --- REMOVIDO ESTADO LOCAL DO CARRINHO ---
+    // const [carrinho, setCarrinho] = useState([]);
 
     //try-catch para importar a imagem
     let imagemPadrao;
@@ -34,10 +44,7 @@ function VisualizarProdutosCliente({ onBack, onNavigateToCheckout }) {
         try {
             setLoading(true);
             const token = localStorage.getItem('token');
-
-            //se nao tiver token, tenta buscar sem autenticação
             const headers = token ? { Authorization: `Bearer ${token}` } : {};
-
             const response = await axios.get('/produtos/listar', { headers });
             setProdutos(response.data || []);
         } catch (err) {
@@ -58,7 +65,6 @@ function VisualizarProdutosCliente({ onBack, onNavigateToCheckout }) {
             });
         }
 
-        //filtro por busca
         if (searchTerm.trim() !== '') {
             filtered = filtered.filter(produto =>
                 produto.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -72,9 +78,22 @@ function VisualizarProdutosCliente({ onBack, onNavigateToCheckout }) {
     const adicionarAoCarrinho = (produto, e) => {
         if (e && e.stopPropagation) e.stopPropagation();
 
+        // --- INÍCIO DA CORREÇÃO 3 (VERIFICA LOGIN) ---
+        if (!isLoggedIn) {
+            onNavigateToLogin();
+            return;
+        }
+        // --- FIM DA CORREÇÃO 3 ---
+
+        // Usa o setCarrinho do App.js
         setCarrinho(prev => {
             const existente = prev.find(item => item.id === produto.id);
             if (existente) {
+                if (existente.quantidade + 1 > produto.estoque) {
+                    alert(`Desculpe, o limite de estoque para "${produto.nome}" é ${produto.estoque} unidades.`);
+                    return prev;
+                }
+
                 return prev.map(item =>
                     item.id === produto.id ? { ...item, quantidade: item.quantidade + 1 } : item
                 );
@@ -84,16 +103,35 @@ function VisualizarProdutosCliente({ onBack, onNavigateToCheckout }) {
     };
 
     const alterarQuantidade = (id, delta) => {
+        // --- INÍCIO DA CORREÇÃO 3 (VERIFICA LOGIN) ---
+        // (Embora o modal do carrinho só apareça se houver itens,
+        // é uma boa prática garantir)
+        if (!isLoggedIn) {
+            onNavigateToLogin();
+            return;
+        }
+        // --- FIM DA CORREÇÃO 3 ---
+
+        // Usa o setCarrinho do App.js
         setCarrinho(prev =>
             prev
-                .map(item =>
-                    item.id === id ? { ...item, quantidade: Math.max(1, item.quantidade + delta) } : item
-                )
+                .map(item => {
+                    if (item.id === id) {
+                        const novaQuantidade = item.quantidade + delta;
+                        if (delta > 0 && novaQuantidade > item.estoque) {
+                            alert(`Desculpe, o limite de estoque para "${item.nome}" é ${item.estoque} unidades.`);
+                            return item;
+                        }
+                        return { ...item, quantidade: Math.max(1, novaQuantidade) };
+                    }
+                    return item;
+                })
                 .filter(item => item.quantidade > 0)
         );
     };
 
     const removerProduto = (id) => {
+        // Usa o setCarrinho do App.js
         setCarrinho(prev => prev.filter(item => item.id !== id));
     };
 
@@ -121,23 +159,25 @@ function VisualizarProdutosCliente({ onBack, onNavigateToCheckout }) {
 
     return (
         <div>
-            {/* Carrinho fixo no canto */}
-            <div className="carrinho-flutuante">
-                <button
-                    className="botao-carrinho-flutuante"
-                    onClick={() => setMostrarCarrinho(!mostrarCarrinho)}
-                >
-                    🛒
-                    {carrinho.length > 0 && (
-                        <span className="contador-carrinho">
-                            {carrinho.reduce((s, i) => s + i.quantidade, 0)}
-                        </span>
-                    )}
-                </button>
-            </div>
+            {/* Carrinho flutuante (Apenas se logado) */}
+            {isLoggedIn && (
+                <div className="carrinho-flutuante">
+                    <button
+                        className="botao-carrinho-flutuante"
+                        onClick={() => setMostrarCarrinho(!mostrarCarrinho)}
+                    >
+                        🛒
+                        {carrinho.length > 0 && (
+                            <span className="contador-carrinho">
+                                {carrinho.reduce((s, i) => s + i.quantidade, 0)}
+                            </span>
+                        )}
+                    </button>
+                </div>
+            )}
 
             {/* Modal lateral do carrinho */}
-            {mostrarCarrinho && (
+            {mostrarCarrinho && isLoggedIn && (
                 <div className="carrinho-modal" role="dialog" aria-modal="true">
                     <div className="carrinho-header">
                         <h3>Seu Carrinho</h3>
@@ -251,13 +291,17 @@ function VisualizarProdutosCliente({ onBack, onNavigateToCheckout }) {
                                     <div className="produto-category">{obterIconeAnimal(produto.animais_alvo)}</div>
                                     <h3 className="produto-nome">{produto.nome}</h3>
                                     {produto.marca && <p className="produto-marca">{produto.marca}</p>}
+
+                                    {/* Layout do Footer (mantido da correção anterior) */}
                                     <div className="produto-footer">
-                                        <span className="produto-preco">
-                                            R$ {produto.preco_venda.toFixed(2).replace('.', ',')}
-                                        </span>
-                                        <span className="produto-estoque">
-                                            {produto.estoque > 0 ? `${produto.estoque} em estoque` : 'Indisponível'}
-                                        </span>
+                                        <div className="produto-info-preco">
+                                            <span className="produto-preco">
+                                                R$ {produto.preco_venda.toFixed(2).replace('.', ',')}
+                                            </span>
+                                            <span className="produto-estoque">
+                                                {produto.estoque > 0 ? `${produto.estoque} em estoque` : 'Indisponível'}
+                                            </span>
+                                        </div>
                                         <button
                                             className="adicionar-carrinho-btn"
                                             disabled={produto.estoque <= 0}

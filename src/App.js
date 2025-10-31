@@ -36,13 +36,48 @@ const navigateTo = (screenName) => {
     window.dispatchEvent(new CustomEvent('navigate', { detail: screenName }));
 };
 
+// --- FUNÇÃO HELPER PARA PEGAR O CARRINHO DO LOCALSTORAGE ---
+const getCartFromStorage = (userId) => {
+    if (!userId) return [];
+    try {
+        const savedCart = localStorage.getItem(`cart_${userId}`);
+        return savedCart ? JSON.parse(savedCart) : [];
+    } catch (e) {
+        console.error("Erro ao ler carrinho do localStorage:", e);
+        return [];
+    }
+};
+
 function App() {
     const [currentScreen, setCurrentScreen] = useState('home');
     const [isLoggedIn, setIsLoggedIn] = useState(false);
     const [userData, setUserData] = useState(null);
     const [servicoParaAgendar, setServicoParaAgendar] = useState(null);
     const [agendamentoParaReagendar, setAgendamentoParaReagendar] = useState(null);
-    const [checkoutCarrinho, setCheckoutCarrinho] = useState([]);
+
+    // --- ESTADO DO CARRINHO AGORA VIVE AQUI ---
+    const [carrinho, _setCarrinho] = useState([]); // Renomeado para _setCarrinho
+
+    // --- WRAPPER PARA ATUALIZAR ESTADO E LOCALSTORAGE ---
+    const setCarrinho = (novoCarrinho) => {
+        // Se o novoCarrinho for uma função (como em setCarrinho(prev => ...)),
+        // precisamos executá-la para obter o valor final.
+        const valorFinal = typeof novoCarrinho === 'function'
+            ? novoCarrinho(carrinho)
+            : novoCarrinho;
+
+        _setCarrinho(valorFinal);
+
+        // Só salva no localStorage se o usuário estiver logado
+        if (userData && userData.id) {
+            try {
+                localStorage.setItem(`cart_${userData.id}`, JSON.stringify(valorFinal));
+            } catch (e) {
+                console.error("Erro ao salvar carrinho no localStorage:", e);
+            }
+        }
+    };
+
 
     useEffect(() => {
         const urlParams = new URLSearchParams(window.location.search);
@@ -59,6 +94,12 @@ function App() {
                 const parsedUser = JSON.parse(savedUserData);
                 setIsLoggedIn(true);
                 setUserData(parsedUser);
+
+                // --- CARREGA O CARRINHO SALVO NO LOGIN ---
+                if (parsedUser.id) {
+                    _setCarrinho(getCartFromStorage(parsedUser.id));
+                }
+
                 const targetHomeScreen = (parsedUser?.cargo_id || parsedUser?.cargo) ? 'homeFuncionario' : 'home';
 
                  if (currentScreen === 'home') {
@@ -70,6 +111,7 @@ function App() {
                  localStorage.removeItem('userData');
                  setIsLoggedIn(false);
                  setUserData(null);
+                 _setCarrinho([]); // Limpa o carrinho
             }
         }
 
@@ -87,7 +129,7 @@ function App() {
         return () => {
             window.removeEventListener('navigate', handleNavigate);
         };
-    }, []);
+    }, []); // Dependência 'carrinho' removida para evitar re-render desnecessário
 
     const navigateToHome = (user = userData, forced = false) => {
         const targetScreen = (user?.cargo_id || user?.cargo) ? 'homeFuncionario' : 'home';
@@ -116,17 +158,22 @@ function App() {
     const handleLogin = (data) => {
         setIsLoggedIn(true);
         setUserData(data);
+        // --- CARREGA O CARRINHO DO USUÁRIO QUE ACABOU DE LOGAR ---
+        if (data.id) {
+            _setCarrinho(getCartFromStorage(data.id));
+        }
         navigateToHome(data);
     };
 
     const handleLogout = () => {
+        // Não limpa o carrinho do localStorage, apenas do estado
         localStorage.removeItem('token');
         localStorage.removeItem('userData');
         setIsLoggedIn(false);
         setUserData(null);
         setServicoParaAgendar(null);
         setAgendamentoParaReagendar(null);
-        setCheckoutCarrinho([]);
+        _setCarrinho([]); // Limpa o carrinho do estado
         navigateToHome(null, true);
     };
 
@@ -142,7 +189,7 @@ function App() {
     };
 
     const handleNavigateToCheckout = (carrinho) => {
-        setCheckoutCarrinho(carrinho);
+        // A função agora só navega, pois o carrinho já está no App.js
         navigateTo('checkout');
     };
 
@@ -156,7 +203,7 @@ function App() {
         const cargoString = userData?.cargo?.toLowerCase();
         const isFuncionarioLogado = !!(cargoId || cargoString);
         const isClienteLogado = isLoggedIn && !isFuncionarioLogado;
-        
+
         // Definições de permissões
         const isGestor = cargoId === CARGO.GESTOR || cargoString === 'gestor' || cargoString === 'administrador';
         const isVeterinario = cargoId === CARGO.VETERINARIO || cargoString === 'veterinário' || cargoString === 'veterinario';
@@ -165,7 +212,7 @@ function App() {
         // Telas que só gestores podem acessar
         const telasGestor = ['visualizarServicos', 'cadastro-funcionario-completo',
                             'listar-funcionarios', 'cadastrarProduto',
-                            'visualizar-produtos-gestor', 'funcionario-cadastro-admin', 
+                            'visualizar-produtos-gestor', 'funcionario-cadastro-admin',
                             'gerenciar-agendamentos'];
 
         // Telas que gestores E veterinários podem acessar
@@ -178,20 +225,20 @@ function App() {
 
         // Verificações de permissão
         if (isClienteLogado && telasFuncionario.includes(currentScreen)) {
-            navigateToHome(null, true); 
+            navigateToHome(null, true);
             return null;
         }
 
         if (isFuncionarioLogado) {
             // Telas exclusivas para gestores
             if (!isGestor && telasGestor.includes(currentScreen)) {
-                navigateToHome(userData, true); 
+                navigateToHome(userData, true);
                 return null;
             }
-            
+
             // Telas para gestores e veterinários
             if (!isGestorOuVeterinario && telasGestorVeterinario.includes(currentScreen)) {
-                navigateToHome(userData, true); 
+                navigateToHome(userData, true);
                 return null;
             }
         }
@@ -199,9 +246,9 @@ function App() {
         const telasCliente = ['dashboard', 'meu-perfil', 'agendar-servico',
                               'checkout', 'visualizar-produtos-cliente',
                               'pet-cadastro', 'meus-pets', 'visualizar-servicos-cliente'];
-        
+
         if (isFuncionarioLogado && telasCliente.includes(currentScreen)) {
-            navigateToHome(userData, true); 
+            navigateToHome(userData, true);
             return null;
         }
 
@@ -299,7 +346,8 @@ function App() {
 
             case 'checkout':
                 return <Checkout
-                    carrinho={checkoutCarrinho}
+                    carrinho={carrinho} // Passa o carrinho do App.js
+                    setCarrinho={setCarrinho} // Passa o setter
                     onBack={() => navigateTo('visualizar-produtos-cliente')}
                 />;
 
@@ -317,6 +365,11 @@ function App() {
                     <VisualizarProdutosCliente
                         onBack={() => navigateToHome(userData)}
                         onNavigateToCheckout={handleNavigateToCheckout}
+                        // --- NOVAS PROPS PARA O CARRINHO E AUTENTICAÇÃO ---
+                        carrinho={carrinho}
+                        setCarrinho={setCarrinho}
+                        isLoggedIn={isLoggedIn}
+                        onNavigateToLogin={() => navigateTo('login')}
                     />
                 );
 

@@ -119,21 +119,30 @@
 
 .produto-footer {
     display: flex;
-    justify-content: space-between;
-    align-items: center;
+    flex-direction: column;
+    gap: 0.75rem;
     padding-top: 1rem;
     border-top: 1px solid #e5e7eb;
+}
+
+.produto-info-preco {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
 }
 
 .produto-preco {
     font-size: 1.5rem;
     font-weight: 700;
     color: #16a34a;
+    line-height: 1.2;
 }
 
 .produto-estoque {
     font-size: 0.85rem;
     color: #6b7280;
+    font-weight: 500;
 }
 
 .no-produtos {
@@ -251,18 +260,29 @@
 }
 
 .adicionar-carrinho-btn {
-  background: #4a9b8e;
-  color: white;
-  border: none;
-  border-radius: 6px;
-  padding: 0.5rem 1rem;
-  cursor: pointer;
-  transition: 0.3s;
+    background: #4a9b8e;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    padding: 0.75rem 1rem;
+    cursor: pointer;
+    transition: 0.3s;
+    width: 100%;
+    text-align: center;
+    font-weight: 600;
+    font-size: 1rem;
 }
 
 .adicionar-carrinho-btn:hover {
-  background: #357f75;
+    background: #357f75;
 }
+
+.adicionar-carrinho-btn:disabled {
+    background: #9ca3af;
+    cursor: not-allowed;
+    box-shadow: none;
+}
+
 /* ==== Carrinho flutuante moderno ==== */
 .carrinho-flutuante {
     position: fixed;
