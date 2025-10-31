@@ -1,3 +1,5 @@
+# joao-roberto-ov/sistema_petshop/sistema_petshop-US-28/services/checkout_service.py
+
 from fastapi import HTTPException
 from repositories.checkout_repository import CheckoutRepository
 from repositories.produto_repository import RepositorioProduto
@@ -52,20 +54,35 @@ class CheckoutService:
         return forma_pagamento.lower() in ["pix", "cartao"]
 
     def finalizar_compra(self, dados: CheckoutRequest) -> CheckoutResponse:
-        # recalcula total e atualiza os itens com preços reais e estoque
+        # 1. Calcula o total e pega os preços (o estoque aqui pode estar ligeiramente desatualizado)
         total, itens_com_precos = self.calcular_total(dados.itens)
 
-        # *** INÍCIO DA VALIDAÇÃO DE ESTOQUE (REQ 1) ***
+        # *** INÍCIO DA CORREÇÃO (VALIDAÇÃO DE ESTOQUE EM TEMPO REAL) ***
+        # 2. Busca o estoque MAIS RECENTE antes de validar
+        produtos_cadastrados_atuais = self.prod_repo.buscar_todos_produtos_cadastrados()
+
         for item in itens_com_precos:
             if item["tipo"] == "produto":
-                if item["quantidade"] > item["estoque_db"]:
-                    # Impede a compra se a quantidade for maior que o estoque
+                # Procura o produto na lista ATUALIZADA
+                produto_atual = next((p for p in produtos_cadastrados_atuais if p["id"] == item["id_item"]), None)
+
+                estoque_real = 0
+                if produto_atual:
+                    estoque_real = int(produto_atual["estoque"])
+                else:
+                    # Se o produto sumiu, é um erro
+                    raise HTTPException(status_code=404, detail=f"Produto '{item['nome']}' não foi encontrado.")
+
+                # 3. Valida a quantidade do pedido contra o estoque REAL
+                if item["quantidade"] > estoque_real:
+                    # 4. Lança o erro com o estoque REAL (e não o estoque_db antigo)
                     raise HTTPException(
                         status_code=400,
-                        detail=f"Estoque insuficiente para '{item['nome']}'. Pedido: {item['quantidade']}, Disponível: {item['estoque_db']}"
+                        detail=f"Estoque insuficiente para '{item['nome']}'. Pedido: {item['quantidade']}, Disponível: {estoque_real}"
                     )
-        # *** FIM DA VALIDAÇÃO DE ESTOQUE ***
+        # *** FIM DA CORREÇÃO ***
 
+        # 5. Se a validação passou, continua o processo
         venda_id = self.repo.criar_venda(
             cliente_id=dados.cliente_id,
             forma_pagamento=dados.forma_pagamento,
@@ -80,6 +97,8 @@ class CheckoutService:
 
         if pagamento_aprovado:
             self.repo.atualizar_status_pagamento(venda_id, "pago")
+            # A atualização de estoque (UPDATE ... SET estoque = estoque - X)
+            # é atômica no banco, então a race condition é evitada aqui.
             self.repo.atualizar_estoque(itens_com_precos)
 
         return CheckoutResponse(

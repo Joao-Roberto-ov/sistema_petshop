@@ -88,7 +88,7 @@ function Checkout({ carrinho, setCarrinho, onBack }) { // Recebe setCarrinho
         const errors = {};
         if (!endereco.rua.trim()) errors.rua = 'Rua é obrigatória';
         if (!endereco.numero.trim()) errors.numero = 'Número é obrigatório';
-        if (!endereco.bairro.trim()) errors.bairro = 'Bairro é obrigatório';
+        if (!endereco.bairro.trim()) errors.bairro = 'Bairro é obrigatória';
         if (!endereco.cidade.trim()) errors.cidade = 'Cidade é obrigatória';
         if (!endereco.estado.trim()) errors.estado = 'Estado é obrigatório';
         if (endereco.cep.replace(/\D/g, '').length !== 8) errors.cep = 'CEP deve ter 8 dígitos';
@@ -146,34 +146,70 @@ function Checkout({ carrinho, setCarrinho, onBack }) { // Recebe setCarrinho
         }
     };
 
-    // --- NOVO: Funções para alterar carrinho (Req 2) ---
-    const handleAlterarQuantidade = (id, delta) => {
+    // --- INÍCIO DA MODIFICAÇÃO (TOAST COM ESTOQUE REAL) ---
+    const handleAlterarQuantidade = async (id, delta) => {
         if (!setCarrinho) return;
 
-        setCarrinho(prev =>
-            prev
-                .map(item => {
+        // Se for para diminuir, apenas remove
+        if (delta < 0) {
+            setCarrinho(prev =>
+                prev.map(item => {
                     if (item.id === id) {
                         const novaQuantidade = item.quantidade + delta;
-
-                        // Valida estoque
-                        if (delta > 0 && novaQuantidade > item.estoque) {
-                            showToast(`Estoque insuficiente de '${item.nome}'. Disponível: ${item.estoque}`);
-                            return item; // Não altera
-                        }
-
                         // Remove se a quantidade for 0 ou menor
-                        if (novaQuantidade < 1) {
-                            return null;
-                        }
-
-                        return { ...item, quantidade: novaQuantidade };
+                        return novaQuantidade < 1 ? null : { ...item, quantidade: novaQuantidade };
                     }
                     return item;
-                })
-                .filter(Boolean) // Filtra os itens que ficaram nulos (removidos)
+                }).filter(Boolean)
+            );
+            return;
+        }
+
+        // Se for para AUMENTAR (delta > 0), busca o estoque em tempo real
+        let estoqueReal = 0;
+        let nomeProduto = "";
+
+        // Pega o nome do produto do carrinho (para a msg de erro)
+        const itemAtual = carrinho.find(item => item.id === id);
+        if (itemAtual) {
+            nomeProduto = itemAtual.nome;
+        }
+
+        try {
+            // 1. Busca o estoque real no banco
+            const response = await axios.get(`/produtos/${id}/estoque`);
+            estoqueReal = response.data.estoque;
+        } catch (err) {
+            console.error("Erro ao buscar estoque:", err);
+            showToast(`Erro ao verificar estoque de '${nomeProduto}'. Tente novamente.`);
+            return;
+        }
+
+        // 2. Atualiza o carrinho (setCarrinho) usando o estoque real
+        setCarrinho(prev =>
+            prev.map(item => {
+                if (item.id === id) {
+                    const novaQuantidade = item.quantidade + delta; // delta é sempre > 0 aqui
+
+                    // 3. Valida contra o estoque real
+                    if (novaQuantidade > estoqueReal) {
+                        // 4. Mostra o toast com a quantidade REAL
+                        showToast(`Estoque insuficiente de '${item.nome}'. Disponível: ${estoqueReal}`);
+
+                        // Se a quantidade atual já for maior que o estoque real, corrige
+                        const quantidadeCorrigida = Math.min(item.quantidade, estoqueReal);
+                        // Atualiza o item com o estoque real e a quantidade corrigida
+                        return { ...item, estoque: estoqueReal, quantidade: quantidadeCorrigida };
+                    }
+
+                    // Atualiza a quantidade E o estoque local (para o dado não ficar stale)
+                    return { ...item, quantidade: novaQuantidade, estoque: estoqueReal };
+                }
+                return item;
+            }).filter(Boolean) // Filtra os itens que ficaram nulos (removidos)
         );
     };
+    // --- FIM DA MODIFICAÇÃO ---
 
     const handleRemoverProduto = (id) => {
         if (!setCarrinho) return;
@@ -220,6 +256,7 @@ function Checkout({ carrinho, setCarrinho, onBack }) { // Recebe setCarrinho
                 }))
             };
 
+            // A validação final (dupla checagem) acontece no backend
             const response = await axios.post('/checkout', payload, {
                 headers: { Authorization: `Bearer ${token}` }
             });
@@ -234,7 +271,7 @@ function Checkout({ carrinho, setCarrinho, onBack }) { // Recebe setCarrinho
             const errorMsg = err.response?.data?.detail || err.response?.data?.mensagem || 'Erro ao finalizar a compra.';
 
             // --- INÍCIO: Lógica do Toast (Req 1) ---
-            // Tenta extrair a mensagem de estoque
+            // Tenta extrair a mensagem de estoque (que agora vem do backend com o estoque real)
             const stockErrorMatch = errorMsg.match(/Estoque insuficiente para '(.*)'. Pedido: .*, Disponível: (.*)/);
 
             if (stockErrorMatch) {

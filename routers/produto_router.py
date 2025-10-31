@@ -7,10 +7,11 @@ from util.cargos import Cargo
 
 router = APIRouter(prefix="/api/produtos", tags=["Produtos"])
 
-#garante que o usuario logado é um gestor
+
+# garante que o usuario logado é um gestor
 async def pegar_gestor_logado(
-    usuario_id: int = Depends(pegar_id_do_usuario_logado),
-    service_func: ServicosFuncionario = Depends(ServicosFuncionario)
+        usuario_id: int = Depends(pegar_id_do_usuario_logado),
+        service_func: ServicosFuncionario = Depends(ServicosFuncionario)
 ) -> int:
     funcionario = service_func.buscar_pelo_id(usuario_id)
     if not funcionario or funcionario.get("cargo_id") != Cargo.GESTOR.value:
@@ -23,35 +24,35 @@ async def pegar_gestor_logado(
 
 @router.get("/buscar-externo")
 async def buscar_produtos_externos(
-    q: str,
-    gestor_id: int = Depends(pegar_gestor_logado),
-    service: ServicosProduto = Depends(ServicosProduto)
+        q: str,
+        gestor_id: int = Depends(pegar_gestor_logado),
+        service: ServicosProduto = Depends(ServicosProduto)
 ):
-    #endpoint para procurar sugestoes de produtos
+    # endpoint para procurar sugestoes de produtos
     return service.buscar_sugestoes(q)
 
 
 @router.get("/detalhes-externo/{barcode}")
 async def buscar_detalhes_produto_externo(
-    barcode: str,
-    gestor_id: int = Depends(pegar_gestor_logado),
-    service: ServicosProduto = Depends(ServicosProduto)
+        barcode: str,
+        gestor_id: int = Depends(pegar_gestor_logado),
+        service: ServicosProduto = Depends(ServicosProduto)
 ):
-
     return service.buscar_detalhes_para_cadastro(barcode)
+
 
 @router.post("/cadastrar")
 async def cadastrar_novo_produto(
-    dados_produto: ProdutoCadastro,
-    gestor_id: int = Depends(pegar_gestor_logado),
-    service: ServicosProduto = Depends(ServicosProduto)
+        dados_produto: ProdutoCadastro,
+        gestor_id: int = Depends(pegar_gestor_logado),
+        service: ServicosProduto = Depends(ServicosProduto)
 ):
-
     return service.cadastrar_produto(dados_produto, gestor_id)
+
 
 @router.get("/listar")
 async def listar_produtos(
-    service: ServicosProduto = Depends(ServicosProduto)
+        service: ServicosProduto = Depends(ServicosProduto)
 ):
     """Lista todos os produtos cadastrados - PÚBLICO, não requer autenticação"""
     return service.listar_todos_produtos()
@@ -59,10 +60,10 @@ async def listar_produtos(
 
 @router.put("/editar/{produto_id}")
 async def editar_produto(
-    produto_id: int,
-    dados_produto: ProdutoCadastro,
-    gestor_id: int = Depends(pegar_gestor_logado),
-    service: ServicosProduto = Depends(ServicosProduto)
+        produto_id: int,
+        dados_produto: ProdutoCadastro,
+        gestor_id: int = Depends(pegar_gestor_logado),
+        service: ServicosProduto = Depends(ServicosProduto)
 ):
     """Edita um produto cadastrado - apenas gestores"""
     return service.editar_produto(produto_id, dados_produto, gestor_id)
@@ -70,9 +71,9 @@ async def editar_produto(
 
 @router.delete("/excluir/{produto_id}")
 async def excluir_produto(
-    produto_id: int,
-    gestor_id: int = Depends(pegar_gestor_logado),
-    service: ServicosProduto = Depends(ServicosProduto)
+        produto_id: int,
+        gestor_id: int = Depends(pegar_gestor_logado),
+        service: ServicosProduto = Depends(ServicosProduto)
 ):
     """Exclui um produto cadastrado - apenas gestores"""
     return service.excluir_produto(produto_id, gestor_id)
@@ -80,10 +81,39 @@ async def excluir_produto(
 
 @router.get("/verificar-externo/{barcode}")
 async def verificar_produto_externo(
-    barcode: str,
-    gestor_id: int = Depends(pegar_gestor_logado),
-    service: ServicosProduto = Depends(ServicosProduto)
+        barcode: str,
+        gestor_id: int = Depends(pegar_gestor_logado),
+        service: ServicosProduto = Depends(ServicosProduto)
 ):
     """Verifica se produto existe na base externa - apenas gestores"""
     eh_externo = service.repo.verificar_produto_externo(barcode)
     return {"eh_externo": eh_externo}
+
+
+# --- INÍCIO DA MODIFICAÇÃO ---
+# Endpoint público para verificar o estoque em tempo real de um produto
+@router.get("/{produto_id}/estoque")
+async def get_estoque_produto(
+        produto_id: int,
+        service: ServicosProduto = Depends(ServicosProduto)
+):
+    """
+    Retorna o estoque atual de um produto específico.
+    Público para que o frontend (carrinho) possa verificar.
+    """
+    try:
+        # Reutiliza o serviço que lista todos (que já busca no DB)
+        produtos = service.listar_todos_produtos()
+        produto = next((p for p in produtos if p["id"] == produto_id), None)
+
+        if not produto:
+            raise HTTPException(status_code=404, detail="Produto não encontrado.")
+
+        return {"id": produto_id, "estoque": produto["estoque"]}
+    except HTTPException as e:
+        raise e
+    except Exception as e:
+        # Captura genérica caso o produto não seja encontrado no 'next'
+        print(f"Erro ao buscar estoque para ID {produto_id}: {e}")
+        raise HTTPException(status_code=500, detail=f"Erro ao buscar estoque: {e}")
+# --- FIM DA MODIFICAÇÃO ---
