@@ -8,8 +8,8 @@ class ServicosProduto:
         self.repo = RepositorioProduto()
 
     def buscar_sugestoes(self, query: str):
-        if not query or len(query) < 3:
-            return []  # não dá sugestões se a quantidade de caracteres da busca for muito curta
+        if not query or len(query) < 1:
+            return []  #nao da sugestao se a quantidade de caracteres for menor do que o limite aqui em cima
         return self.repo.buscar_produto_externo(query)
 
     def buscar_detalhes_para_cadastro(self, barcode: str):

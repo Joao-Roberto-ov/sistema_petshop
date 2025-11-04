@@ -346,7 +346,7 @@ function DashboardGestor({ userData, onLogout, onNavigateToHome }) {
                                 <tr>
                                     <th>Data / Hora</th>
                                     <th>Cliente</th>
-                                    <th>Funcionário (Balcão)</th>
+                                    <th>Atendente (Balcão)</th>
                                     <th>Forma Pgto.</th>
                                     <th>Total (R$)</th>
                                     <th>Status Pgto.</th>
