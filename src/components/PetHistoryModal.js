@@ -8,60 +8,41 @@ function PetHistoryModal({ pet, onClose }) {
     const [error, setError] = useState('');
     const [userData, setUserData] = useState(null);
     const [isFuncionario, setIsFuncionario] = useState(false);
+    const [expandedItem, setExpandedItem] = useState(null);
+
+    const toggleDetails = (type, index) => {
+        const key = `${type}-${index}`;
+        setExpandedItem(expandedItem === key ? null : key);
+    };
 
     useEffect(() => {
-        // Carregar dados do usuário do localStorage
-        const userDataFromStorage = localStorage.getItem('userData');
-        if (userDataFromStorage) {
-            try {
-                const parsedUserData = JSON.parse(userDataFromStorage);
-                setUserData(parsedUserData);
-                
-                // Verificar se é funcionário (gestor ou veterinário)
-                const userIsFuncionario = parsedUserData.tipo === 'funcionario' || 
-                                        parsedUserData.cargo_id || 
-                                        parsedUserData.cargo;
-                setIsFuncionario(userIsFuncionario);
-                
-            } catch (e) {
-                console.error('Erro ao parse userData:', e);
-            }
-        }
-
         if (!pet) return;
 
         const fetchHistory = async () => {
             setLoading(true);
             setError('');
             try {
-                const token = localStorage.getItem('token');
-                const userData = JSON.parse(localStorage.getItem('userData'));
+                const response = await fetch(`http://localhost:8000/teste-historico-direto/${pet.id}`);
+                const data = await response.json();
                 
-                // Decidir qual endpoint usar baseado no tipo de usuário
-                let endpoint;
-                const userIsFuncionario = userData?.tipo === 'funcionario' || 
-                                        userData?.cargo_id || 
-                                        userData?.cargo;
-                
-                if (userIsFuncionario) {
-                    endpoint = `/admin/pets/${pet.id}/history`;
+                if (data.success) {
+                    const historicoAdaptado = {
+                        consultas: data.historico.filter(item => 
+                            item.tipo_servico.includes('Consulta') || 
+                            item.tipo_servico.includes('Exame')
+                        ),
+                        servicos: data.historico.filter(item => 
+                            item.tipo_servico.includes('Banho') || 
+                            item.tipo_servico.includes('Vacina')
+                        )
+                    };
+                    setHistory(historicoAdaptado);
                 } else {
-                    endpoint = `/pets/${pet.id}/history`;
+                    throw new Error(data.error || 'Erro ao carregar histórico');
                 }
-
-                const response = await axios.get(endpoint, {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
-                setHistory(response.data);
             } catch (err) {
                 console.error('Erro ao carregar histórico:', err);
-                if (err.response?.status === 403) {
-                    setError('Acesso negado: Você não tem permissão para visualizar o histórico deste pet.');
-                } else if (err.response?.status === 404) {
-                    setError('Histórico não encontrado para este pet.');
-                } else {
-                    setError('Não foi possível carregar o histórico. Tente novamente.');
-                }
+                setError('Não foi possível carregar o histórico. Tente novamente.');
             } finally {
                 setLoading(false);
             }
@@ -70,24 +51,19 @@ function PetHistoryModal({ pet, onClose }) {
         fetchHistory();
     }, [pet]);
 
-    // Função para obter o nome do dono CORRETAMENTE
     const getDonoNome = () => {
-        // Se é funcionário (gestor/veterinário) E o pet tem informação do dono
         if (isFuncionario && pet.dono?.nome) {
             return pet.dono.nome;
         }
         
-        // Se é funcionário mas o pet não tem info do dono
         if (isFuncionario && !pet.dono?.nome) {
             return 'Cliente não identificado';
         }
         
-        // Se é cliente, mostrar o próprio nome
         if (userData?.nome) {
             return userData.nome;
         }
         
-        // Fallback
         return 'Meu pet';
     };
 
@@ -121,7 +97,6 @@ function PetHistoryModal({ pet, onClose }) {
                 <button className="close-button" onClick={onClose}>&times;</button>
                 <h2>Histórico de {pet.nome}</h2>
                 
-                {/* Informações do Pet */}
                 <div className="pet-info">
                     <p><strong>Dono:</strong> {getDonoNome()}</p>
                     <p><strong>Espécie:</strong> {pet.tipo || 'N/A'}</p>
@@ -142,26 +117,42 @@ function PetHistoryModal({ pet, onClose }) {
                             <h3>📋 Consultas Médicas</h3>
                             {history.consultas && history.consultas.length > 0 ? (
                                 <div className="history-list">
-                                    {history.consultas.map((item, index) => (
-                                        <div key={`consulta-${index}`} className="history-item">
-                                            <div className="service-header">
-                                                <strong className="service-name">
-                                                    {item.servico_realizado || 'Consulta'}
-                                                </strong>
-                                                <span className="service-value">
-                                                    {formatCurrency(item.valor)}
-                                                </span>
+                                    {history.consultas.map((item, index) => {
+                                        const isExpanded = expandedItem === `consulta-${index}`;
+                                        return (
+                                            <div key={`consulta-${index}`} className={`history-item ${isExpanded ? 'expanded' : ''}`}>
+                                                <div className="service-header">
+                                                    <strong className="service-name">
+                                                        {item.servico_realizado || 'Consulta'}
+                                                    </strong>
+                                                    <span className="service-value" onClick={() => toggleDetails('consulta', index)}>
+                                                        {formatCurrency(item.valor)}
+                                                        <span className="toggle-icon">{isExpanded ? '▲' : '▼'}</span>
+                                                    </span>
+                                                </div>
+                                                <div className="service-details">
+                                                    <span className="detail">
+                                                        <strong>Profissional:</strong> {item.funcionario || 'Não informado'}
+                                                    </span>
+                                                    <span className="detail">
+                                                        <strong>Data:</strong> {formatDate(item.data_hora)}
+                                                    </span>
+                                                </div>
+                                                {isExpanded && (
+                                                    <div className="detailed-info">
+                                                        <p><strong>Detalhes da Consulta:</strong></p>
+                                                        <ul>
+                                                            <li><strong>Resumo/Descrição:</strong> {item.resumo || item.descricao_servico || 'Não informado'}</li>
+                                                        <li><strong>Diagnóstico:</strong> {item.diagnostico || 'Não informado'}</li>
+                                                            <li><strong>Tratamento:</strong> {item.tratamento || 'Não informado'}</li>
+                                                            <li><strong>Medicamentos:</strong> {item.medicamentos || 'Nenhum'}</li>
+                                                            <li><strong>Observações:</strong> {item.observacoes || 'Nenhuma'}</li>
+                                                        </ul>
+                                                    </div>
+                                                )}
                                             </div>
-                                            <div className="service-details">
-                                                <span className="detail">
-                                                    <strong>Profissional:</strong> {item.funcionario || 'Não informado'}
-                                                </span>
-                                                <span className="detail">
-                                                    <strong>Data:</strong> {formatDate(item.data_hora)}
-                                                </span>
-                                            </div>
-                                        </div>
-                                    ))}
+                                        )
+                                    })}
                                 </div>
                             ) : (
                                 <p className="no-data">Nenhuma consulta médica registrada.</p>
@@ -172,26 +163,40 @@ function PetHistoryModal({ pet, onClose }) {
                             <h3>✨ Serviços de Bem-Estar</h3>
                             {history.servicos && history.servicos.length > 0 ? (
                                 <div className="history-list">
-                                    {history.servicos.map((item, index) => (
-                                        <div key={`servico-${index}`} className="history-item">
-                                            <div className="service-header">
-                                                <strong className="service-name">
-                                                    {item.servico_realizado || 'Serviço'}
-                                                </strong>
-                                                <span className="service-value">
-                                                    {formatCurrency(item.valor)}
-                                                </span>
+                                    {history.servicos.map((item, index) => {
+                                        const isExpanded = expandedItem === `servico-${index}`;
+                                        return (
+                                            <div key={`servico-${index}`} className={`history-item ${isExpanded ? 'expanded' : ''}`}>
+                                                <div className="service-header">
+                                                    <strong className="service-name">
+                                                        {item.servico_realizado || 'Serviço'}
+                                                    </strong>
+                                                    <span className="service-value" onClick={() => toggleDetails('servico', index)}>
+                                                        {formatCurrency(item.valor)}
+                                                        <span className="toggle-icon">{isExpanded ? '▲' : '▼'}</span>
+                                                    </span>
+                                                </div>
+                                                <div className="service-details">
+                                                    <span className="detail">
+                                                        <strong>Profissional:</strong> {item.funcionario || 'Não informado'}
+                                                    </span>
+                                                    <span className="detail">
+                                                        <strong>Data:</strong> {formatDate(item.data_hora)}
+                                                    </span>
+                                                </div>
+                                                {isExpanded && (
+                                                    <div className="detailed-info">
+                                                        <p><strong>Detalhes do Serviço:</strong></p>
+                                                        <ul>
+                                                            <li><strong>Resumo/Descrição:</strong> {item.resumo || item.descricao || 'Não informado'}</li>
+                                                            <li><strong>Produtos Utilizados:</strong> {item.produtos_utilizados || 'Nenhum'}</li>
+                                                            <li><strong>Observações:</strong> {item.observacoes || 'Nenhuma'}</li>
+                                                        </ul>
+                                                    </div>
+                                                )}
                                             </div>
-                                            <div className="service-details">
-                                                <span className="detail">
-                                                    <strong>Profissional:</strong> {item.funcionario || 'Não informado'}
-                                                </span>
-                                                <span className="detail">
-                                                    <strong>Data:</strong> {formatDate(item.data_hora)}
-                                                </span>
-                                            </div>
-                                        </div>
-                                    ))}
+                                        )
+                                    })}
                                 </div>
                             ) : (
                                 <p className="no-data">Nenhum serviço de bem-estar registrado.</p>

@@ -119,24 +119,18 @@ def criar_tabelas():
                             cliente_id INTEGER REFERENCES Clientes (id) ON DELETE CASCADE
                         );""")
 
-        curs.execute("""CREATE TABLE IF NOT EXISTS HistoricoConsultas
-                        (
-                            id                SERIAL PRIMARY KEY,
-                            servico_realizado VARCHAR(200)   NOT NULL,
-                            funcionario       VARCHAR(150)   NOT NULL,
-                            data_hora         TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-                            valor             NUMERIC(10, 2) NOT NULL,
-                            pet_id            INTEGER REFERENCES Pets (id) ON DELETE CASCADE
-                        );""")
+        
 
-        curs.execute("""CREATE TABLE IF NOT EXISTS HistoricoServicos
+        curs.execute("""CREATE TABLE IF NOT EXISTS historico_medico
                         (
-                            id                SERIAL PRIMARY KEY,
-                            servico_realizado VARCHAR(200)   NOT NULL,
-                            funcionario       VARCHAR(150)   NOT NULL,
-                            data_hora         TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-                            valor             NUMERIC(10, 2) NOT NULL,
-                            pet_id            INTEGER REFERENCES Pets (id) ON DELETE CASCADE
+                            id             SERIAL PRIMARY KEY,
+                            pet_id         INTEGER                  NOT NULL REFERENCES Pets (id) ON DELETE CASCADE,
+                            tipo_servico   VARCHAR(50)              NOT NULL, -- Consulta, Vacinação, Cirurgia, Exame, Banho e Tosa, Outro
+                            data_hora      TIMESTAMP WITH TIME ZONE NOT NULL,
+                            resumo         TEXT                     NOT NULL,
+                            detalhes       TEXT,
+                            funcionario_id INTEGER REFERENCES Funcionarios (id) ON DELETE SET NULL,
+                            valor          NUMERIC(10, 2)
                         );""")
 
         curs.execute("""CREATE TABLE IF NOT EXISTS Cliente_historico
@@ -283,7 +277,7 @@ def criar_tabelas():
                              ADD COLUMN IF NOT EXISTS status_motivo TEXT;
                          """)
 
-        except psycopg2.Error as e:
+        except pg.Error as e:
             print(f"Ignorando erro ao adicionar coluna (provavelmente já existe): {e}")
             conectado.rollback()
 
@@ -293,7 +287,7 @@ def criar_tabelas():
     finally:
         encerra_conexao(conectado)
 
-
+obter_conexao = conectar
 if __name__ == '__main__':
     print("Iniciando a criação das tabelas no banco de dados...")
     criar_tabelas()

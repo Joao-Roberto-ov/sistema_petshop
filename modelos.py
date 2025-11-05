@@ -341,5 +341,23 @@ class DisponibilidadeResponse(BaseModel):
     data: date
     horarios: list[HorarioDisponivel]
 
+class HistoricoMedico(BaseModel):
+    pet_id: int
+    tipo_servico: Literal["Consulta", "Vacinação", "Cirurgia", "Exame", "Banho e Tosa", "Outro"]
+    data_hora: datetime
+    resumo: str
+    detalhes: Optional[str] = None
+    funcionario_id: Optional[int] = None
+    valor: Optional[float] = None
+
+
+class HistoricoMedicoResponse(HistoricoMedico):
+    id: int
+    funcionario_nome: Optional[str] = None
+
+    class Config:
+        from_attributes = True
+
+
 class AgendamentoReagendar(BaseModel):
     nova_data_hora_inicio: datetime

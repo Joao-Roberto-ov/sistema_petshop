@@ -215,3 +215,52 @@
         align-self: flex-start;
     }
 }
+/* Estilos para o Detalhamento */
+
+.service-value {
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    transition: color 0.2s ease;
+}
+
+.service-value:hover {
+    color: #4a9b8e; /* Cor de destaque ao passar o mouse */
+}
+
+.toggle-icon {
+    font-size: 0.8em;
+    line-height: 1;
+    transition: transform 0.2s ease;
+}
+
+.history-item.expanded .toggle-icon {
+    transform: rotate(180deg);
+}
+
+.detailed-info {
+    margin-top: 1rem;
+    padding: 1rem;
+    background: #e9f5f4; /* Fundo suave para o detalhe */
+    border-radius: 6px;
+    border-left: 3px solid #4a9b8e;
+    font-size: 0.9rem;
+    color: #495057;
+}
+
+.detailed-info p {
+    margin-top: 0;
+    margin-bottom: 0.5rem;
+    font-weight: 600;
+}
+
+.detailed-info ul {
+    list-style: disc;
+    padding-left: 20px;
+    margin: 0;
+}
+
+.detailed-info li {
+    margin-bottom: 0.3rem;
+}

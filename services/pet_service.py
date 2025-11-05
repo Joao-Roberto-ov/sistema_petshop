@@ -346,3 +346,27 @@ class ServicosPet:
         except Error as e:
             print(f"Erro no banco de dados ao atualizar pet (gestor): {e}")
             raise HTTPException(status_code=500, detail="Ocorreu um erro ao atualizar o pet.")
+        
+    def buscar_pet_por_id(self, pet_id: int):
+        """
+        Busca um pet pelo ID (sem verificação de dono - para uso interno/funcionários)
+        """
+        try:
+            pet_data = self.repo.buscar_pet_por_id(pet_id)
+            if not pet_data:
+                return None
+            
+            return {
+                "id": pet_data[0],
+                "nome": pet_data[1],
+                "tipo": pet_data[2],
+                "raca": pet_data[3],
+                "idade": pet_data[4],
+                "peso": pet_data[5],
+                "sexo_biologico": pet_data[6],
+                "observacoes": pet_data[7],
+                "cliente_id": pet_data[8]
+            }
+        except Error as e:
+            print(f"Erro ao buscar pet por ID: {e}")
+            return None
