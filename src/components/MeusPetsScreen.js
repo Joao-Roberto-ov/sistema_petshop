@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import axios from '../api/axios';
+import axios from '../api/axios'
+import VacinaModal from './VacinaModal';;
 import PetCard from './PetCard';
 import PetHistoryModal from './PetHistoryModal';
 import './MeusPetsScreen.css';
@@ -25,6 +26,7 @@ function MeusPetsScreen({ onNavigateToPetCadastro }) {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [selectedPet, setSelectedPet] = useState(null);
+    const [selectedPetForVaccines, setSelectedPetForVaccines] = useState(null);
 
     useEffect(() => {
         const fetchPets = async () => {
@@ -42,7 +44,7 @@ function MeusPetsScreen({ onNavigateToPetCadastro }) {
                 const petsComDono = response.data.map(pet => ({
                     ...pet,
                     dono: {
-                        nome: userData?.nome || 'Meu pet'
+                        nome: userData?.nome || 'Eu'
                     }
                 }));
                 
@@ -86,6 +88,7 @@ function MeusPetsScreen({ onNavigateToPetCadastro }) {
                         key={pet.id}
                         pet={pet}
                         onViewHistory={() => setSelectedPet(pet)}
+                        onViewVaccines={() => setSelectedPetForVaccines(pet)}
                         onPetUpdated={handleUpdatePet}
                     />
                 ))}
@@ -96,8 +99,8 @@ function MeusPetsScreen({ onNavigateToPetCadastro }) {
     return (
         <div className="meus-pets-container">
             <div className="content-wrapper">
-                <div className="header">
-                    <div className="header-text">
+                <div className="pets-header">
+                    <div className="pets-header-text">
                         <h1>Meus Pets</h1>
                         <p>Gerencie as informações e o histórico dos seus companheiros.</p>
                     </div>
@@ -110,12 +113,19 @@ function MeusPetsScreen({ onNavigateToPetCadastro }) {
 
                 {renderContent()}
 
-                {selectedPet && (
-                    <PetHistoryModal
-                        pet={selectedPet}
-                        onClose={() => setSelectedPet(null)}
-                    />
-                )}
+	                {selectedPet && (
+	                    <PetHistoryModal
+	                        pet={selectedPet}
+	                        onClose={() => setSelectedPet(null)}
+	                    />
+	                )}
+
+	                {selectedPetForVaccines && (
+	                    <VacinaModal
+	                        pet={selectedPetForVaccines}
+	                        onClose={() => setSelectedPetForVaccines(null)}
+	                    />
+	                )}
             </div>
         </div>
     );

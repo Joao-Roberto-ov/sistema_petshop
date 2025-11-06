@@ -119,13 +119,22 @@ def criar_tabelas():
                             cliente_id INTEGER REFERENCES Clientes (id) ON DELETE CASCADE
                         );""")
 
-        
+        curs.execute("""CREATE TABLE IF NOT EXISTS vacinas
+                        (
+                            id                   SERIAL PRIMARY KEY,
+                            pet_id               INTEGER                  NOT NULL REFERENCES Pets (id) ON DELETE CASCADE,
+                            nome_vacina          VARCHAR(100)             NOT NULL,
+                            data_aplicacao       DATE                     NOT NULL,
+                            data_proxima_dose    DATE,
+                            funcionario_id       INTEGER REFERENCES Funcionarios (id) ON DELETE SET NULL,
+                            criado_em            TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+                        );""")
 
         curs.execute("""CREATE TABLE IF NOT EXISTS historico_medico
                         (
                             id             SERIAL PRIMARY KEY,
                             pet_id         INTEGER                  NOT NULL REFERENCES Pets (id) ON DELETE CASCADE,
-                            tipo_servico   VARCHAR(50)              NOT NULL, -- Consulta, Vacinação, Cirurgia, Exame, Banho e Tosa, Outro
+                            tipo_servico   VARCHAR(50)              NOT NULL,
                             data_hora      TIMESTAMP WITH TIME ZONE NOT NULL,
                             resumo         TEXT                     NOT NULL,
                             detalhes       TEXT,
@@ -172,9 +181,9 @@ def criar_tabelas():
                             id            SERIAL PRIMARY KEY,
                             nome          VARCHAR(255)   NOT NULL,
                             descricao     TEXT,
-                            duracao       INTEGER        NOT NULL CHECK (duracao > 0),                    -- duração em minutos
-                            preco         NUMERIC(10, 2) NOT NULL CHECK (preco > 0),                      -- preço em reais
-                            criador_id    INTEGER        REFERENCES Funcionarios (id) ON DELETE SET NULL, -- quem cadastrou
+                            duracao       INTEGER        NOT NULL CHECK (duracao > 0),
+                            preco         NUMERIC(10, 2) NOT NULL CHECK (preco > 0),
+                            criador_id    INTEGER        REFERENCES Funcionarios (id) ON DELETE SET NULL,
                             criado_em     TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
                             atualizado_em TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
                         );""")
@@ -251,8 +260,8 @@ def criar_tabelas():
                          cliente_id          INTEGER     NOT NULL REFERENCES Clientes (id) ON DELETE CASCADE,
                          endereco_entrega_id INTEGER     REFERENCES EnderecosEntrega (id) ON DELETE SET NULL,
                          retirada_na_loja    BOOLEAN                  DEFAULT FALSE,
-                         forma_pagamento     VARCHAR(20) NOT NULL,                        -- 'cartao' ou 'pix'
-                         status_pagamento    VARCHAR(20)              DEFAULT 'pendente', -- 'pendente', 'confirmado', 'falhou'
+                         forma_pagamento     VARCHAR(20) NOT NULL,
+                         status_pagamento    VARCHAR(20)              DEFAULT 'pendente',
                          total               NUMERIC(10, 2)           DEFAULT 0.00,
                          criado_em           TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
                      );
@@ -263,8 +272,8 @@ def criar_tabelas():
                      (
                          id             SERIAL PRIMARY KEY,
                          checkout_id    INTEGER        NOT NULL REFERENCES Checkouts (id) ON DELETE CASCADE,
-                         tipo           VARCHAR(20)    NOT NULL, -- 'produto' ou 'servico'
-                         id_item        INTEGER        NOT NULL, -- id do produto ou serviço
+                         tipo           VARCHAR(20)    NOT NULL,
+                         id_item        INTEGER        NOT NULL,
                          nome           VARCHAR(255)   NOT NULL,
                          quantidade     INTEGER        NOT NULL CHECK (quantidade > 0),
                          preco_unitario NUMERIC(10, 2) NOT NULL
@@ -286,6 +295,7 @@ def criar_tabelas():
         curs.close()
     finally:
         encerra_conexao(conectado)
+
 
 obter_conexao = conectar
 if __name__ == '__main__':
