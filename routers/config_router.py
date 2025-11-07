@@ -14,11 +14,7 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/login")
 # ------------------- CONFIGURAÇÃO GERAL -------------------
 
 @router.get("/", status_code=status.HTTP_200_OK)
-async def get_config(token: Annotated[str, Depends(oauth2_scheme)]):
-    token_data = decodifica_token(token)
-    if not token_data or token_data.get("tipo") != "funcionario" or token_data.get("cargo_id") not in [1, 2]:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Acesso negado")
-
+async def get_config():
     try:
         config = ConfigService.get_config()
         return config

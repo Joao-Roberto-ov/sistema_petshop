@@ -1,3 +1,4 @@
+import os
 import json
 from models.config_model import ConfigEmpresa
 from bancoDeDados import conectar, encerra_conexao 
@@ -6,10 +7,26 @@ CONFIG_PATH = "config/config.json"
 # -------- Configurações gerais da empresa --------
 
 def carregar_config():
+    # Cria a pasta se não existir
+    os.makedirs(os.path.dirname(CONFIG_PATH), exist_ok=True)
+    
+    # Se o arquivo não existir, cria com valores padrão
+    if not os.path.exists(CONFIG_PATH):
+        config_padrao = ConfigEmpresa(
+            nome_empresa="PetLife",
+            endereco="",
+            telefone="",
+            logo_url="/static/logo.png"
+        )
+        salvar_config(config_padrao)
+        return config_padrao.dict()
+
+    # Caso exista, apenas lê o JSON
     with open(CONFIG_PATH, "r", encoding="utf-8") as f:
         return json.load(f)
 
 def salvar_config(config: ConfigEmpresa):
+    os.makedirs(os.path.dirname(CONFIG_PATH), exist_ok=True)
     with open(CONFIG_PATH, "w", encoding="utf-8") as f:
         json.dump(config.dict(), f, indent=4, ensure_ascii=False)
 
