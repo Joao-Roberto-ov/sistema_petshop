@@ -276,6 +276,15 @@ def criar_tabelas():
                          preco_unitario NUMERIC(10, 2) NOT NULL
                      );
                      """)
+        
+        curs.execute("""
+                    CREATE TABLE IF NOT EXISTS despesas (
+                    id SERIAL PRIMARY KEY,
+                    descricao VARCHAR(255) NOT NULL,
+                    valor NUMERIC(10, 2) NOT NULL,
+                    data DATE NOT NULL
+                    );
+                    """)
 
         try:
             curs.execute("""
