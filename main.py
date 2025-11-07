@@ -6,7 +6,7 @@ import os
 import threading
 from bancoDeDados import criar_tabelas
 import sync_data
-from routers import cliente_router, pet_router, login_router, funcionario_router, admin_router, produto_router, servico_router, admin_pet_router, agendamento_router, venda_router, checkout_router
+from routers import cliente_router, pet_router, login_router, funcionario_router, admin_router, produto_router, servico_router, admin_pet_router, agendamento_router, venda_router, checkout_router, config_router
 from fastapi.responses import FileResponse
 from fastapi import HTTPException
 
@@ -58,6 +58,7 @@ app.include_router(admin_pet_router.router, prefix="/api")
 app.include_router(produto_router.router)
 app.include_router(checkout_router.router)
 app.include_router(agendamento_router.router)
+app.include_router(config_router.router)
 
 app.mount("/static", StaticFiles(directory=os.path.join(frontend_dir, "static")), name="static")
 
