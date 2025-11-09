@@ -1,5 +1,6 @@
 from models.despesa_model import DespesaModel
 from repositories.despesa_repository import DespesaRepository
+from datetime import date
 
 class DespesaService:
     @staticmethod
@@ -21,3 +22,7 @@ class DespesaService:
     @staticmethod
     def deletar(despesa_id: int):
         return DespesaRepository.deletar(despesa_id)
+
+    @staticmethod
+    def listar_por_periodo(inicio: date, fim: date):
+        return DespesaRepository.get_by_periodo(inicio, fim)

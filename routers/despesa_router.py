@@ -1,8 +1,10 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Query
 from fastapi.security import OAuth2PasswordBearer
 from seguranca import verifica_token
 from models.despesa_model import DespesaModel
 from services.despesa_service import DespesaService
+from typing import List
+from datetime import date
 
 router = APIRouter(prefix="/admin/despesas", tags=["Despesas"])
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/login")
@@ -34,6 +36,19 @@ def buscar_despesa(despesa_id: int, token: str = Depends(oauth2_scheme)):
     if not despesa:
         raise HTTPException(status_code=404, detail="Despesa não encontrada")
     return despesa
+
+# ------------------- LISTAR POR PERÍODO -------------------
+@router.get("", status_code=200)
+def listar_despesas(
+    data_inicio: date | None = Query(None),
+    data_fim: date | None = Query(None)
+):
+    """
+    Lista todas as despesas ou filtra por período (data_inicio e data_fim)
+    """
+    if data_inicio and data_fim:
+        return DespesaService.listar_por_periodo(data_inicio, data_fim)
+    return DespesaService.listar_todas()
 
 # ------------------- EDITAR -------------------
 @router.put("/{despesa_id}")

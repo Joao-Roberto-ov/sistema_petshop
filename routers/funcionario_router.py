@@ -25,21 +25,15 @@ def pegar_servico_venda():
     return ServicosVenda()
 
 async def pegar_id_do_funcionario(token: str = Depends(dupla_autenticacao)) -> int:
-    payload = verifica_token(token) # verifica_token
-    if not payload or payload.get("tipo") != "funcionario": # Verifica o tipo
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED, # Usa status code
-            detail="Token inválido, expirado ou não é de funcionário",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
-    user_id = payload.get("sub")
+    user_id = verifica_token(token)
     if user_id is None:
-         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="ID do usuário não encontrado no token",
+        raise HTTPException(
+            status_code=401,
+            detail="Token inválido ou expirado",
             headers={"WWW-Authenticate": "Bearer"},
         )
     return int(user_id)
+
 
 @router.post("/cadastrar-cliente", status_code=status.HTTP_201_CREATED)
 async def cadastrar_cliente_por_funcionario(

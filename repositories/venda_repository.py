@@ -1,5 +1,7 @@
 from bancoDeDados import conectar, encerra_conexao
-
+from datetime import date, datetime
+from models.venda_model import VendaModel
+from typing import List
 
 class RepositorioVenda:
     def __init__(self):
@@ -179,6 +181,39 @@ class RepositorioVenda:
         except Exception as e:
             self.conn.rollback()
             raise e
+
+    def get_vendas_por_periodo(self, inicio: date, fim: date) -> List[VendaModel]:
+        conn = conectar()
+        cur = conn.cursor()
+
+        # Converte date para timestamp completo do dia
+        ts_inicio = datetime.combine(inicio, datetime.min.time())
+        ts_fim = datetime.combine(fim, datetime.max.time())
+
+        cur.execute("""
+            SELECT id, funcionario_id, cliente_id, total, forma_pagamento, status_pagamento, criado_em
+            FROM vendas
+            WHERE criado_em BETWEEN %s AND %s
+            ORDER BY criado_em ASC
+        """, (ts_inicio, ts_fim))
+
+        rows = cur.fetchall()
+        cur.close()
+        encerra_conexao(conn)
+
+        vendas = [
+            VendaModel(
+                id=r[0],
+                funcionario_id=r[1],
+                cliente_id=r[2],
+                total=float(r[3]),
+                forma_pagamento=r[4],
+                status_pagamento=r[5],
+                criado_em=r[6]
+            )
+            for r in rows
+        ]
+        return vendas
 
     def close(self):
         encerra_conexao(self.conn)
