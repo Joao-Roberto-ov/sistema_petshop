@@ -279,6 +279,17 @@ def criar_tabelas():
                          preco_unitario NUMERIC(10, 2) NOT NULL
                      );
                      """)
+        
+        curs.execute("""
+                    CREATE TABLE IF NOT EXISTS horarios_funcionamento 
+                     (
+                        id SERIAL PRIMARY KEY,
+                        dia_semana VARCHAR(20) NOT NULL,  -- ex: "segunda", "terça"
+                        abre TIME,
+                        fecha TIME,
+                        fechado BOOLEAN DEFAULT FALSE
+                    );
+                    """)
 
         try:
             curs.execute("""

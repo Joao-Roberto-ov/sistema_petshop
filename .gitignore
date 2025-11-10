@@ -32,3 +32,4 @@ package-lock.json
 # Arquivos React
 node_modules
 build
+config/config.json
