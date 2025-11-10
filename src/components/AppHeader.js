@@ -20,6 +20,7 @@ function AppHeader({
     onNavigateToServicosCliente
 }) {
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+    const [nomeEmpresa, setNomeEmpresa] = useState('PetLife'); // valor padrão
     const dropdownRef = useRef(null);
     const handleServicosClick = (e) => {
         e.preventDefault();
@@ -30,7 +31,12 @@ function AppHeader({
             alert('Erro: Função de navegação para serviços não definida.');
         }
     };
-
+    useEffect(() => {
+        fetch('http://localhost:8000/admin/config/') // ajuste a URL se necessário
+        .then(res => res.json())
+        .then(data => setNomeEmpresa(data.nome_empresa))
+        .catch(() => setNomeEmpresa('PetLife')); // fallback em caso de erro
+    }, []);
     useEffect(() => {
         function handleClickOutside(event) {
             if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
@@ -71,7 +77,7 @@ function AppHeader({
             <nav className="nav container">
                 <a href="#" className="nav-brand" onClick={(e) => { e.preventDefault(); onNavigateToHome(); }}>
                     <div className="icon">🐾</div>
-                    PetLife
+                    {nomeEmpresa}
                 </a>
 
                 <ul className="nav-menu">

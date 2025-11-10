@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import ModalConfigEmpresa from "../components/ModalConfigEmpresa";
 
 function HomePageFuncionario({
     userData,
@@ -14,7 +15,8 @@ function HomePageFuncionario({
     onNavigateToDashboard,
     onNavigateToGerenciarAgendamentos
 }) {
-
+    
+    const [showConfigModal, setShowConfigModal] = useState(false);
     const cargoLower = userData?.cargo?.toLowerCase();
     const cargoId = userData?.cargo_id;
     
@@ -176,6 +178,16 @@ function HomePageFuncionario({
                                 🛒 Consultar Produtos
                             </button>
                         )}
+                        {
+                            isGestorOuAdmin && (
+                            <button
+                                className="btn btn-outline-white hover-lift"
+                                onClick={() => setShowConfigModal(true)}
+                            >
+                                ⚙️ Configurações da Empresa
+                            </button>
+                            )
+                        }
                         
                         {/* Botão Visualizar Pets para Veterinários e Gestores */}
                         {podeVisualizarPets && (
@@ -247,7 +259,13 @@ function HomePageFuncionario({
                     </div>
                 </div>
             </section>
+            <ModalConfigEmpresa
+                isOpen={showConfigModal}
+                onClose={() => setShowConfigModal(false)}
+            />
+
         </>
+        
     );
 }
 

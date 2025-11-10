@@ -253,3 +253,71 @@ async def pegar_payload_do_usuario_logado(token: str = Depends(oauth2_scheme)) -
             headers={"WWW-Authenticate": "Bearer"},
         )
     return payload
+
+async def obter_usuario_logado(token: str = Depends(oauth2_scheme)) -> dict:
+    """
+    Obtém o payload completo do usuário logado (cliente ou funcionário)
+    """
+    payload = decodifica_token(token)
+    if payload is None:
+        raise HTTPException(
+            status_code=401,
+            detail="Token inválido ou expirado",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    return payload
+
+async def obter_funcionario_logado(token: str = Depends(oauth2_scheme)) -> dict:
+    """
+    Obtém o payload do funcionário logado
+    """
+    payload = decodifica_token(token)
+    if payload is None:
+        raise HTTPException(
+            status_code=401,
+            detail="Token inválido ou expirado",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    
+    user_type = payload.get("tipo")
+    if user_type != "funcionario":
+        raise HTTPException(
+            status_code=403,
+            detail="Acesso permitido apenas para funcionários",
+        )
+    
+    return payload
+
+async def obter_usuario_logado(token: str = Depends(oauth2_scheme)) -> dict:
+    """
+    Obtém o payload completo do usuário logado (cliente ou funcionário)
+    """
+    payload = decodifica_token(token)
+    if payload is None:
+        raise HTTPException(
+            status_code=401,
+            detail="Token inválido ou expirado",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    return payload
+
+async def obter_funcionario_logado(token: str = Depends(oauth2_scheme)) -> dict:
+    """
+    Obtém o payload do funcionário logado
+    """
+    payload = decodifica_token(token)
+    if payload is None:
+        raise HTTPException(
+            status_code=401,
+            detail="Token inválido ou expirado",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    
+    user_type = payload.get("tipo")
+    if user_type != "funcionario":
+        raise HTTPException(
+            status_code=403,
+            detail="Acesso permitido apenas para funcionários",
+        )
+    
+    return payload
