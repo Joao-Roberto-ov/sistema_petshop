@@ -16,19 +16,19 @@ function AppHeader({
     onNavigateToPetCadastro,
     onNavigateToMeusPets,
     onNavigateToMeuPerfil,
-    onNavigateToProdutos
+    onNavigateToProdutos,
+    onNavigateToServicosCliente
 }) {
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
     const dropdownRef = useRef(null);
-
-    const handlePlaceholderClick = (feature) => {
-        alert(`A funcionalidade "${feature}" será implementada em breve!`);
-        setIsDropdownOpen(false);
-    };
-
     const handleServicosClick = (e) => {
         e.preventDefault();
-        alert('Função em desenvolvimento');
+        if (onNavigateToServicosCliente) {
+            onNavigateToServicosCliente();
+        } else {
+            console.warn("onNavigateToServicosCliente não foi fornecida ao AppHeader");
+            alert('Erro: Função de navegação para serviços não definida.');
+        }
     };
 
     useEffect(() => {
@@ -46,11 +46,10 @@ function AppHeader({
     const isFuncionarioOuAdmin = userData?.cargo &&
         (userData.cargo === 'FUNCIONARIO' || userData.cargo === 'GESTOR');
 
-    // Verificar se é admin/gestor (incluindo diferentes variações)
     const cargoLower = userData?.cargo?.toLowerCase();
-    const isAdmin = userData?.cargo === 'GESTOR' || 
-                   userData?.cargo === 'ADMINISTRADOR' || 
-                   cargoLower === 'gestor' || 
+    const isAdmin = userData?.cargo === 'GESTOR' ||
+                   userData?.cargo === 'ADMINISTRADOR' ||
+                   cargoLower === 'gestor' ||
                    cargoLower === 'administrador';
 
     const handleProdutosClick = (e) => {
@@ -78,7 +77,6 @@ function AppHeader({
                 <ul className="nav-menu">
                     <li><a href="#" className="nav-link" onClick={(e) => { e.preventDefault(); onNavigateToHome(); }}>Início</a></li>
 
-                    {/* Links para Cliente Logado */}
                     {isLoggedIn && !isFuncionarioOuAdmin && (
                         <>
                             <li><a href="#" className="nav-link" onClick={(e) => { e.preventDefault(); onNavigateToDashboard(); }}>Dashboard</a></li>
@@ -87,7 +85,6 @@ function AppHeader({
                         </>
                     )}
 
-                    {/* Links para Funcionário/Gestor Logado */}
                     {isLoggedIn && isFuncionarioOuAdmin && (
                         <>
                             <li>
@@ -134,7 +131,6 @@ function AppHeader({
                         </>
                     )}
 
-                    {/* Botão de Produtos - Sempre Visível */}
                     <li>
                         <a
                             href="#"
@@ -145,9 +141,8 @@ function AppHeader({
                         </a>
                     </li>
 
-                    {/* Link de Serviços - Visível apenas para deslogados */}
                     {!isLoggedIn && (
-                        <li><a href="#" className="nav-link" onClick={(e) => { e.preventDefault(); handlePlaceholderClick('Serviços'); }}>Serviços</a></li>
+                        <li><a href="#" className="nav-link" onClick={handleServicosClick}>Serviços</a></li>
                     )}
                 </ul>
 

@@ -61,7 +61,7 @@ function VisualizarPetsGestor({ onBack }) {
     const [searchTerm, setSearchTerm] = useState('');
     const [filteredPets, setFilteredPets] = useState([]);
 
-    // Toast notifications
+    // notificaçoes toasts
     const [toast, setToast] = useState({ show: false, message: '', type: '' });
 
     // Formulário de edição
@@ -221,7 +221,7 @@ function VisualizarPetsGestor({ onBack }) {
 
     return (
         <>
-            {/* Toast Notification */}
+            {/* notificaçoes toasts */}
             {toast.show && (
                 <div style={{
                     position: 'fixed',

@@ -1,6 +1,15 @@
 import React from 'react';
-
-function HomePage({ onNavigateToLogin, onNavigateToSignup, onNavigateToProdutos, isLoggedIn, userData, onLogout, onNavigateToDashboard }) {
+function HomePage({
+    onNavigateToLogin,
+    onNavigateToSignup,
+    onNavigateToProdutos,
+    onNavigateToServicos,
+    isLoggedIn,
+    userData,
+    onLogout,
+    onNavigateToDashboard,
+    onNavigateToAgendamento
+}) {
     const handlePlaceholderClick = (feature) => {
         alert(`A funcionalidade "${feature}" será implementada em breve!`);
     };
@@ -37,10 +46,15 @@ function HomePage({ onNavigateToLogin, onNavigateToSignup, onNavigateToProdutos,
                         "O melhor cuidado para seu pet está aqui. Oferecemos serviços completos de saúde, higiene e bem-estar para seu companheiro de quatro patas."}
                     </p>
                     <div className="hero-buttons">
-                        <button className="btn btn-outline-white hover-lift" onClick={() => handlePlaceholderClick('Agendamento')}>📅 Agendar Serviço</button>
-                        {/* ATUALIZAÇÃO 2: O onClick foi alterado para usar a nova prop */}
+                        <button
+                            className="btn btn-outline-white hover-lift"
+                            onClick={isLoggedIn && !userData?.cargo ? onNavigateToAgendamento : onNavigateToLogin}
+                        >
+                            📅 Agendar Serviço
+                        </button>
                         <button className="btn btn-outline-white hover-lift" onClick={onNavigateToProdutos}>🛒 Ver Produtos</button>
-                        {isLoggedIn && <button className="btn btn-outline-white hover-lift" onClick={onNavigateToDashboard}>📊 Meu Dashboard</button>}
+                        {isLoggedIn && !userData?.cargo && /*mostra dashboard apenas para cliente logado na home do cliente */
+                           <button className="btn btn-outline-white hover-lift" onClick={onNavigateToDashboard}>📊 Meu Dashboard</button>}
                     </div>
                 </div>
             </section>
@@ -102,7 +116,7 @@ function HomePage({ onNavigateToLogin, onNavigateToSignup, onNavigateToProdutos,
                     <h2>Pronto para cuidar do seu pet?</h2>
                     <p>Explore nossos serviços e descubra como podemos ajudar seu companheiro.</p>
                     <div className="cta-buttons">
-                        <button className="btn btn-outline-white btn-lg hover-lift" onClick={() => handlePlaceholderClick('Conhecer Serviços')}>Conhecer Serviços</button>
+                        <button className="btn btn-outline-white btn-lg hover-lift" onClick={onNavigateToServicos}>Conhecer Serviços</button>
                     </div>
                 </div>
             </section>

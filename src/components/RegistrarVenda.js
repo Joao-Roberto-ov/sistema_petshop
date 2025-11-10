@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import axios from "axios";
+import axios from '../api/axios'; // Importa a instância local do axios
 
 function RegistrarVenda({ onBack }) {
   const [clientes, setClientes] = useState([]);
@@ -11,6 +11,18 @@ function RegistrarVenda({ onBack }) {
   const [formaPagamento, setFormaPagamento] = useState("Dinheiro");
   const [statusPagamento, setStatusPagamento] = useState("pendente");
 
+  // --- INÍCIO DA MODIFICAÇÃO (Toast) ---
+  const [toast, setToast] = useState({ show: false, message: '', type: 'error' });
+
+  // Função para exibir o toast
+  const showToast = (message, type = 'error') => {
+    setToast({ show: true, message, type });
+    setTimeout(() => {
+      setToast({ show: false, message: '', type: 'error' });
+    }, 4000); // O toast desaparece após 4 segundos
+  };
+  // --- FIM DA MODIFICAÇÃO (Toast) ---
+
   useEffect(() => {
     buscarClientes();
     buscarProdutos();
@@ -19,7 +31,10 @@ function RegistrarVenda({ onBack }) {
 
   const buscarClientes = async () => {
     try {
-      const res = await axios.get("http://localhost:8000/api/users");
+      const token = localStorage.getItem('token');
+      const res = await axios.get("/users", {
+          headers: { 'Authorization': `Bearer ${token}` }
+      });
       setClientes(res.data);
     } catch (error) {
       console.error("Erro ao buscar clientes:", error);
@@ -28,7 +43,10 @@ function RegistrarVenda({ onBack }) {
 
   const buscarProdutos = async () => {
     try {
-      const res = await axios.get("http://localhost:8000/api/produtos/listar");
+      const token = localStorage.getItem('token');
+      const res = await axios.get("/produtos/listar", {
+          headers: { 'Authorization': `Bearer ${token}` }
+      });
       setProdutos(res.data);
     } catch (error) {
       console.error("Erro ao buscar produtos:", error);
@@ -37,17 +55,52 @@ function RegistrarVenda({ onBack }) {
 
   const buscarServicos = async () => {
     try {
-      const res = await axios.get("http://localhost:8000/api/servicos");
+      const token = localStorage.getItem('token');
+      const res = await axios.get("/servicos", {
+          headers: { 'Authorization': `Bearer ${token}` }
+      });
       setServicos(res.data);
     } catch (error) {
       console.error("Erro ao buscar serviços:", error);
     }
   };
 
-  const adicionarItem = (tipo, item) => {
+  // --- INÍCIO DA MODIFICAÇÃO (Função async + Fetch de Estoque) ---
+  const adicionarItem = async (tipo, item) => {
     const jaExiste = itens.find(
       (i) => i.id_item === item.id && i.tipo === tipo
     );
+    const quantidadeNoCarrinho = jaExiste ? jaExiste.quantidade : 0;
+
+    if (tipo === 'produto') {
+        let estoqueReal;
+        try {
+            // 1. Busca o estoque em tempo real
+            const token = localStorage.getItem('token');
+            const response = await axios.get(`/produtos/${item.id}/estoque`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            estoqueReal = response.data.estoque;
+
+            // Atualiza o estoque na lista local 'produtos'
+            setProdutos(prev => prev.map(p =>
+                p.id === item.id ? { ...p, estoque: estoqueReal } : p
+            ));
+
+        } catch (err) {
+            console.error("Erro ao buscar estoque:", err);
+            showToast("Erro ao verificar estoque. Tente novamente.", 'error');
+            return;
+        }
+
+        // 2. Valida usando o estoque real
+        if (quantidadeNoCarrinho + 1 > estoqueReal) {
+            showToast(`Estoque insuficiente para "${item.nome}". Disponível: ${estoqueReal}`, 'error');
+            return;
+        }
+    }
+    // --- FIM DA MODIFICAÇÃO ---
+
     if (jaExiste) {
       const atualizados = itens.map((i) =>
         i.id_item === item.id && i.tipo === tipo
@@ -63,7 +116,8 @@ function RegistrarVenda({ onBack }) {
           id_item: item.id,
           nome: item.nome,
           quantidade: 1,
-          preco_unitario: item.preco || 0,
+          preco_unitario: item.preco_venda || item.preco || 0,
+          estoque: item.estoque // Armazena o estoque (mesmo que stale, é usado na validação final)
         },
       ]);
     }
@@ -82,8 +136,24 @@ function RegistrarVenda({ onBack }) {
 
   const registrarVenda = async () => {
     if (!clienteSelecionado) {
-      alert("Selecione um cliente!");
+      showToast("Selecione um cliente!", 'error');
       return;
+    }
+    if (itens.length === 0) {
+      showToast("Adicione pelo menos um item à venda.", 'error');
+      return;
+    }
+
+    // Validação de segurança final no frontend (o backend fará a validação principal)
+    for (const item of itens) {
+        if (item.tipo === 'produto') {
+            const produtoDoEstoque = produtos.find(p => p.id === item.id_item);
+            if (produtoDoEstoque && item.quantidade > produtoDoEstoque.estoque) {
+                showToast(`Erro: Estoque de "${item.nome}" mudou. Disponível: ${produtoDoEstoque.estoque}, Pedido: ${item.quantidade}.`, 'error');
+                buscarProdutos(); // Atualiza a lista
+                return;
+            }
+        }
     }
 
     const venda = {
@@ -94,21 +164,27 @@ function RegistrarVenda({ onBack }) {
     };
 
     try {
-      await axios.post("http://localhost:8000/api/funcionario/registrar-venda", venda, {
+      await axios.post("/funcionario/registrar-venda", venda, {
         headers: {
           Authorization: `Bearer ${localStorage.getItem("token")}`,
         },
       });
-      alert("Venda registrada com sucesso!");
+      // --- MODIFICAÇÃO (Usa Toast) ---
+      showToast("Venda registrada com sucesso!", 'success');
       setItens([]);
       setClienteSelecionado(null);
+      buscarProdutos();
     } catch (error) {
       console.error("Erro ao registrar venda:", error);
-      alert("Erro ao registrar venda");
+      // --- MODIFICAÇÃO (Usa Toast) ---
+      showToast("Erro: " + (error.response?.data?.detail || error.message), 'error');
+      if (error.response?.status === 400 || error.response?.status === 404) {
+          buscarProdutos();
+      }
     }
   };
 
-  // ==================== ESTILOS ====================
+  //estilos
   const styles = {
     container: {
       display: "flex",
@@ -119,9 +195,9 @@ function RegistrarVenda({ onBack }) {
       backgroundColor: "#f3f3f3",
       padding: "40px",
       minHeight: "100vh",
-      maxWidth: "1400px",    
-      margin: "0 auto",       
-      width: "100%",         
+      maxWidth: "1400px",
+      margin: "0 auto",
+      width: "100%",
     },
     painelEsquerdo: {
       flex: 2,
@@ -162,6 +238,12 @@ function RegistrarVenda({ onBack }) {
       textAlign: "center",
       boxShadow: "0 2px 5px rgba(0,0,0,0.05)",
     },
+    estoqueInfo: {
+        fontSize: '0.85rem',
+        color: '#666',
+        margin: '5px 0 0 0',
+        fontWeight: '500'
+    },
     buttonAdd: {
       backgroundColor: "#4CAF50",
       color: "#fff",
@@ -169,6 +251,15 @@ function RegistrarVenda({ onBack }) {
       borderRadius: "6px",
       padding: "5px 10px",
       cursor: "pointer",
+      marginTop: "5px",
+    },
+    buttonAddDisabled: {
+      backgroundColor: "#9e9e9e",
+      color: "#fff",
+      border: "none",
+      borderRadius: "6px",
+      padding: "5px 10px",
+      cursor: "not-allowed",
       marginTop: "5px",
     },
     listaCarrinho: {
@@ -240,9 +331,41 @@ function RegistrarVenda({ onBack }) {
     },
   };
 
-  // ==================== JSX ====================
+  //jsx
   return (
     <div style={styles.container}>
+      {/* --- INÍCIO DA MODIFICAÇÃO (JSX do Toast) --- */}
+      {toast.show && (
+        <div style={{
+          position: 'fixed',
+          top: '20px',
+          right: '20px',
+          zIndex: 1050,
+          padding: '1rem 1.5rem',
+          // Cor baseada no tipo (success ou error)
+          backgroundColor: toast.type === 'success' ? '#28a745' : '#dc3545',
+          color: 'white',
+          borderRadius: '8px',
+          boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+          fontSize: '1rem',
+          fontWeight: '500',
+          animation: 'fadeInOut 4s forwards'
+        }}>
+          {toast.message}
+        </div>
+      )}
+      {/* CSS para animação do toast */}
+      <style>
+          {`@keyframes fadeInOut {
+              0% { opacity: 0; transform: translateY(-20px); }
+              10% { opacity: 1; transform: translateY(0); }
+              90% { opacity: 1; transform: translateY(0); }
+              100% { opacity: 0; transform: translateY(-20px); }
+          }`}
+      </style>
+      {/* --- FIM DA MODIFICAÇÃO --- */}
+
+
       {/* Painel esquerdo */}
       <div style={styles.painelEsquerdo}>
         <h2 style={styles.title}>Registrar Venda</h2>
@@ -296,10 +419,17 @@ function RegistrarVenda({ onBack }) {
           {produtos.map((p) => (
             <div key={p.id} style={styles.cardItem}>
               <strong>{p.nome}</strong>
-              <p>R$ {p.preco}</p>
+              <p>R$ {p.preco_venda}</p>
+              <p style={{
+                  ...styles.estoqueInfo,
+                  color: p.estoque <= 0 ? '#e74c3c' : '#666'
+              }}>
+                Estoque: {p.estoque}
+              </p>
               <button
-                style={styles.buttonAdd}
+                style={p.estoque <= 0 ? styles.buttonAddDisabled : styles.buttonAdd}
                 onClick={() => adicionarItem("produto", p)}
+                disabled={p.estoque <= 0}
               >
                 Adicionar
               </button>

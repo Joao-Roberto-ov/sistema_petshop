@@ -1,5 +1,3 @@
-# Arquivo completo e corrigido para: services/email_service.py
-
 import os
 import smtplib
 from email.mime.text import MIMEText
@@ -61,7 +59,7 @@ class EmailService:
 
     def enviar_link_redefinicao(self, destinatario_email: str, codigo: str):
         """
-        Método para enviar link de redefinição de senha (fluxo esqueci senha)
+        Metodo para enviar link de redefinição de senha (fluxo esqueci senha)
         """
         assunto = "Redefinição de Senha PetLife"
         corpo_html = f"""
@@ -78,7 +76,6 @@ class EmailService:
         """
         self._enviar_email(destinatario_email, assunto, corpo_html)
 
-    # --- MÉTODO ATUALIZADO ---
     def notificar_alteracao_perfil(self, destinatario_email: str, campos_modificados: list):
         """
         Envia um e-mail notificando o usuário sobre alterações em seu perfil,

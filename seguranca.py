@@ -67,6 +67,143 @@ def decodifica_token(token: str) -> Optional[dict]:
 from repositories.funcionario_repository import RepositorioFuncionario
 from util.cargos import Cargo
 
+# Adiciona o cargo de cliente para uso nas funções de permissão
+Cargo.CLIENTE = 5 # Definido em cargos.py, mas redefinido aqui para evitar problemas de importação circular se houver.
+# A importação de Cargo já deve ser suficiente, mas vamos garantir o uso correto dos valores.
+
+async def verificar_permissao_cliente(token: str = Depends(oauth2_scheme)) -> int:
+    payload = decodifica_token(token)
+    if payload is None:
+        raise HTTPException(
+            status_code=401,
+            detail="Token inválido ou expirado",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    
+    user_id = payload.get("sub")
+    user_type = payload.get("tipo")
+
+    if user_id is None or user_type is None:
+        raise HTTPException(
+            status_code=401,
+            detail="Token inválido: informações de usuário ausentes",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    if user_type != "cliente":
+        raise HTTPException(
+            status_code=403,
+            detail="Acesso negado: Apenas clientes podem realizar esta ação",
+        )
+    
+    return int(user_id)
+
+
+async def verificar_permissao_funcionario(token: str = Depends(oauth2_scheme)) -> int:
+    payload = decodifica_token(token)
+    if payload is None:
+        raise HTTPException(
+            status_code=401,
+            detail="Token inválido ou expirado",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    
+    user_id = payload.get("sub")
+    user_type = payload.get("tipo")
+
+    if user_id is None or user_type is None:
+        raise HTTPException(
+            status_code=401,
+            detail="Token inválido: informações de usuário ausentes",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    if user_type != "funcionario":
+        raise HTTPException(
+            status_code=403,
+            detail="Acesso negado: Apenas funcionários podem realizar esta ação",
+        )
+    
+    return int(user_id)
+
+async def verificar_permissao_veterinario(token: str = Depends(oauth2_scheme)) -> int:
+    payload = decodifica_token(token)
+    if payload is None:
+        raise HTTPException(
+            status_code=401,
+            detail="Token inválido ou expirado",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    
+    user_id = payload.get("sub")
+    user_type = payload.get("tipo")
+
+    if user_id is None or user_type is None:
+        raise HTTPException(
+            status_code=401,
+            detail="Token inválido: informações de usuário ausentes",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    if user_type != "funcionario":
+        raise HTTPException(
+            status_code=403,
+            detail="Acesso negado: Apenas funcionários podem realizar esta ação",
+        )
+    
+    repo_funcionario = RepositorioFuncionario()
+    funcionario_data = repo_funcionario.procurar_pelo_id(int(user_id))
+
+    # Apenas Gestor (ID 1) e Veterinário (ID 3) têm permissões de veterinário/admin
+    cargos_permitidos = [Cargo.GESTOR.value, Cargo.VETERINARIO.value]
+    
+    if not funcionario_data or funcionario_data.get("cargo_id") not in cargos_permitidos:
+        raise HTTPException(
+            status_code=403,
+            detail="Acesso negado: Apenas gestores e veterinários podem realizar esta ação",
+        )
+
+    return int(user_id)
+
+async def verificar_permissao_gestor(token: str = Depends(oauth2_scheme)) -> int:
+    payload = decodifica_token(token)
+    if payload is None:
+        raise HTTPException(
+            status_code=401,
+            detail="Token inválido ou expirado",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    
+    user_id = payload.get("sub")
+    user_type = payload.get("tipo")
+
+    if user_id is None or user_type is None:
+        raise HTTPException(
+            status_code=401,
+            detail="Token inválido: informações de usuário ausentes",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    if user_type != "funcionario":
+        raise HTTPException(
+            status_code=403,
+            detail="Acesso negado: Apenas funcionários podem realizar esta ação",
+        )
+    
+    repo_funcionario = RepositorioFuncionario()
+    funcionario_data = repo_funcionario.procurar_pelo_id(int(user_id))
+
+    # Apenas Gestor (ID 1) tem permissões de gestor
+    cargos_permitidos = [Cargo.GESTOR.value]
+    
+    if not funcionario_data or funcionario_data.get("cargo_id") not in cargos_permitidos:
+        raise HTTPException(
+            status_code=403,
+            detail="Acesso negado: Apenas gestores podem realizar esta ação",
+        )
+
+    return int(user_id)
+
 async def verificar_permissao_admin(token: str = Depends(oauth2_scheme)) -> int:
     payload = decodifica_token(token)
     if payload is None:
@@ -96,7 +233,7 @@ async def verificar_permissao_admin(token: str = Depends(oauth2_scheme)) -> int:
     funcionario_data = repo_funcionario.procurar_pelo_id(int(user_id))
 
     # Apenas Gestor (ID 1) tem permissões de administrador
-    cargos_admin = [1]  # Apenas Gestor
+    cargos_admin = [Cargo.GESTOR.value]  # Apenas Gestor
     
     if not funcionario_data or funcionario_data.get("cargo_id") not in cargos_admin:
         raise HTTPException(
@@ -107,3 +244,80 @@ async def verificar_permissao_admin(token: str = Depends(oauth2_scheme)) -> int:
     return int(user_id)
 
 
+async def pegar_payload_do_usuario_logado(token: str = Depends(oauth2_scheme)) -> dict:
+    payload = decodifica_token(token)
+    if payload is None:
+        raise HTTPException(
+            status_code=401,
+            detail="Token inválido ou expirado",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    return payload
+
+async def obter_usuario_logado(token: str = Depends(oauth2_scheme)) -> dict:
+    """
+    Obtém o payload completo do usuário logado (cliente ou funcionário)
+    """
+    payload = decodifica_token(token)
+    if payload is None:
+        raise HTTPException(
+            status_code=401,
+            detail="Token inválido ou expirado",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    return payload
+
+async def obter_funcionario_logado(token: str = Depends(oauth2_scheme)) -> dict:
+    """
+    Obtém o payload do funcionário logado
+    """
+    payload = decodifica_token(token)
+    if payload is None:
+        raise HTTPException(
+            status_code=401,
+            detail="Token inválido ou expirado",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    
+    user_type = payload.get("tipo")
+    if user_type != "funcionario":
+        raise HTTPException(
+            status_code=403,
+            detail="Acesso permitido apenas para funcionários",
+        )
+    
+    return payload
+
+async def obter_usuario_logado(token: str = Depends(oauth2_scheme)) -> dict:
+    """
+    Obtém o payload completo do usuário logado (cliente ou funcionário)
+    """
+    payload = decodifica_token(token)
+    if payload is None:
+        raise HTTPException(
+            status_code=401,
+            detail="Token inválido ou expirado",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    return payload
+
+async def obter_funcionario_logado(token: str = Depends(oauth2_scheme)) -> dict:
+    """
+    Obtém o payload do funcionário logado
+    """
+    payload = decodifica_token(token)
+    if payload is None:
+        raise HTTPException(
+            status_code=401,
+            detail="Token inválido ou expirado",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    
+    user_type = payload.get("tipo")
+    if user_type != "funcionario":
+        raise HTTPException(
+            status_code=403,
+            detail="Acesso permitido apenas para funcionários",
+        )
+    
+    return payload

@@ -1,12 +1,12 @@
 from bancoDeDados import conectar, encerra_conexao
 from datetime import datetime
+from typing import List, Optional
+from psycopg2.extras import execute_values
 
 class RepositorioFuncionario:
 
     def buscar_pelo_email(self, email: str):
-        """
-        Retorna (id, senha) do funcionário pelo email (case-insensitive).
-        """
+        #retorna (id, senha) do funcionário pelo email
         conn = None
         cursor = None
 
@@ -25,9 +25,6 @@ class RepositorioFuncionario:
             if conn: encerra_conexao(conn)
 
     def procurar_pelo_id(self, user_id: int):
-        """
-        Retorna os dados completos do funcionário pelo id
-        """
         conn = None
         cursor = None
 
@@ -45,13 +42,17 @@ class RepositorioFuncionario:
                          f.horario_inicio,
                          f.horario_fim,
                          f.dias_trabalho,
-                         c.id   as cargo_id,
-                         c.nome as cargo,
+                         c.id                                                                              as cargo_id,
+                         c.nome                                                                            as cargo,
                          f.is_ativo,
-                         f.data_cadastro
+                         f.data_cadastro,
+                         COALESCE(array_agg(es.servico_id) FILTER (WHERE es.servico_id IS NOT NULL), \
+                                  '{}')                                                                    as especialidades
                   FROM Funcionarios f
                            JOIN Cargos c ON f.cargo_id = c.id
+                           LEFT JOIN Funcionario_Especialidades es ON f.id = es.funcionario_id
                   WHERE f.id = %s
+                  GROUP BY f.id, c.id
                   """
             cursor.execute(sql, (user_id,))
             row = cursor.fetchone()
@@ -70,12 +71,13 @@ class RepositorioFuncionario:
                     "cargo_id": row[10],
                     "cargo": row[11],
                     "is_ativo": row[12],
-                    "data_cadastro": row[13]
+                    "data_cadastro": row[13],
+                    "especialidades": row[14]
                 }
             return None
         except Exception as e:
             print(f"Erro ao buscar funcionário por ID: {e}")
-            raise  
+            raise
         finally:
             if cursor: cursor.close()
             if conn: encerra_conexao(conn)
@@ -105,7 +107,7 @@ class RepositorioFuncionario:
             if conn:
                 conn.rollback()
             print(f"Erro ao cadastrar funcionário: {e}")
-            raise  
+            raise
         finally:
             if cursor: cursor.close()
             if conn: encerra_conexao(conn)
@@ -135,14 +137,14 @@ class RepositorioFuncionario:
             if conn:
                 conn.rollback()
             print(f"Erro ao cadastrar funcionário: {e}")
-            raise 
+            raise
         finally:
             if cursor: cursor.close()
             if conn: encerra_conexao(conn)
 
     def buscar_todos(self):
         """
-        Retorna todos os funcionários
+        Retorna todos os funcionários, INCLUINDO especialidades (Req 2).
         """
         conn = None
         cursor = None
@@ -150,87 +152,58 @@ class RepositorioFuncionario:
             conn = conectar()
             cursor = conn.cursor()
             sql = """
-                SELECT f.id, f.nome, f.email, 
-                       COALESCE(f.telefone, '') as telefone, 
-                       COALESCE(f.endereco, '') as endereco, 
-                       COALESCE(f.cpf, '') as cpf, 
-                       COALESCE(f.cargo_funcao, c.nome) as cargo_funcao, 
-                       COALESCE(f.horario_inicio, '08:00') as horario_inicio, 
-                       COALESCE(f.horario_fim, '17:00') as horario_fim, 
-                       COALESCE(f.dias_trabalho, 'Segunda,Terça,Quarta,Quinta,Sexta') as dias_trabalho,
-                       c.id as cargo_id, c.nome as cargo, 
-                       COALESCE(f.is_ativo, true) as is_ativo, 
-                       COALESCE(f.data_cadastro, CURRENT_TIMESTAMP) as data_cadastro
-                FROM Funcionarios f
-                JOIN Cargos c ON f.cargo_id = c.id
-                ORDER BY f.id
-            """
-            try:
-                cursor.execute(sql)
-                funcionarios = cursor.fetchall()
-                return [
-                    {
-                        "id": f[0],
-                        "nome": f[1],
-                        "email": f[2],
-                        "telefone": f[3],
-                        "endereco": f[4],
-                        "cpf": f[5],
-                        "cargo_funcao": f[6],
-                        "horario_inicio": str(f[7]) if f[7] else "08:00",
-                        "horario_fim": str(f[8]) if f[8] else "17:00",
-                        "dias_trabalho": f[9],
-                        "cargo_id": f[10],
-                        "cargo": f[11],
-                        "is_ativo": f[12],
-                        "data_cadastro": f[13]
-                    } for f in funcionarios
-                ]
-            except Exception as query_error:
-                print(f"Erro na query completa: {query_error}")
-                sql_simples = """
-                    SELECT f.id, f.nome, f.email, 
-                           COALESCE(f.telefone, '') as telefone, 
-                           COALESCE(f.endereco, '') as endereco, 
-                           COALESCE(f.cpf, '') as cpf, 
-                           c.nome as cargo_funcao,
-                           c.id as cargo_id, c.nome as cargo, 
-                           COALESCE(f.is_ativo, true) as is_ativo
-                    FROM Funcionarios f
-                    JOIN Cargos c ON f.cargo_id = c.id
-                    ORDER BY f.id
-                """
-                cursor.execute(sql_simples)
-                funcionarios = cursor.fetchall()
-                return [
-                    {
-                        "id": f[0],
-                        "nome": f[1],
-                        "email": f[2],
-                        "telefone": f[3],
-                        "endereco": f[4],
-                        "cpf": f[5],
-                        "cargo_funcao": f[6],
-                        "horario_inicio": "08:00",
-                        "horario_fim": "17:00",
-                        "dias_trabalho": "Segunda,Terça,Quarta,Quinta,Sexta",
-                        "cargo_id": f[7],
-                        "cargo": f[8],
-                        "is_ativo": f[9],
-                        "data_cadastro": None
-                    } for f in funcionarios
-                ]
+                  SELECT f.id, \
+                         f.nome, \
+                         f.email,
+                         COALESCE(f.telefone, '')                                                          as telefone,
+                         COALESCE(f.endereco, '')                                                          as endereco,
+                         COALESCE(f.cpf, '')                                                               as cpf,
+                         COALESCE(f.cargo_funcao, c.nome)                                                  as cargo_funcao,
+                         COALESCE(f.horario_inicio, '08:00')                                               as horario_inicio,
+                         COALESCE(f.horario_fim, '17:00')                                                  as horario_fim,
+                         COALESCE(f.dias_trabalho, 'Segunda,Terça,Quarta,Quinta,Sexta')                    as dias_trabalho,
+                         c.id                                                                              as cargo_id, \
+                         c.nome                                                                            as cargo,
+                         COALESCE(f.is_ativo, true)                                                        as is_ativo,
+                         COALESCE(f.data_cadastro, CURRENT_TIMESTAMP)                                      as data_cadastro,
+                         COALESCE(array_agg(es.servico_id) FILTER (WHERE es.servico_id IS NOT NULL), \
+                                  '{}')                                                                    as especialidades
+                  FROM Funcionarios f
+                           JOIN Cargos c ON f.cargo_id = c.id
+                           LEFT JOIN Funcionario_Especialidades es ON f.id = es.funcionario_id
+                  GROUP BY f.id, c.id
+                  ORDER BY f.id \
+                  """
+            cursor.execute(sql)
+            funcionarios = cursor.fetchall()
+            return [
+                {
+                    "id": f[0],
+                    "nome": f[1],
+                    "email": f[2],
+                    "telefone": f[3],
+                    "endereco": f[4],
+                    "cpf": f[5],
+                    "cargo_funcao": f[6],
+                    "horario_inicio": str(f[7]) if f[7] else "08:00",
+                    "horario_fim": str(f[8]) if f[8] else "17:00",
+                    "dias_trabalho": f[9],
+                    "cargo_id": f[10],
+                    "cargo": f[11],
+                    "is_ativo": f[12],
+                    "data_cadastro": f[13],
+                    "especialidades": f[14]
+                } for f in funcionarios
+            ]
         except Exception as e:
             print(f"Erro ao buscar todos os funcionários: {e}")
-            raise 
+            raise
         finally:
             if cursor: cursor.close()
             if conn: encerra_conexao(conn)
 
     def atualizar_funcionario(self, user_id: int, campos: dict):
-        """
-        Atualiza dados do funcionário
-        """
+
         conn = None
         cursor = None
         try:
@@ -268,120 +241,179 @@ class RepositorioFuncionario:
             if conn:
                 conn.rollback()
             print(f"Erro ao atualizar funcionário: {e}")
-            raise  
+            raise
         finally:
             if cursor: cursor.close()
             if conn: encerra_conexao(conn)
 
+    def atualizar_especialidades(self, funcionario_id: int, especialidades_ids: List[int]):
 
-def buscar_funcionario_pelo_email(self, email: str):
-    """
-    Retorna (id, email) do funcionário pelo email (case-insensitive).
-    Específico para recuperação de senha.
-    """
-    conn = None
-    cursor = None
-    try:
-        conn = conectar()
-        cursor = conn.cursor()
-        sql = "SELECT id, email FROM Funcionarios WHERE LOWER(email) = LOWER(%s)"
-        cursor.execute(sql, (email,))
-        return cursor.fetchone()
-    except Exception as e:
-        print(f"Erro ao buscar funcionário por email: {e}")
-        raise
-    finally:
-        if cursor: cursor.close()
-        if conn: encerra_conexao(conn)
+        #sincroniza a lista de especialidades de um funcionario
 
-def salvar_token_redefinicao(self, user_id: int, token: str, expiracao: datetime):
-    """
-    Salva o token de redefinição de senha no banco
-    """
-    conn = None
-    cursor = None
-    try:
-        conn = conectar()
-        cursor = conn.cursor()
-        sql = """
-            INSERT INTO tokens_redefinicao_funcionario 
-            (funcionario_id, token, expiracao) 
-            VALUES (%s, %s, %s)
+        conn = None
+        cursor = None
+        try:
+            conn = conectar()
+            cursor = conn.cursor()
+
+            #apaga todas as especialidades existentes
+            cursor.execute("DELETE FROM Funcionario_Especialidades WHERE funcionario_id = %s", (funcionario_id,))
+
+            #insere as novas, se tiver mudado alguma
+            if especialidades_ids:
+                valores_para_inserir = [(funcionario_id, servico_id) for servico_id in especialidades_ids]
+                sql_insert = "INSERT INTO Funcionario_Especialidades (funcionario_id, servico_id) VALUES %s"
+                execute_values(cursor, sql_insert, valores_para_inserir)
+
+            conn.commit()
+        except Exception as e:
+            if conn: conn.rollback()
+            print(f"Erro ao atualizar especialidades: {e}")
+            raise
+        finally:
+            if cursor: cursor.close()
+            if conn: encerra_conexao(conn)
+
+    def buscar_especialidades(self, funcionario_id: int) -> List[int]:
+        """Busca uma lista de IDs de serviços de especialidade de um funcionário."""
+        conn = None
+        cursor = None
+        try:
+            conn = conectar()
+            cursor = conn.cursor()
+            sql = "SELECT servico_id FROM Funcionario_Especialidades WHERE funcionario_id = %s"
+            cursor.execute(sql, (funcionario_id,))
+            return [row[0] for row in cursor.fetchall()]
+        except Exception as e:
+            print(f"Erro ao buscar especialidades: {e}")
+            return []
+        finally:
+            if cursor: cursor.close()
+            if conn: encerra_conexao(conn)
+
+    def buscar_especialistas_por_servico(self, servico_id: int) -> List[dict]:
+        #busca funcionarios pelo id e nome que sao especialistas
+
+        conn = None
+        cursor = None
+        try:
+            conn = conectar()
+            cursor = conn.cursor()
+            sql = """
+                  SELECT f.id, f.nome
+                  FROM Funcionarios f
+                           JOIN Funcionario_Especialidades es ON f.id = es.funcionario_id
+                  WHERE es.servico_id = %s \
+                    AND f.is_ativo = TRUE
+                  ORDER BY f.nome; \
+                  """
+            cursor.execute(sql, (servico_id,))
+            return [{"id": row[0], "nome": row[1]} for row in cursor.fetchall()]
+        except Exception as e:
+            print(f"Erro ao buscar especialistas por serviço: {e}")
+            return []
+        finally:
+            if cursor: cursor.close()
+            if conn: encerra_conexao(conn)
+
+    def buscar_funcionario_pelo_email(self, email: str):
+
+        conn = None
+        cursor = None
+        try:
+            conn = conectar()
+            cursor = conn.cursor()
+            sql = "SELECT id, email FROM Funcionarios WHERE LOWER(email) = LOWER(%s)"
+            cursor.execute(sql, (email,))
+            return cursor.fetchone()
+        except Exception as e:
+            print(f"Erro ao buscar funcionário por email: {e}")
+            raise
+        finally:
+            if cursor: cursor.close()
+            if conn: encerra_conexao(conn)
+
+    def salvar_token_redefinicao(self, user_id: int, token: str, expiracao: datetime):
+
+        conn = None
+        cursor = None
+        try:
+            conn = conectar()
+            cursor = conn.cursor()
+            sql = """
+                INSERT INTO tokens_redefinicao_funcionario 
+                (funcionario_id, token, expiracao) 
+                VALUES (%s, %s, %s)
+            """
+            cursor.execute(sql, (user_id, token, expiracao))
+            conn.commit()
+        except Exception as e:
+            if conn:
+                conn.rollback()
+            print(f"Erro ao salvar token de redefinição: {e}")
+            raise
+        finally:
+            if cursor: cursor.close()
+            if conn: encerra_conexao(conn)
+
+    def buscar_token_redefinicao(self, token: str):
+
+        conn = None
+        cursor = None
+        try:
+            conn = conectar()
+            cursor = conn.cursor()
+            sql = """
+                SELECT tr.funcionario_id, f.email, tr.expiracao 
+                FROM tokens_redefinicao_funcionario tr
+                JOIN Funcionarios f ON tr.funcionario_id = f.id
+                WHERE tr.token = %s AND tr.ativo = TRUE
+            """
+            cursor.execute(sql, (token,))
+            return cursor.fetchone()
+        except Exception as e:
+            print(f"Erro ao buscar token de redefinição: {e}")
+            raise
+        finally:
+            if cursor: cursor.close()
+            if conn: encerra_conexao(conn)
+
+    def invalidar_token_redefinicao(self, token: str):
         """
-        cursor.execute(sql, (user_id, token, expiracao))
-        conn.commit()
-    except Exception as e:
-        if conn:
-            conn.rollback()
-        print(f"Erro ao salvar token de redefinição: {e}")
-        raise
-    finally:
-        if cursor: cursor.close()
-        if conn: encerra_conexao(conn)
-
-def buscar_token_redefinicao(self, token: str):
-    """
-    Busca informações do token de redefinição
-    """
-    conn = None
-    cursor = None
-    try:
-        conn = conectar()
-        cursor = conn.cursor()
-        sql = """
-            SELECT tr.funcionario_id, f.email, tr.expiracao 
-            FROM tokens_redefinicao_funcionario tr
-            JOIN Funcionarios f ON tr.funcionario_id = f.id
-            WHERE tr.token = %s AND tr.ativo = TRUE
+        Invalida um token após uso
         """
-        cursor.execute(sql, (token,))
-        return cursor.fetchone()
-    except Exception as e:
-        print(f"Erro ao buscar token de redefinição: {e}")
-        raise
-    finally:
-        if cursor: cursor.close()
-        if conn: encerra_conexao(conn)
+        conn = None
+        cursor = None
+        try:
+            conn = conectar()
+            cursor = conn.cursor()
+            sql = "UPDATE tokens_redefinicao_funcionario SET ativo = FALSE WHERE token = %s"
+            cursor.execute(sql, (token,))
+            conn.commit()
+        except Exception as e:
+            if conn:
+                conn.rollback()
+            print(f"Erro ao invalidar token: {e}")
+            raise
+        finally:
+            if cursor: cursor.close()
+            if conn: encerra_conexao(conn)
 
-def invalidar_token_redefinicao(self, token: str):
-    """
-    Invalida um token após uso
-    """
-    conn = None
-    cursor = None
-    try:
-        conn = conectar()
-        cursor = conn.cursor()
-        sql = "UPDATE tokens_redefinicao_funcionario SET ativo = FALSE WHERE token = %s"
-        cursor.execute(sql, (token,))
-        conn.commit()
-    except Exception as e:
-        if conn:
-            conn.rollback()
-        print(f"Erro ao invalidar token: {e}")
-        raise
-    finally:
-        if cursor: cursor.close()
-        if conn: encerra_conexao(conn)
+    def atualizar_senha_funcionario(self, user_id: int, nova_senha_hash: str):
 
-def atualizar_senha_funcionario(self, user_id: int, nova_senha_hash: str):
-    """
-    Atualiza a senha do funcionário
-    """
-    conn = None
-    cursor = None
-    try:
-        conn = conectar()
-        cursor = conn.cursor()
-        sql = "UPDATE Funcionarios SET senha = %s WHERE id = %s"
-        cursor.execute(sql, (nova_senha_hash, user_id))
-        conn.commit()
-    except Exception as e:
-        if conn:
-            conn.rollback()
-        print(f"Erro ao atualizar senha do funcionário: {e}")
-        raise
-    finally:
-        if cursor: cursor.close()
-        if conn: encerra_conexao(conn)
-
+        conn = None
+        cursor = None
+        try:
+            conn = conectar()
+            cursor = conn.cursor()
+            sql = "UPDATE Funcionarios SET senha = %s WHERE id = %s"
+            cursor.execute(sql, (nova_senha_hash, user_id))
+            conn.commit()
+        except Exception as e:
+            if conn:
+                conn.rollback()
+            print(f"Erro ao atualizar senha do funcionário: {e}")
+            raise
+        finally:
+            if cursor: cursor.close()
+            if conn: encerra_conexao(conn)

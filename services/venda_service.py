@@ -1,17 +1,51 @@
 from fastapi import HTTPException
+# --- INÍCIO DA MODIFICAÇÃO ---
 from repositories.venda_repository import RepositorioVenda
+from repositories.produto_repository import RepositorioProduto
+
+
+# --- FIM DA MODIFICAÇÃO ---
 
 class ServicosVenda:
     def __init__(self):
         self.repo = RepositorioVenda()
+        # --- INÍCIO DA MODIFICAÇÃO ---
+        self.prod_repo = RepositorioProduto()
+        # --- FIM DA MODIFICAÇÃO ---
 
     def registrar_venda(self, dados_venda, funcionario_id: int):
         if not dados_venda.itens or len(dados_venda.itens) == 0:
             raise HTTPException(status_code=400, detail="Nenhum item informado na venda.")
-        
+
+        # --- INÍCIO DA MODIFICAÇÃO (Validação de Estoque) ---
+        # 1. Busca o estoque mais recente do banco de dados
+        produtos_cadastrados_atuais = self.prod_repo.buscar_todos_produtos_cadastrados()
+
+        for item_venda in dados_venda.itens:
+            if item_venda.tipo == "produto":
+                # 2. Encontra o produto correspondente na lista do banco
+                produto_atual = next((p for p in produtos_cadastrados_atuais if p["id"] == item_venda.id_item), None)
+
+                if not produto_atual:
+                    raise HTTPException(
+                        status_code=404,
+                        detail=f"Produto '{item_venda.nome}' (ID: {item_venda.id_item}) não foi encontrado."
+                    )
+
+                estoque_real = int(produto_atual["estoque"])
+
+                # 3. Compara a quantidade pedida com o estoque real
+                if item_venda.quantidade > estoque_real:
+                    raise HTTPException(
+                        status_code=400,  # Erro do cliente (Bad Request)
+                        detail=f"Estoque insuficiente para '{item_venda.nome}'. Pedido: {item_venda.quantidade}, Disponível: {estoque_real}"
+                    )
+        # --- FIM DA MODIFICAÇÃO ---
+
         total = sum(item.quantidade * float(item.preco_unitario) for item in dados_venda.itens)
 
         try:
+            # O repositório agora também é responsável por atualizar o estoque
             venda = self.repo.registrar_venda(funcionario_id, dados_venda, total)
             return {
                 "mensagem": "Venda registrada com sucesso.",
@@ -31,11 +65,11 @@ class ServicosVenda:
         return vendas or []
 
     def atualizar_venda(
-        self,
-        venda_id: int,
-        forma_pagamento: str = None,
-        total: float = None,
-        status_pagamento: str = None
+            self,
+            venda_id: int,
+            forma_pagamento: str = None,
+            total: float = None,
+            status_pagamento: str = None
     ):
         if not any([forma_pagamento, total, status_pagamento]):
             raise HTTPException(status_code=400, detail="Nenhum campo para atualização informado.")
@@ -43,7 +77,7 @@ class ServicosVenda:
         atualizada = self.repo.update_venda(venda_id, forma_pagamento, total, status_pagamento)
         if not atualizada:
             raise HTTPException(status_code=404, detail="Venda não encontrada ou sem alterações.")
-        
+
         return {"mensagem": "Venda atualizada com sucesso."}
 
     def deletar_venda(self, venda_id: int):

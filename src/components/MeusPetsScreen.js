@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import axios from '../api/axios';
+import axios from '../api/axios'
+import VacinaModal from './VacinaModal';;
 import PetCard from './PetCard';
 import PetHistoryModal from './PetHistoryModal';
-import './MeusPetsScreen.css'; // O CSS correspondente está abaixo
+import './MeusPetsScreen.css';
 
 // --- Ícones SVG para um visual mais limpo ---
 const IconPlus = () => (
@@ -25,6 +26,7 @@ function MeusPetsScreen({ onNavigateToPetCadastro }) {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [selectedPet, setSelectedPet] = useState(null);
+    const [selectedPetForVaccines, setSelectedPetForVaccines] = useState(null);
 
     useEffect(() => {
         const fetchPets = async () => {
@@ -32,12 +34,21 @@ function MeusPetsScreen({ onNavigateToPetCadastro }) {
             setError('');
             try {
                 const token = localStorage.getItem('token');
+                const userData = JSON.parse(localStorage.getItem('userData'));
+                
                 const response = await axios.get('/pets', {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
-                // Filtrar apenas pets ativos para exibir na tela do cliente
-                const petsAtivos = response.data.filter(pet => pet.is_active !== false);
-                setPets(petsAtivos);
+                
+                // Para a tela "Meus Pets", SEMPRE adicionar o nome do usuário logado como dono
+                const petsComDono = response.data.map(pet => ({
+                    ...pet,
+                    dono: {
+                        nome: userData?.nome || 'Eu'
+                    }
+                }));
+                
+                setPets(petsComDono);
             } catch (err) {
                 setError('Não foi possível buscar os pets. Tente novamente mais tarde.');
             } finally {
@@ -77,6 +88,7 @@ function MeusPetsScreen({ onNavigateToPetCadastro }) {
                         key={pet.id}
                         pet={pet}
                         onViewHistory={() => setSelectedPet(pet)}
+                        onViewVaccines={() => setSelectedPetForVaccines(pet)}
                         onPetUpdated={handleUpdatePet}
                     />
                 ))}
@@ -87,8 +99,8 @@ function MeusPetsScreen({ onNavigateToPetCadastro }) {
     return (
         <div className="meus-pets-container">
             <div className="content-wrapper">
-                <div className="header">
-                    <div className="header-text">
+                <div className="pets-header">
+                    <div className="pets-header-text">
                         <h1>Meus Pets</h1>
                         <p>Gerencie as informações e o histórico dos seus companheiros.</p>
                     </div>
@@ -101,12 +113,19 @@ function MeusPetsScreen({ onNavigateToPetCadastro }) {
 
                 {renderContent()}
 
-                {selectedPet && (
-                    <PetHistoryModal
-                        pet={selectedPet}
-                        onClose={() => setSelectedPet(null)}
-                    />
-                )}
+	                {selectedPet && (
+	                    <PetHistoryModal
+	                        pet={selectedPet}
+	                        onClose={() => setSelectedPet(null)}
+	                    />
+	                )}
+
+	                {selectedPetForVaccines && (
+	                    <VacinaModal
+	                        pet={selectedPetForVaccines}
+	                        onClose={() => setSelectedPetForVaccines(null)}
+	                    />
+	                )}
             </div>
         </div>
     );

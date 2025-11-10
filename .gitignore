@@ -1,26 +1,34 @@
+# Default ignored files
+/shelf/
+/workspace.xml
+# Editor-based HTTP Client requests
+/httpRequests/
+# Datasource local storage ignored files
+/dataSources/
+/dataSources.local.xml
+# --- Python ---
+__pycache__/
+*.py[cod]
+*$py.class
+# Virtual environments
+.venv/
+venv/
 .env
-node_modules
-__pycache__/bancoDeDados.cpython-313.pyc
-__pycache__/main.cpython-313.pyc
-__pycache__/modelos.cpython-313.pyc
-__pycache__/seguranca.cpython-313.pyc
-repositories/__pycache__/cliente_repository.cpython-313.pyc
-repositories/__pycache__/funcionario_repository.cpython-313.pyc
-repositories/__pycache__/pet_repository.cpython-313.pyc
-repositories/__pycache__/servico_repository.cpython-313.pyc
-repositories/__pycache__/venda_repository.cpython-313.pyc
-routers/__pycache__/cliente_router.cpython-313.pyc
-routers/__pycache__/funcionario_router.cpython-313.pyc
-routers/__pycache__/login_router.cpython-313.pyc
-routers/__pycache__/pet_router.cpython-313.pyc
-routers/__pycache__/servico_router.cpython-313.pyc
-routers/__pycache__/venda_router.cpython-313.pyc
-services/__pycache__/cliente_service.cpython-313.pyc
-services/__pycache__/email_service.cpython-313.pyc
-services/__pycache__/funcionario_service.cpython-313.pyc
-services/__pycache__/pet_service.cpython-313.pyc
-services/__pycache__/servico_service.cpython-313.pyc
-services/__pycache__/venda_service.cpython-313.pyc
-util/__pycache__/cargos.cpython-313.pyc
+# Pytest / coverage
+.pytest_cache/
+.coverage
+htmlcov/
+# Jupyter / IPython
+.ipynb_checkpoints
+# Logs
+*.log
+# macOS / Windows / Linux chato
+.DS_Store
+Thumbs.db
+#IDE / PyCharm
+.idea/
+# Package-lock.json
 package-lock.json
-__pycache__/sync_data.cpython-313.pyc
+# Arquivos React
+node_modules
+build

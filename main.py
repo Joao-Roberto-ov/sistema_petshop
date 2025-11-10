@@ -6,7 +6,7 @@ import os
 import threading
 from bancoDeDados import criar_tabelas
 import sync_data
-from routers import cliente_router, pet_router, login_router, funcionario_router, admin_router, produto_router, servico_router, admin_pet_router, venda_router, checkout_router
+from routers import cliente_router, pet_router, login_router, funcionario_router, admin_router, produto_router, servico_router, admin_pet_router, agendamento_router, venda_router, checkout_router, historico_medico_router, vacina_router
 
 basedir = os.path.abspath(os.path.dirname(__file__))
 frontend_dir = os.path.join(basedir, "build")
@@ -21,7 +21,7 @@ async def lifespan(app: FastAPI):
     sync_thread = threading.Thread(target=sync_data.run_sync)
     sync_thread.start()
 
-    yield  # Aqui a aplicação está rodando
+    yield
 
     print("Encerrando aplicação.")
 
@@ -35,6 +35,84 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+@app.get("/teste-historico-direto/{pet_id}")
+async def teste_historico_direto(pet_id: int):
+    """
+    Rota direta para teste do histórico (REMOVER EM PRODUÇÃO)
+    """
+    from bancoDeDados import conectar, encerra_conexao
+    from services import vacina_service
+    
+    conn = None
+    cursor = None
+    
+    try:
+        conn = conectar()
+        cursor = conn.cursor()
+        
+        # Buscar dados do pet
+        cursor.execute("SELECT id, nome, tipo, raca, idade, peso, sexo_biologico, observacoes FROM Pets WHERE id = %s", (pet_id,))
+        pet_row = cursor.fetchone()
+        
+        if not pet_row:
+            return {"error": "Pet não encontrado"}
+        
+        pet_data = {
+            "id": pet_row[0],
+            "nome": pet_row[1],
+            "tipo": pet_row[2],
+            "raca": pet_row[3],
+            "idade": pet_row[4],
+            "peso": float(pet_row[5]) if pet_row[5] else None,
+            "sexo_biologico": pet_row[6],
+            "observacoes": pet_row[7]
+        }
+        
+        # Buscar histórico médico
+        cursor.execute("""
+            SELECT h.id, h.tipo_servico, h.data_hora, h.resumo, h.detalhes, 
+                   h.funcionario_id, h.valor, f.nome as funcionario_nome
+            FROM historico_medico h
+            LEFT JOIN funcionarios f ON h.funcionario_id = f.id
+            WHERE h.pet_id = %s
+            ORDER BY h.data_hora DESC
+        """, (pet_id,))
+        
+        historico_rows = cursor.fetchall()
+        historico = []
+        
+        for row in historico_rows:
+            historico.append({
+                "id": row[0],
+                "tipo_servico": row[1],
+                "data_hora": row[2].isoformat() if row[2] else None,
+                "resumo": row[3],
+                "detalhes": row[4],
+                "funcionario_id": row[5],
+                "valor": float(row[6]) if row[6] else None,
+                "funcionario_nome": row[7]
+            })
+        
+        # Buscar vacinas
+        vacinas = vacina_service.obter_vacinas_por_pet_id(pet_id)
+        vacinas_data = [vacina.dict() for vacina in vacinas]
+        
+        return {
+            "success": True,
+            "dados_pet": pet_data,
+            "historico": historico,
+            "vacinas": vacinas_data,
+            "total_registros": len(historico) + len(vacinas_data)
+        }
+        
+    except Exception as e:
+        return {"error": f"Erro: {str(e)}"}
+    finally:
+        if cursor:
+            cursor.close()
+        if conn:
+            encerra_conexao(conn)
+
 @app.get("/routes")
 async def list_routes():
     routes = []
@@ -46,6 +124,103 @@ async def list_routes():
             })
     return routes
 
+@app.get("/teste-simples")
+async def teste_simples():
+    """
+    Rota de teste mais simples
+    """
+    return {
+        "message": "✅ Servidor funcionando!",
+        "status": "online",
+        "timestamp": "2025-11-05T16:00:00Z"
+    }
+
+@app.get("/api/historico-completo/{pet_id}")
+async def historico_completo(pet_id: int):
+    """
+    Rota consolidada para obter todo o histórico do pet (histórico médico + vacinas)
+    """
+    from bancoDeDados import conectar, encerra_conexao
+    from services import vacina_service
+    
+    conn = None
+    cursor = None
+    
+    try:
+        conn = conectar()
+        cursor = conn.cursor()
+        
+        # Buscar dados do pet
+        cursor.execute("SELECT id, nome, tipo, raca, idade, peso, sexo_biologico, observacoes FROM Pets WHERE id = %s", (pet_id,))
+        pet_row = cursor.fetchone()
+        
+        if not pet_row:
+            return {"error": "Pet não encontrado"}
+        
+        pet_data = {
+            "id": pet_row[0],
+            "nome": pet_row[1],
+            "tipo": pet_row[2],
+            "raca": pet_row[3],
+            "idade": pet_row[4],
+            "peso": float(pet_row[5]) if pet_row[5] else None,
+            "sexo_biologico": pet_row[6],
+            "observacoes": pet_row[7]
+        }
+        
+        # Buscar histórico médico
+        cursor.execute("""
+            SELECT h.id, h.tipo_servico, h.data_hora, h.resumo, h.detalhes, 
+                   h.funcionario_id, h.valor, f.nome as funcionario_nome
+            FROM historico_medico h
+            LEFT JOIN funcionarios f ON h.funcionario_id = f.id
+            WHERE h.pet_id = %s
+            ORDER BY h.data_hora DESC
+        """, (pet_id,))
+        
+        historico_rows = cursor.fetchall()
+        historico = []
+        
+        for row in historico_rows:
+            historico.append({
+                "id": row[0],
+                "tipo_servico": row[1],
+                "data_hora": row[2].isoformat() if row[2] else None,
+                "resumo": row[3],
+                "detalhes": row[4],
+                "funcionario_id": row[5],
+                "valor": float(row[6]) if row[6] else None,
+                "funcionario_nome": row[7]
+            })
+        
+        # Buscar vacinas
+        vacinas = vacina_service.obter_vacinas_por_pet_id(pet_id)
+        vacinas_data = [{
+            "id": vacina.id,
+            "nome_vacina": vacina.nome_vacina,
+            "data_aplicacao": vacina.data_aplicacao.isoformat() if vacina.data_aplicacao else None,
+            "data_proxima_dose": vacina.data_proxima_dose.isoformat() if vacina.data_proxima_dose else None,
+            "funcionario_id": vacina.funcionario_id,
+            "funcionario_nome": vacina.funcionario_nome
+        } for vacina in vacinas]
+        
+        return {
+            "success": True,
+            "dados_pet": pet_data,
+            "historico": historico,
+            "vacinas": vacinas_data,
+            "total_registros": len(historico) + len(vacinas_data)
+        }
+        
+    except Exception as e:
+        return {"error": f"Erro: {str(e)}"}
+    finally:
+        if cursor:
+            cursor.close()
+        if conn:
+            encerra_conexao(conn)
+
+app.mount("/static", StaticFiles(directory="build/static"), name="static")
 app.include_router(cliente_router.router)
 app.include_router(funcionario_router.router)
 app.include_router(login_router.router)
@@ -56,3 +231,6 @@ app.include_router(admin_router.router, prefix="/api")
 app.include_router(admin_pet_router.router, prefix="/api")
 app.include_router(produto_router.router)
 app.include_router(checkout_router.router)
+app.include_router(agendamento_router.router)
+app.include_router(historico_medico_router.router)
+app.include_router(vacina_router.router)

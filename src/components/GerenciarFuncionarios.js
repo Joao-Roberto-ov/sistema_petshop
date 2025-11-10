@@ -25,66 +25,114 @@ const IconActivate = () => (
     </svg>
 );
 
+// ID do cargo Funcionário
+const CARGO_FUNCIONARIO_ID = 2;
+
+// Estilos para especialidades
+const especialidadeStyles = {
+    container: {
+        gridColumn: '1 / -1',
+        backgroundColor: '#f8f9fa',
+        border: '1px solid #e9ecef',
+        borderRadius: '8px',
+        padding: '1rem',
+        marginTop: '1rem',
+    },
+    grid: {
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
+        gap: '0.5rem',
+        marginTop: '0.5rem',
+        maxHeight: '150px',
+        overflowY: 'auto',
+        paddingTop: '0.5rem',
+    },
+    item: {
+        backgroundColor: '#fff',
+        padding: '0.5rem 0.75rem',
+        borderRadius: '6px',
+        border: '1px solid #e0e0e0',
+    },
+    checkboxLabel: {
+        fontSize: '0.9rem',
+        fontWeight: '500',
+        margin: 0,
+        display: 'flex',
+        alignItems: 'center',
+        gap: '0.5rem'
+    }
+};
+
+
 function GerenciarFuncionarios({ onNavigateToHome }) {
 
     const [funcionarios, setFuncionarios] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
-    
+
     const [searchTerm, setSearchTerm] = useState('');
     const [statusFilter, setStatusFilter] = useState('todos');
     const [cargoFilter, setCargoFilter] = useState('todos');
-    
+    const [catalogoServicos, setCatalogoServicos] = useState([]);
     const [showEditModal, setShowEditModal] = useState(false);
     const [editingFuncionario, setEditingFuncionario] = useState(null);
     const [editFormData, setEditFormData] = useState({});
     const [editLoading, setEditLoading] = useState(false);
-    
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [deletingFuncionario, setDeletingFuncionario] = useState(null);
     const [deleteLoading, setDeleteLoading] = useState(false);
 
     useEffect(() => {
-        carregarFuncionarios();
-    }, []);
-
-    const carregarFuncionarios = async () => {
-        try {
+        const carregarDadosIniciais = async () => {
             setLoading(true);
             setError('');
-            const token = localStorage.getItem('token');
-            const response = await axios.get('/funcionario/listar', {
-                headers: {
-                    'Authorization': `Bearer ${token}`
+            try {
+                const token = localStorage.getItem('token');
+                if (!token) {
+                    throw new Error("Token não encontrado.");
                 }
-            });
-            
-            const funcionariosData = response.data.data || [];
-            
-            const funcionariosComCargoAtualizado = funcionariosData.map(funcionario => ({
-                ...funcionario,
-                cargo_funcao: getCargoNome(funcionario.cargo_id)
-            }));
-            
-            setFuncionarios(funcionariosComCargoAtualizado);
-        } catch (err) {
-            console.error('Erro ao carregar funcionários:', err);
-            if (err.response?.status === 401) {
-                setError('Sessão expirada. Faça login novamente.');
-            } else if (err.response?.status === 403) {
-                setError('Você não tem permissão para visualizar funcionários.');
-            } else {
-                setError(`Erro ao carregar lista de funcionários: ${err.response?.data?.detail || err.message}`);
+
+                // Busca paralela
+                const [respFunc, respServ] = await Promise.all([
+                    axios.get('/funcionario/listar', {
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    }),
+                    axios.get('/servicos') // Busca catálogo de serviços
+                ]);
+
+                const funcionariosData = respFunc.data.data || [];
+                // Garante que 'especialidades' seja sempre um array
+                const funcionariosComCargoAtualizado = funcionariosData.map(funcionario => ({
+                    ...funcionario,
+                    cargo_funcao: getCargoNome(funcionario.cargo_id),
+                    especialidades: Array.isArray(funcionario.especialidades) ? funcionario.especialidades : []
+                }));
+
+                setFuncionarios(funcionariosComCargoAtualizado);
+                setCatalogoServicos(respServ.data || []);
+
+            } catch (err) {
+                console.error('Erro ao carregar dados:', err);
+                if (err.response?.status === 401 || err.message === "Token não encontrado.") {
+                    setError('Sessão expirada ou inválida. Faça login novamente.');
+                } else if (err.response?.status === 403) {
+                    setError('Você não tem permissão para visualizar funcionários.');
+                } else {
+                    setError('Erro ao carregar dados. Tente recarregar a página.');
+                }
+            } finally {
+                setLoading(false);
             }
-        } finally {
-            setLoading(false);
-        }
-    };
+        };
+
+        carregarDadosIniciais();
+    }, []); // Executa apenas uma vez
+
 
     const getCargoNome = (cargoId) => {
         const cargos = {
             1: 'Gestor',
-            2: 'Funcionário', 
+            2: 'Funcionário',
             3: 'Veterinário',
             4: 'Atendente'
         };
@@ -93,16 +141,16 @@ function GerenciarFuncionarios({ onNavigateToHome }) {
 
     // Filtrar funcionários
     const funcionariosFiltrados = Array.isArray(funcionarios) ? funcionarios.filter(funcionario => {
-        const matchSearch = !searchTerm || 
+        const matchSearch = !searchTerm ||
             funcionario.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
             funcionario.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
             funcionario.cargo_funcao.toLowerCase().includes(searchTerm.toLowerCase());
-        
-        const matchStatus = statusFilter === 'todos' || 
+
+        const matchStatus = statusFilter === 'todos' ||
             (statusFilter === 'ativo' && funcionario.is_ativo) ||
             (statusFilter === 'inativo' && !funcionario.is_ativo);
-        
-        const matchCargo = cargoFilter === 'todos' || 
+
+        const matchCargo = cargoFilter === 'todos' ||
             funcionario.cargo_funcao.toLowerCase().includes(cargoFilter.toLowerCase());
 
         return matchSearch && matchStatus && matchCargo;
@@ -146,98 +194,100 @@ function GerenciarFuncionarios({ onNavigateToHome }) {
             horario_inicio: funcionario.horario_inicio,
             horario_fim: funcionario.horario_fim,
             dias_trabalho: funcionario.dias_trabalho,
-            is_ativo: funcionario.is_ativo
+            is_ativo: funcionario.is_ativo,
+            especialidades: Array.isArray(funcionario.especialidades) ? funcionario.especialidades : []
         });
         setShowEditModal(true);
     };
 
+    const handleModalEspecialidadeChange = (servicoId) => {
+        setEditFormData(prev => {
+            const especialidades = prev.especialidades || [];
+            if (especialidades.includes(servicoId)) {
+                return { ...prev, especialidades: especialidades.filter(id => id !== servicoId) };
+            } else {
+                return { ...prev, especialidades: [...especialidades, servicoId] };
+            }
+        });
+    };
+
+    const handleModalServicosGerais = (e) => {
+        if (e.target.checked) {
+            setEditFormData(prev => ({ ...prev, especialidades: catalogoServicos.map(s => s.id) }));
+        } else {
+            setEditFormData(prev => ({ ...prev, especialidades: [] }));
+        }
+    };
+
     const salvarEdicao = async () => {
+        if (!editingFuncionario) return;
+
         try {
             setEditLoading(true);
             const token = localStorage.getItem('token');
-            
-            const dadosAtualizacao = {};
-            
-            if (editFormData.nome !== editingFuncionario.nome) {
-                dadosAtualizacao.nome = editFormData.nome?.trim();
+
+            // Prepara os dados para enviar
+            const dadosAtualizacao = {
+                nome: editFormData.nome?.trim(),
+                cargo_id: editFormData.cargo_id,
+                email: editFormData.email?.trim().toLowerCase(),
+                telefone: editFormData.telefone?.trim(),
+                cpf: editFormData.cpf ? editFormData.cpf.replace(/\D/g, '') : '',
+                endereco: editFormData.endereco?.trim() || '',
+                horario_inicio: editFormData.horario_inicio,
+                horario_fim: editFormData.horario_fim,
+                dias_trabalho: editFormData.dias_trabalho?.trim(),
+                is_ativo: editFormData.is_ativo,
+                especialidades: editFormData.especialidades
+            };
+
+            // Envia apenas os campos que foram realmente modificados ou são necessários
+            const payload = {};
+            for (const key in dadosAtualizacao) {
+                if (key === 'especialidades' || dadosAtualizacao[key] !== editingFuncionario[key]) {
+                     if (key === 'cargo_id') {
+                         payload[key] = parseInt(dadosAtualizacao[key]);
+                     } else {
+                         payload[key] = dadosAtualizacao[key];
+                     }
+                }
             }
-            
-            if (editFormData.cargo_id !== editingFuncionario.cargo_id) {
-                dadosAtualizacao.cargo_id = editFormData.cargo_id;
-            }
-            
-            if (editFormData.email !== editingFuncionario.email) {
-                dadosAtualizacao.email = editFormData.email?.trim().toLowerCase();
-            }
-            
-            if (editFormData.telefone !== editingFuncionario.telefone) {
-                dadosAtualizacao.telefone = editFormData.telefone?.trim();
-            }
-            
-            if (editFormData.cpf !== editingFuncionario.cpf) {
-                dadosAtualizacao.cpf = editFormData.cpf ? editFormData.cpf.replace(/\D/g, '') : '';
-            }
-            
-            if (editFormData.endereco !== editingFuncionario.endereco) {
-                dadosAtualizacao.endereco = editFormData.endereco?.trim() || '';
-            }
-            
-            if (editFormData.horario_inicio !== editingFuncionario.horario_inicio) {
-                dadosAtualizacao.horario_inicio = editFormData.horario_inicio;
-            }
-            
-            if (editFormData.horario_fim !== editingFuncionario.horario_fim) {
-                dadosAtualizacao.horario_fim = editFormData.horario_fim;
-            }
-            
-            if (editFormData.dias_trabalho !== editingFuncionario.dias_trabalho) {
-                dadosAtualizacao.dias_trabalho = editFormData.dias_trabalho?.trim();
-            }
-            
-            if (editFormData.is_ativo !== editingFuncionario.is_ativo) {
-                dadosAtualizacao.is_ativo = editFormData.is_ativo;
+            if(payload.cargo_id && payload.cargo_id !== editingFuncionario.cargo_id) {
+                payload.especialidades = dadosAtualizacao.especialidades;
             }
 
-            if (Object.keys(dadosAtualizacao).length === 0) {
-                setShowEditModal(false);
-                setEditingFuncionario(null);
-                alert('Nenhuma alteração foi feita.');
-                return;
+            if (Object.keys(payload).length === 0) {
+                 setShowEditModal(false);
+                 setEditingFuncionario(null);
+                 alert('Nenhuma alteração foi feita.');
+                 return;
             }
 
-            const response = await axios.put(`/funcionario/${editingFuncionario.id}`, dadosAtualizacao, {
+            const response = await axios.put(`/funcionario/${editingFuncionario.id}`, payload, {
                 headers: {
                     'Authorization': `Bearer ${token}`,
                     'Content-Type': 'application/json'
                 }
             });
 
-            if (Array.isArray(funcionarios)) {
-                setFuncionarios(prevFuncionarios => 
-                    prevFuncionarios.map(f => {
-                        if (f.id === editingFuncionario.id) {
-                            const novoCargoNome = getCargoNome(editFormData.cargo_id);
-                            return {
-                                ...f,
-                                ...dadosAtualizacao,
-                                cargo_funcao: novoCargoNome,
-                                cargo_id: editFormData.cargo_id
-                            };
-                        }
-                        return f;
-                    })
-                );
-            }
+            // Atualiza a lista local com os dados retornados
+            const funcionarioAtualizado = response.data.data.funcionario;
+            setFuncionarios(prevFuncionarios =>
+                prevFuncionarios.map(f =>
+                    f.id === editingFuncionario.id
+                    ? { ...funcionarioAtualizado, cargo_funcao: getCargoNome(funcionarioAtualizado.cargo_id) }
+                    : f
+                )
+            );
 
             setShowEditModal(false);
             setEditingFuncionario(null);
-            alert('Funcionário atualizado com sucesso!');
-            
+            alert(response.data.data.message || 'Funcionário atualizado com sucesso!');
+
         } catch (err) {
             console.error('Erro ao atualizar funcionário:', err);
             if (err.response?.data?.detail === 'Erro de integridade dos dados.') {
                 alert('❌ Erro: Dados em conflito com o sistema.\n\nSolução: Recarregue a página e verifique os dados.');
-                carregarFuncionarios();
             } else if (err.response?.data?.detail?.includes('email')) {
                 alert('❌ Erro: Este email já está cadastrado para outro funcionário.');
             } else if (err.response?.data?.detail?.includes('CPF')) {
@@ -250,6 +300,8 @@ function GerenciarFuncionarios({ onNavigateToHome }) {
         }
     };
 
+
+    // Funções de Desativar/Ativar
     const abrirModalExclusao = (funcionario) => {
         setDeletingFuncionario(funcionario);
         setShowDeleteModal(true);
@@ -259,7 +311,7 @@ function GerenciarFuncionarios({ onNavigateToHome }) {
         try {
             setDeleteLoading(true);
             const token = localStorage.getItem('token');
-            
+
             await axios.put(`/funcionario/${deletingFuncionario.id}/desativar`, {}, {
                 headers: {
                     'Authorization': `Bearer ${token}`
@@ -267,8 +319,8 @@ function GerenciarFuncionarios({ onNavigateToHome }) {
             });
 
             if (Array.isArray(funcionarios)) {
-                setFuncionarios(funcionarios.map(f => 
-                    f.id === deletingFuncionario.id 
+                setFuncionarios(funcionarios.map(f =>
+                    f.id === deletingFuncionario.id
                         ? { ...f, is_ativo: false }
                         : f
                 ));
@@ -277,7 +329,7 @@ function GerenciarFuncionarios({ onNavigateToHome }) {
             setShowDeleteModal(false);
             setDeletingFuncionario(null);
             alert('Funcionário desativado com sucesso!');
-            
+
         } catch (err) {
             console.error('Erro ao excluir funcionário:', err);
             alert('Erro ao desativar funcionário: ' + (err.response?.data?.detail || err.message));
@@ -293,7 +345,7 @@ function GerenciarFuncionarios({ onNavigateToHome }) {
 
         try {
             const token = localStorage.getItem('token');
-            
+
             await axios.put(`/funcionario/${funcionario.id}/ativar`, {}, {
                 headers: {
                     'Authorization': `Bearer ${token}`
@@ -301,15 +353,15 @@ function GerenciarFuncionarios({ onNavigateToHome }) {
             });
 
             if (Array.isArray(funcionarios)) {
-                setFuncionarios(funcionarios.map(f => 
-                    f.id === funcionario.id 
+                setFuncionarios(funcionarios.map(f =>
+                    f.id === funcionario.id
                         ? { ...f, is_ativo: true }
                         : f
                 ));
             }
 
             alert('Funcionário ativado com sucesso!');
-            
+
         } catch (err) {
             console.error('Erro ao ativar funcionário:', err);
             alert('Erro ao ativar funcionário: ' + (err.response?.data?.detail || err.message));
@@ -335,7 +387,7 @@ function GerenciarFuncionarios({ onNavigateToHome }) {
                         Visualize, edite e gerencie todos os funcionários do sistema.
                     </p>
                     <div className="hero-buttons">
-                        <button 
+                        <button
                             className="btn btn-outline-white hover-lift"
                             onClick={() => window.dispatchEvent(new CustomEvent('navigate', { detail: 'cadastro-funcionario-completo' }))}
                         >
@@ -353,9 +405,7 @@ function GerenciarFuncionarios({ onNavigateToHome }) {
                     <div className="container">
                         <div className="error-message" style={{ textAlign: 'center' }}>
                             {error}
-                            <button onClick={carregarFuncionarios} className="btn-submit" style={{ marginLeft: '1rem' }}>
-                                Tentar Novamente
-                            </button>
+                            {/* O botão "Tentar Novamente" foi removido pois a lógica de recarga agora está no useEffect principal */}
                         </div>
                     </div>
                 </section>
@@ -364,9 +414,9 @@ function GerenciarFuncionarios({ onNavigateToHome }) {
             {/* Filtros e Estatísticas */}
             <section className="section bg-light">
                 <div className="container">
-                    <div style={{ 
-                        background: 'white', 
-                        borderRadius: '16px', 
+                    <div style={{
+                        background: 'white',
+                        borderRadius: '16px',
                         padding: '2rem',
                         boxShadow: '0 4px 20px rgba(0, 0, 0, 0.1)',
                         marginBottom: '2rem'
@@ -394,14 +444,14 @@ function GerenciarFuncionarios({ onNavigateToHome }) {
                                     onBlur={(e) => e.target.style.borderColor = '#ecf0f1'}
                                 />
                             </div>
-                            
+
                             {/* Filtro Status */}
                             <div>
                                 <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '600', color: '#2c3e50' }}>
                                     Status
                                 </label>
-                                <select 
-                                    value={statusFilter} 
+                                <select
+                                    value={statusFilter}
                                     onChange={(e) => setStatusFilter(e.target.value)}
                                     style={{
                                         padding: '0.75rem 1rem',
@@ -417,14 +467,14 @@ function GerenciarFuncionarios({ onNavigateToHome }) {
                                     <option value="inativo">Inativos</option>
                                 </select>
                             </div>
-                            
+
                             {/* Filtro Cargo */}
                             <div>
                                 <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '600', color: '#2c3e50' }}>
                                     Cargo
                                 </label>
-                                <select 
-                                    value={cargoFilter} 
+                                <select
+                                    value={cargoFilter}
                                     onChange={(e) => setCargoFilter(e.target.value)}
                                     style={{
                                         padding: '0.75rem 1rem',
@@ -444,10 +494,10 @@ function GerenciarFuncionarios({ onNavigateToHome }) {
                         </div>
 
                         {/* Estatísticas */}
-                        <div style={{ 
-                            display: 'grid', 
-                            gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', 
-                            gap: '1rem', 
+                        <div style={{
+                            display: 'grid',
+                            gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+                            gap: '1rem',
                             marginTop: '2rem'
                         }}>
                             <div style={{
@@ -549,8 +599,8 @@ function GerenciarFuncionarios({ onNavigateToHome }) {
                                     </thead>
                                     <tbody>
                                         {funcionariosFiltrados.map((funcionario, index) => (
-                                            <tr 
-                                                key={funcionario.id} 
+                                            <tr
+                                                key={funcionario.id}
                                                 style={{
                                                     borderBottom: index === funcionariosFiltrados.length - 1 ? 'none' : '1px solid #ecf0f1',
                                                     transition: 'background 0.3s ease'
@@ -616,7 +666,7 @@ function GerenciarFuncionarios({ onNavigateToHome }) {
                                                 </td>
                                                 <td style={{ padding: '1rem', textAlign: 'center' }}>
                                                     <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center' }}>
-                                                        <button 
+                                                        <button
                                                             style={{
                                                                 background: 'linear-gradient(135deg, #3498db 0%, #2980b9 100%)',
                                                                 color: 'white',
@@ -647,7 +697,7 @@ function GerenciarFuncionarios({ onNavigateToHome }) {
                                                             <IconEdit />
                                                         </button>
                                                         {funcionario.is_ativo ? (
-                                                            <button 
+                                                            <button
                                                                 style={{
                                                                     background: 'linear-gradient(135deg, #e74c3c 0%, #c0392b 100%)',
                                                                     color: 'white',
@@ -678,7 +728,7 @@ function GerenciarFuncionarios({ onNavigateToHome }) {
                                                                 <IconTrash />
                                                             </button>
                                                         ) : (
-                                                            <button 
+                                                            <button
                                                                 style={{
                                                                     background: 'linear-gradient(135deg, #27ae60 0%, #219a52 100%)',
                                                                     color: 'white',
@@ -748,7 +798,7 @@ function GerenciarFuncionarios({ onNavigateToHome }) {
                     }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
                             <h2 style={{ color: '#2c3e50', margin: 0 }}>✏️ Editar Funcionário</h2>
-                            <button 
+                            <button
                                 onClick={() => setShowEditModal(false)}
                                 style={{
                                     background: 'none',
@@ -762,8 +812,9 @@ function GerenciarFuncionarios({ onNavigateToHome }) {
                                 ✕
                             </button>
                         </div>
-                        
+
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                            {/* Campos do formulário... */}
                             <div>
                                 <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '600', color: '#2c3e50' }}>
                                     Nome Completo *
@@ -781,7 +832,7 @@ function GerenciarFuncionarios({ onNavigateToHome }) {
                                     }}
                                 />
                             </div>
-                            
+
                             <div>
                                 <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '600', color: '#2c3e50' }}>
                                     Cargo *
@@ -805,7 +856,7 @@ function GerenciarFuncionarios({ onNavigateToHome }) {
                                     <option value={4}>Atendente</option>
                                 </select>
                             </div>
-                            
+
                             <div>
                                 <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '600', color: '#2c3e50' }}>
                                     Email *
@@ -823,7 +874,7 @@ function GerenciarFuncionarios({ onNavigateToHome }) {
                                     }}
                                 />
                             </div>
-                            
+
                             <div>
                                 <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '600', color: '#2c3e50' }}>
                                     Telefone *
@@ -841,7 +892,7 @@ function GerenciarFuncionarios({ onNavigateToHome }) {
                                     }}
                                 />
                             </div>
-                            
+
                             <div>
                                 <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '600', color: '#2c3e50' }}>
                                     CPF
@@ -859,7 +910,7 @@ function GerenciarFuncionarios({ onNavigateToHome }) {
                                     }}
                                 />
                             </div>
-                            
+
                             <div>
                                 <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '600', color: '#2c3e50' }}>
                                     Endereço
@@ -877,7 +928,7 @@ function GerenciarFuncionarios({ onNavigateToHome }) {
                                     }}
                                 />
                             </div>
-                            
+
                             <div>
                                 <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '600', color: '#2c3e50' }}>
                                     Horário Início *
@@ -895,7 +946,7 @@ function GerenciarFuncionarios({ onNavigateToHome }) {
                                     }}
                                 />
                             </div>
-                            
+
                             <div>
                                 <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '600', color: '#2c3e50' }}>
                                     Horário Fim *
@@ -913,7 +964,7 @@ function GerenciarFuncionarios({ onNavigateToHome }) {
                                     }}
                                 />
                             </div>
-                            
+
                             <div style={{ gridColumn: '1 / -1' }}>
                                 <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '600', color: '#2c3e50' }}>
                                     Dias de Trabalho *
@@ -932,7 +983,49 @@ function GerenciarFuncionarios({ onNavigateToHome }) {
                                     placeholder="Ex: Segunda,Terça,Quarta,Quinta,Sexta"
                                 />
                             </div>
-                            
+
+                            {/* campo condicional das especialidades  */}
+                            {editFormData.cargo_id === CARGO_FUNCIONARIO_ID && (
+                                <div style={especialidadeStyles.container}>
+                                    <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '600', color: '#2c3e50' }}>Especialidades</label>
+                                    <p style={{ fontSize: '0.85rem', color: '#6c757d', marginBottom: '1rem' }}>
+                                        Selecione os serviços que este funcionário realiza.
+                                    </p>
+
+                                    <div style={especialidadeStyles.item}>
+                                        <label style={{...especialidadeStyles.checkboxLabel, fontWeight: 'bold'}}>
+                                            <input
+                                                type="checkbox"
+                                                // Verifica se todos os serviços estão marcados
+                                                checked={catalogoServicos.length > 0 && (editFormData.especialidades || []).length === catalogoServicos.length}
+                                                onChange={handleModalServicosGerais}
+                                            />
+                                            Serviços Gerais (Selecionar Todos)
+                                        </label>
+                                    </div>
+
+                                    <div style={especialidadeStyles.grid}>
+                                        {catalogoServicos.length > 0 ? (
+                                            catalogoServicos.map(servico => (
+                                                <div key={servico.id} style={especialidadeStyles.item}>
+                                                    <label style={especialidadeStyles.checkboxLabel}>
+                                                        <input
+                                                            type="checkbox"
+                                                            value={servico.id}
+                                                            checked={(editFormData.especialidades || []).includes(servico.id)}
+                                                            onChange={() => handleModalEspecialidadeChange(servico.id)}
+                                                        />
+                                                        {servico.nome}
+                                                    </label>
+                                                </div>
+                                            ))
+                                        ) : (
+                                            <p>Carregando serviços...</p>
+                                        )}
+                                    </div>
+                                </div>
+                            )}
+
                             <div style={{ gridColumn: '1 / -1' }}>
                                 <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: '600', color: '#2c3e50' }}>
                                     <input
@@ -944,16 +1037,16 @@ function GerenciarFuncionarios({ onNavigateToHome }) {
                                 </label>
                             </div>
                         </div>
-                        
+
                         <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end', marginTop: '2rem' }}>
-                            <button 
+                            <button
                                 className="btn btn-outline-white hover-lift"
                                 onClick={() => setShowEditModal(false)}
                                 disabled={editLoading}
                             >
                                 Cancelar
                             </button>
-                            <button 
+                            <button
                                 className="btn-submit"
                                 onClick={salvarEdicao}
                                 disabled={editLoading}
@@ -990,7 +1083,7 @@ function GerenciarFuncionarios({ onNavigateToHome }) {
                     }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
                             <h2 style={{ color: '#2c3e50', margin: 0 }}>⚠️ Confirmar Desativação</h2>
-                            <button 
+                            <button
                                 onClick={() => setShowDeleteModal(false)}
                                 style={{
                                     background: 'none',
@@ -1004,7 +1097,7 @@ function GerenciarFuncionarios({ onNavigateToHome }) {
                                 ✕
                             </button>
                         </div>
-                        
+
                         <div style={{ marginBottom: '1.5rem' }}>
                             <p style={{ color: '#2c3e50', marginBottom: '1rem' }}>
                                 Tem certeza que deseja desativar o funcionário:
@@ -1024,16 +1117,16 @@ function GerenciarFuncionarios({ onNavigateToHome }) {
                                 Esta ação pode ser revertida editando o funcionário posteriormente.
                             </p>
                         </div>
-                        
+
                         <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end' }}>
-                            <button 
+                            <button
                                 className="btn btn-outline-white hover-lift"
                                 onClick={() => setShowDeleteModal(false)}
                                 disabled={deleteLoading}
                             >
                                 Cancelar
                             </button>
-                            <button 
+                            <button
                                 style={{
                                     background: 'linear-gradient(135deg, #e74c3c 0%, #c0392b 100%)',
                                     color: 'white',

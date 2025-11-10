@@ -1,10 +1,12 @@
 from pydantic import BaseModel, EmailStr, validator, Field
-from typing import Optional, List, Literal
-from datetime import datetime
+from typing import Optional, Literal, List
+from datetime import datetime, date
+
 
 class UsuarioLogin(BaseModel):
     email: EmailStr
     senha: str
+
 
 class ClienteCadastro(BaseModel):
     nome: str
@@ -23,6 +25,7 @@ class ClienteCadastro(BaseModel):
             raise ValueError('O CPF deve conter 11 dígitos numéricos.')
         return cpf_numeros
 
+
 class ClienteCadastroPorFuncionario(BaseModel):
     nome: str
     email: EmailStr
@@ -39,6 +42,7 @@ class ClienteCadastroPorFuncionario(BaseModel):
             raise ValueError('O CPF deve conter 11 dígitos numéricos.')
         return cpf_numeros
 
+
 class ClienteUpdate(BaseModel):
     telefone: Optional[str] = None
     endereco: Optional[str] = None
@@ -53,6 +57,7 @@ class ClienteUpdate(BaseModel):
         if len(cpf_numeros) != 11:
             raise ValueError('O CPF deve conter 11 dígitos numéricos.')
         return cpf_numeros
+
 
 class FuncionarioModel(BaseModel):
     nome: str
@@ -71,16 +76,29 @@ class FuncionarioModel(BaseModel):
             raise ValueError('O CPF deve conter 11 dígitos numéricos.')
         return cpf_numeros
 
-class PetCadastro(BaseModel):
+
+class PetCadastroBase(BaseModel):
     nome: str
     tipo: str
     raca: str
     idade: int
     peso: Optional[float] = None
+    sexo_biologico: Optional[Literal["Macho", "Fêmea", "Não Informado"]] = "Não Informado"
+    observacoes: Optional[str] = None
 
-class Pet(PetCadastro):
+
+class Pet(PetCadastroBase):
     id: int
     cliente_id: int
+
+
+class PetCadastro(PetCadastroBase):
+    pass
+
+
+class PetCadastroFuncionario(PetCadastroBase):
+    cliente_id: int
+
 
 class PetUpdate(BaseModel):
     nome: Optional[str] = None
@@ -88,6 +106,9 @@ class PetUpdate(BaseModel):
     raca: Optional[str] = None
     idade: Optional[int] = None
     peso: Optional[float] = None
+    sexo_biologico: Optional[Literal["Macho", "Fêmea", "Não Informado"]] = None
+    observacoes: Optional[str] = None
+
 
 class HistoricoItem(BaseModel):
     servico_realizado: str
@@ -95,20 +116,25 @@ class HistoricoItem(BaseModel):
     data_hora: datetime
     valor: float
 
+
 class PetHistoryResponse(BaseModel):
     consultas: list[HistoricoItem]
     servicos: list[HistoricoItem]
+
 
 class PasswordResetRequest(BaseModel):
     senha_atual: str
     nova_senha: str
 
+
 class PasswordResetConfirm(BaseModel):
     nova_senha: str
     codigo_verificacao: str
 
+
 class ForgotPasswordRequest(BaseModel):
     email: EmailStr
+
 
 class ClienteEdicaoPorFuncionario(BaseModel):
     nome: Optional[str] = None
@@ -122,9 +148,11 @@ class TokenRedefinicaoSenha(BaseModel):
     token: str
     expiracao: datetime
 
+
 class RedefinirSenhaRequest(BaseModel):
     token: str
     nova_senha: str
+
 
 class FuncionarioCadastroPorAdmin(BaseModel):
     nome: str
@@ -144,6 +172,7 @@ class FuncionarioCadastroPorAdmin(BaseModel):
             raise ValueError("O CPF deve conter 11 dígitos numéricos.")
         return cpf_numeros
 
+
 class FuncionarioCadastro(BaseModel):
     nome: str = Field(..., min_length=1, description="Nome completo é obrigatório")
     cargo_id: int = Field(..., description="ID do cargo é obrigatório")
@@ -157,14 +186,13 @@ class FuncionarioCadastro(BaseModel):
     dias_trabalho: str = Field(..., min_length=1, description="Dias da semana separados por vírgula (ex: Segunda,Terça,Quarta)")
     senha: str = Field(..., min_length=6, description="Senha deve ter pelo menos 6 caracteres")
     is_ativo: bool = True
+    especialidades: Optional[List[int]] = Field(None, description="Lista de IDs de serviços de especialidade (apenas para cargo_id 2)")
 
     @validator('nome')
     def validar_nome(cls, v):
         if not v or not v.strip():
             raise ValueError('Nome não pode ficar em branco')
         return v.strip()
-
-
 
     @validator('telefone')
     def validar_telefone(cls, v):
@@ -174,7 +202,7 @@ class FuncionarioCadastro(BaseModel):
 
     @validator('cpf', pre=True, always=True)
     def validar_e_limpar_cpf(cls, validador: str) -> Optional[str]:
-        if not validador: 
+        if not validador:
             return None
         cpf_numeros = "".join(filter(str.isdigit, validador))
         if len(cpf_numeros) != 11:
@@ -203,6 +231,7 @@ class FuncionarioCadastro(BaseModel):
                 raise ValueError(f'Dia inválido: {dia}. Dias válidos: {", ".join(dias_validos)}')
         return v
 
+
 class FuncionarioUpdate(BaseModel):
     nome: Optional[str] = None
     cargo_id: Optional[int] = Field(None, ge=1, le=4, description="ID do cargo deve ser 1 (Gestor), 2 (Funcionário), 3 (Veterinário) ou 4 (Atendente)")
@@ -214,10 +243,11 @@ class FuncionarioUpdate(BaseModel):
     horario_fim: Optional[str] = None
     dias_trabalho: Optional[str] = None
     is_ativo: Optional[bool] = None
+    especialidades: Optional[List[int]] = Field(None, description="Lista de IDs de serviços de especialidade")
 
     @validator('cpf', pre=True, always=True)
     def validar_e_limpar_cpf(cls, validador: str) -> Optional[str]:
-        if not validador: 
+        if not validador:
             return None
         cpf_numeros = "".join(filter(str.isdigit, validador))
         if len(cpf_numeros) != 11:
@@ -277,3 +307,74 @@ class CriarVenda(BaseModel):
     forma_pagamento: str
     status_pagamento: str = "pendente"
     itens: List[CriarItemVenda]
+
+class AgendamentoBase(BaseModel):
+    cliente_id: int
+    pet_id: int
+    servico_id: int
+    data_hora_inicio: datetime
+    observacoes: Optional[str] = None
+    funcionario_id: Optional[int] = Field(None, description="ID opcional do funcionário preferido/especialista")
+
+
+class AgendamentoCreate(AgendamentoBase):
+    pass
+
+
+class Agendamento(AgendamentoBase):
+    id: int
+    data_hora_fim: datetime
+    funcionario_id: Optional[int] = None
+    status: str
+    criado_em: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class HorarioDisponivel(BaseModel):
+    inicio: datetime
+    fim: datetime
+
+
+class DisponibilidadeResponse(BaseModel):
+    data: date
+    horarios: list[HorarioDisponivel]
+
+class VacinaBase(BaseModel):
+    nome_vacina: str
+    data_aplicacao: date
+    data_proxima_dose: Optional[date] = None
+    pet_id: int
+    funcionario_id: Optional[int] = None
+
+class VacinaCreate(VacinaBase):
+    pass
+
+class VacinaResponse(VacinaBase):
+    id: int
+    funcionario_nome: Optional[str] = None
+
+    class Config:
+        from_attributes = True
+
+class HistoricoMedico(BaseModel):
+    pet_id: int
+    tipo_servico: Literal["Consulta", "Cirurgia", "Exame", "Banho e Tosa", "Outro"]
+    data_hora: datetime
+    resumo: str
+    detalhes: Optional[str] = None
+    funcionario_id: Optional[int] = None
+    valor: Optional[float] = None
+
+
+class HistoricoMedicoResponse(HistoricoMedico):
+    id: int
+    funcionario_nome: Optional[str] = None
+
+    class Config:
+        from_attributes = True
+
+
+class AgendamentoReagendar(BaseModel):
+    nova_data_hora_inicio: datetime

@@ -20,11 +20,8 @@ body {
     padding: 0.5rem 0;
 }
 
-/* Bloco de CSS corrigido e pronto para uso */
-
 .nav {
     display: flex;
-    /* justify-content: space-between;  <-- REMOVIDO: Não precisamos mais disso */
     align-items: center;
     padding: 1rem 2rem;
     max-width: 1200px;
@@ -46,14 +43,12 @@ body {
 
 .nav-brand .icon {
     font-size: 2rem;
-    /* A variável --spacing-sm não foi definida, então substituí por um valor fixo */
     margin-right: 0.5rem;
 }
 
-/* --- AJUSTES DO MENU (CORREÇÃO PRINCIPAL) --- */
 .nav-menu {
-    flex-grow: 1; /* FAZ O MENU OCUPAR O ESPAÇO CENTRAL */
-    justify-content: center; /* CENTRALIZA OS LINKS DENTRO DO MENU */
+    flex-grow: 1;
+    justify-content: center;
     display: flex;
     list-style: none;
     gap: 1.5rem;
@@ -63,10 +58,9 @@ body {
     height: 100%;
 }
 
-/* Adicione esta regra para os botões de usuário para garantir o alinhamento correto */
 .nav-buttons {
     flex-shrink: 0; /* Impede que os botões encolham */
-    margin-left: auto; /* Empurra os botões para a direita (alternativa ao space-between) */
+    margin-left: auto; /* Empurra os botões para a direita */
 }
 
 
@@ -186,7 +180,7 @@ body {
     font-size: 1.2rem;
 }
 
-/* CTA Section */
+/* seçao cta */
 .cta-section {
     background: #4a9b8e;
     color: white;
@@ -1224,7 +1218,7 @@ body {
     width: 100%;
 
     /* Visual do balão */
-    background-color: #2d3748; /* Fundo escuro */
+    background-color: #2d3748;
     color: white;
     padding: 1rem;
     border-radius: 8px;
@@ -1258,12 +1252,12 @@ body {
     margin-bottom: 0.3rem;
 }
 
-/* Estilo para requisito VÁLIDO (verde) */
+/* Estilo para requisito valido (verde) */
 .password-tooltip li.valid {
     color: #4ade80;
 }
 
-/* Estilo para requisito INVÁLIDO (vermelho) */
+/* Estilo para requisito invalido (vermelho) */
 .password-tooltip li.invalid {
     color: #f87171;
 }
@@ -1310,7 +1304,7 @@ body {
 
 .gerenciar-pets-content {
     width: 100%;
-    max-width: 1200px; /* Ou a largura máxima desejada para o conteúdo */
+    max-width: 1200px; /* largura máxima desejada para o conteúdo */
     margin-top: 2rem; /* Espaçamento do topo */
     margin-bottom: 2rem; /* Espaçamento da base */
 }
