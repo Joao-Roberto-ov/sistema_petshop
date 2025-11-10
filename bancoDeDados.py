@@ -281,10 +281,20 @@ def criar_tabelas():
                      """)
         
         curs.execute("""
-                    CREATE TABLE IF NOT EXISTS horarios_funcionamento 
-                     (
+                    CREATE TABLE IF NOT EXISTS despesas
+                    (
                         id SERIAL PRIMARY KEY,
-                        dia_semana VARCHAR(20) NOT NULL,  -- ex: "segunda", "terça"
+                        descricao VARCHAR(255) NOT NULL,
+                        valor NUMERIC(10, 2) NOT NULL,
+                        data DATE NOT NULL
+                    );
+                    """)
+
+        curs.execute("""
+                    CREATE TABLE IF NOT EXISTS horarios_funcionamento
+                    (
+                        id SERIAL PRIMARY KEY,
+                        dia_semana VARCHAR(20) NOT NULL,
                         abre TIME,
                         fecha TIME,
                         fechado BOOLEAN DEFAULT FALSE
