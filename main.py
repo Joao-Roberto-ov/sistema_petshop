@@ -23,7 +23,8 @@ from routers import (
     config_router,            
     historico_medico_router,  
     vacina_router,
-    despesa_router
+    despesa_router,
+    user_router
 )
 
 from fastapi.responses import FileResponse   # presente na feat/us-40-configurar-info
@@ -284,7 +285,7 @@ async def historico_completo(pet_id: int):
         vacinas_data = [{
             "id": vacina.id,
             "nome_vacina": vacina.nome_vacina,
-            "data_aplicacao": vacina.data_apl   icacao.isoformat() if vacina.data_aplicacao else None,
+            "data_aplicacao": vacina.data_aplicacao.isoformat() if vacina.data_aplicacao else None,
             "data_proxima_dose": vacina.data_proxima_dose.isoformat() if vacina.data_proxima_dose else None,
             "funcionario_id": vacina.funcionario_id,
             "funcionario_nome": vacina.funcionario_nome
@@ -319,6 +320,7 @@ app.include_router(checkout_router.router)
 app.include_router(agendamento_router.router)
 app.include_router(despesa_router.router)
 app.include_router(config_router.router)
+app.include_router(user_router.router)
 
 # app.mount("/static", StaticFiles(directory=os.path.join(frontend_dir, "static")), name="static")
 
