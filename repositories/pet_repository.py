@@ -218,3 +218,25 @@ class RepositorioPet:
         finally:
             if cursor: cursor.close()
             if conn: encerra_conexao(conn)
+    def buscar_pet_por_id(self, pet_id: int):
+        """
+        Busca um pet pelo ID
+        """
+        conn = None
+        cursor = None
+        try:
+            conn = conectar()
+            cursor = conn.cursor()
+            sql = """
+                SELECT id, nome, tipo, raca, idade, peso, sexo_biologico, observacoes, cliente_id
+                FROM Pets 
+                WHERE id = %s
+            """
+            cursor.execute(sql, (pet_id,))
+            return cursor.fetchone()
+        except Exception as e:
+            print(f"Erro ao buscar pet por ID: {e}")
+            return None
+        finally:
+            if cursor: cursor.close()
+            if conn: encerra_conexao(conn)

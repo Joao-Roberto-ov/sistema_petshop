@@ -17,7 +17,15 @@ const IconHistoryLog = () => (
     </svg>
 );
 
-function PetCard({ pet, onViewHistory, onPetUpdated }) {
+const IconVaccine = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+        <path d="m14.5 9-5 5"></path>
+        <path d="m9.5 9 5 5"></path>
+    </svg>
+);
+
+function PetCard({ pet, onViewHistory, onViewVaccines, onPetUpdated }) {
     const [isEditing, setIsEditing] = useState(false);
     const [formData, setFormData] = useState({
         nome: '',
@@ -31,6 +39,8 @@ function PetCard({ pet, onViewHistory, onPetUpdated }) {
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
     const [loading, setLoading] = useState(false);
+    const [vacinas, setVacinas] = useState([]);
+    const [vacinasLoading, setVacinasLoading] = useState(true);
 
     useEffect(() => {
         if (isEditing) {
@@ -45,6 +55,28 @@ function PetCard({ pet, onViewHistory, onPetUpdated }) {
             });
         }
     }, [isEditing, pet]);
+
+    useEffect(() => {
+        const fetchVacinas = async () => {
+            setVacinasLoading(true);
+            try {
+                const token = localStorage.getItem('token');
+                const response = await axios.get(`/vacinas/pet/${pet.id}`, { 
+                    headers: { 'Authorization': `Bearer ${token}` },
+                });
+                setVacinas(response.data);
+            } catch (err) {
+                console.error('Erro ao buscar vacinas:', err);
+                // Não exibe erro para o usuário, apenas no console
+            } finally {
+                setVacinasLoading(false);
+            }
+        };
+
+        if (pet.id) {
+            fetchVacinas();
+        }
+    }, [pet.id]);
 
     const capitalizeName = (name) => {
         if (!name) return '';
@@ -174,7 +206,15 @@ function PetCard({ pet, onViewHistory, onPetUpdated }) {
                     </button>
                     <button 
                         className="action-btn" 
-                        title="Ver Histórico" 
+                        title="Ver Carteira de Vacinação" 
+                        onClick={onViewVaccines}
+                        disabled={loading}
+                    >
+                        <IconVaccine />
+                    </button>
+                    <button 
+                        className="action-btn" 
+                        title="Ver Histórico Completo" 
                         onClick={onViewHistory}
                         disabled={loading}
                     >

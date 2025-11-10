@@ -341,5 +341,40 @@ class DisponibilidadeResponse(BaseModel):
     data: date
     horarios: list[HorarioDisponivel]
 
+class VacinaBase(BaseModel):
+    nome_vacina: str
+    data_aplicacao: date
+    data_proxima_dose: Optional[date] = None
+    pet_id: int
+    funcionario_id: Optional[int] = None
+
+class VacinaCreate(VacinaBase):
+    pass
+
+class VacinaResponse(VacinaBase):
+    id: int
+    funcionario_nome: Optional[str] = None
+
+    class Config:
+        from_attributes = True
+
+class HistoricoMedico(BaseModel):
+    pet_id: int
+    tipo_servico: Literal["Consulta", "Cirurgia", "Exame", "Banho e Tosa", "Outro"]
+    data_hora: datetime
+    resumo: str
+    detalhes: Optional[str] = None
+    funcionario_id: Optional[int] = None
+    valor: Optional[float] = None
+
+
+class HistoricoMedicoResponse(HistoricoMedico):
+    id: int
+    funcionario_nome: Optional[str] = None
+
+    class Config:
+        from_attributes = True
+
+
 class AgendamentoReagendar(BaseModel):
     nova_data_hora_inicio: datetime
