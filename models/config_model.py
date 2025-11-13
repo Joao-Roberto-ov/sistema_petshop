@@ -1,12 +1,11 @@
-from pydantic import BaseModel, field_validator
+from pydantic import BaseModel, field_validator, EmailStr
 from typing import Optional
 from datetime import time
 
 class ConfigEmpresa(BaseModel):
-    nome_empresa: str
     endereco: str
     telefone: str
-    logo_url: str
+    email: EmailStr
 
 class HorarioFuncionamento(BaseModel):
     id: Optional[int] = None

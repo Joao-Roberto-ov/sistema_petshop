@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import ModalConfigEmpresa from "../components/ModalConfigEmpresa";
 
 function HomePageFuncionario({
     userData,
@@ -15,24 +14,23 @@ function HomePageFuncionario({
     onNavigateToDashboard,
     onNavigateToGerenciarAgendamentos
 }) {
-    
-    const [showConfigModal, setShowConfigModal] = useState(false);
+
     const cargoLower = userData?.cargo?.toLowerCase();
     const cargoId = userData?.cargo_id;
-    
-    // Lógica corrigida para funcionar com cargo_id numérico E cargo string
-    const isGestorOuAdmin = cargoId === 1 || 
-                           cargoLower === 'gestor' || 
+
+    // Lógica para funcionar com cargo_id numérico E cargo string
+    const isGestorOuAdmin = cargoId === 1 ||
+                           cargoLower === 'gestor' ||
                            cargoLower === 'administrador' ||
                            cargoLower?.includes('gestor') ||
                            cargoLower?.includes('admin');
-    
-    const isVeterinario = cargoId === 3 || 
-                         cargoLower === 'veterinario' || 
+
+    const isVeterinario = cargoId === 3 ||
+                         cargoLower === 'veterinario' ||
                          cargoLower === 'veterinário' ||
                          cargoLower?.includes('veterin');
-    
-    // Nova variável para verificar permissão de visualizar pets
+
+    //variável para verificar permissão de visualizar pets
     const podeVisualizarPets = isGestorOuAdmin || isVeterinario;
 
     // Debug - dentro da função
@@ -65,7 +63,7 @@ function HomePageFuncionario({
             description: "Registre uma nova venda de produtos ou serviços.",
             onClick: onNavigateToRegistrarVenda
         },
-        // Itens que só aparecem para Gestor/Admin
+        // Itens que só aparecem para Gestor
         ...(isGestorOuAdmin ? [
             {
                 icon: '🛠',
@@ -92,7 +90,7 @@ function HomePageFuncionario({
                 onClick: onNavigateToGerenciarAgendamentos
             }
         ] : []), // Fim do bloco condicional para Gestor/Admin
-        
+
         // Item que aparece para Veterinário E Gestor
         ...(podeVisualizarPets ? [
             {
@@ -102,7 +100,7 @@ function HomePageFuncionario({
                 onClick: onNavigateToVisualizarPets
             }
         ] : []),
-        
+
         // Item que aparece para todos os funcionários
         {
             icon: '🔍',
@@ -152,14 +150,14 @@ function HomePageFuncionario({
                         <button className="btn btn-outline-white hover-lift" onClick={onNavigateToVisualizarClientes}>
                             👥 Visualizar Clientes
                         </button>
-                        
+
                         {/* Botão Cadastrar Funcionário - apenas para gestores */}
                         {isGestorOuAdmin && (
                             <button className="btn btn-outline-white hover-lift" onClick={onNavigateToCadastroFuncionarioCompleto}>
                                 ➕ Cadastrar Funcionário
                             </button>
                         )}
-                        
+
                         {/* Botões de Produtos */}
                         {isGestorOuAdmin ? (
                             <>
@@ -182,20 +180,20 @@ function HomePageFuncionario({
                             isGestorOuAdmin && (
                             <button
                                 className="btn btn-outline-white hover-lift"
-                                onClick={() => setShowConfigModal(true)}
+                                onClick={() => window.dispatchEvent(new CustomEvent('navigate', { detail: 'config-empresa' }))}
                             >
                                 ⚙️ Configurações da Empresa
                             </button>
                             )
                         }
-                        
+
                         {/* Botão Visualizar Pets para Veterinários e Gestores */}
                         {podeVisualizarPets && (
                             <button className="btn btn-outline-white hover-lift" onClick={onNavigateToVisualizarPets}>
                                 🐾 Visualizar Pets
                             </button>
                         )}
-                        
+
                         <button className="btn btn-outline-white hover-lift" onClick={onLogout}>
                             🚪 Sair
                         </button>
@@ -211,7 +209,7 @@ function HomePageFuncionario({
                             Acesse as ferramentas necessárias para gerenciar o sistema de forma eficiente.
                         </p>
                     </div>
-                    
+
                     {/* Cards de Serviços */}
                     <div className="services-grid">
                         {services.map((service, index) => (
@@ -259,13 +257,7 @@ function HomePageFuncionario({
                     </div>
                 </div>
             </section>
-            <ModalConfigEmpresa
-                isOpen={showConfigModal}
-                onClose={() => setShowConfigModal(false)}
-            />
-
         </>
-        
     );
 }
 

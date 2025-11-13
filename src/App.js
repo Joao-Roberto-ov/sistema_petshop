@@ -31,6 +31,8 @@
     import SelecionarHorarioScreen from './components/SelecionarHorarioScreen';
     import Checkout from './components/Checkout';
     import FluxoCaixaReport from './components/FluxoCaixaReport';
+    import ConfigEmpresaScreen from './components/ConfigEmpresaScreen';
+    import configEmpresaScreen from "./components/ConfigEmpresaScreen";
 
     const CARGO = { GESTOR: 1, FUNCIONARIO: 2, VETERINARIO: 3, ATENDENTE: 4 };
     const navigateTo = (screenName) => {
@@ -214,7 +216,7 @@
             const telasGestor = ['visualizarServicos', 'cadastro-funcionario-completo',
                                 'listar-funcionarios', 'cadastrarProduto',
                                 'visualizar-produtos-gestor', 'funcionario-cadastro-admin',
-                                'gerenciar-agendamentos'];
+                                'gerenciar-agendamentos', 'config-empresa'];
 
             // Telas que gestores E veterinários podem acessar
             const telasGestorVeterinario = ['visualizar-pets', 'dashboard-gestor'];
@@ -449,6 +451,9 @@
                         onNavigateToHome={() => navigateToHome(userData)}
                         onIniciarReagendamento={iniciarReagendamento}
                     />;
+
+                case 'config-empresa':
+                    return <ConfigEmpresaScreen onBack={() => navigateToHome(userData)} />;
 
                 case 'home':
                 default:

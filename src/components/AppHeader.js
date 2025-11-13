@@ -20,8 +20,13 @@ function AppHeader({
     onNavigateToServicosCliente
 }) {
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-    const [nomeEmpresa, setNomeEmpresa] = useState('PetLife'); // valor padrão
+
+    // MUDANÇA AQUI: Como o campo 'nome_empresa' foi removido do banco/backend,
+    // definimos o nome estaticamente aqui.
+    const nomeEmpresa = 'PetLife';
+
     const dropdownRef = useRef(null);
+
     const handleServicosClick = (e) => {
         e.preventDefault();
         if (onNavigateToServicosCliente) {
@@ -31,12 +36,10 @@ function AppHeader({
             alert('Erro: Função de navegação para serviços não definida.');
         }
     };
-    useEffect(() => {
-        fetch('http://localhost:8000/admin/config/') // ajuste a URL se necessário
-        .then(res => res.json())
-        .then(data => setNomeEmpresa(data.nome_empresa))
-        .catch(() => setNomeEmpresa('PetLife')); // fallback em caso de erro
-    }, []);
+
+    // MUDANÇA AQUI: Removido o useEffect que buscava a configuração do backend,
+    // pois o campo nome_empresa não existe mais na API.
+
     useEffect(() => {
         function handleClickOutside(event) {
             if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
@@ -191,7 +194,7 @@ function AppHeader({
                                                     window.dispatchEvent(new CustomEvent('navigate', { detail: 'visualizarClientes' }));
                                                     setIsDropdownOpen(false);
                                                 }}>
-                                                    <span className="icon">👥</span> Gerenciar Clientes
+                                                    <span className="icon">👤</span> Gerenciar Clientes
                                                 </a>
                                             </li>
                                             {isAdmin && (

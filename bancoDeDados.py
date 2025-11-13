@@ -121,13 +121,13 @@ def criar_tabelas():
 
         curs.execute("""CREATE TABLE IF NOT EXISTS vacinas
                         (
-                            id                   SERIAL PRIMARY KEY,
-                            pet_id               INTEGER                  NOT NULL REFERENCES Pets (id) ON DELETE CASCADE,
-                            nome_vacina          VARCHAR(100)             NOT NULL,
-                            data_aplicacao       DATE                     NOT NULL,
-                            data_proxima_dose    DATE,
-                            funcionario_id       INTEGER REFERENCES Funcionarios (id) ON DELETE SET NULL,
-                            criado_em            TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+                            id                SERIAL PRIMARY KEY,
+                            pet_id            INTEGER      NOT NULL REFERENCES Pets (id) ON DELETE CASCADE,
+                            nome_vacina       VARCHAR(100) NOT NULL,
+                            data_aplicacao    DATE         NOT NULL,
+                            data_proxima_dose DATE,
+                            funcionario_id    INTEGER      REFERENCES Funcionarios (id) ON DELETE SET NULL,
+                            criado_em         TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
                         );""")
 
         curs.execute("""CREATE TABLE IF NOT EXISTS historico_medico
@@ -138,7 +138,7 @@ def criar_tabelas():
                             data_hora      TIMESTAMP WITH TIME ZONE NOT NULL,
                             resumo         TEXT                     NOT NULL,
                             detalhes       TEXT,
-                            funcionario_id INTEGER REFERENCES Funcionarios (id) ON DELETE SET NULL,
+                            funcionario_id INTEGER                  REFERENCES Funcionarios (id) ON DELETE SET NULL,
                             valor          NUMERIC(10, 2)
                         );""")
 
@@ -279,27 +279,49 @@ def criar_tabelas():
                          preco_unitario NUMERIC(10, 2) NOT NULL
                      );
                      """)
-        
-        curs.execute("""
-                    CREATE TABLE IF NOT EXISTS despesas
-                    (
-                        id SERIAL PRIMARY KEY,
-                        descricao VARCHAR(255) NOT NULL,
-                        valor NUMERIC(10, 2) NOT NULL,
-                        data DATE NOT NULL
-                    );
-                    """)
 
         curs.execute("""
-                    CREATE TABLE IF NOT EXISTS horarios_funcionamento
-                    (
-                        id SERIAL PRIMARY KEY,
-                        dia_semana VARCHAR(20) NOT NULL,
-                        abre TIME,
-                        fecha TIME,
-                        fechado BOOLEAN DEFAULT FALSE
-                    );
-                    """)
+                     CREATE TABLE IF NOT EXISTS despesas
+                     (
+                         id        SERIAL PRIMARY KEY,
+                         descricao VARCHAR(255)   NOT NULL,
+                         valor     NUMERIC(10, 2) NOT NULL,
+                         data      DATE           NOT NULL
+                     );
+                     """)
+
+        curs.execute("""CREATE TABLE IF NOT EXISTS configuracao_empresa
+                        (
+                            id       SERIAL PRIMARY KEY,
+                            endereco VARCHAR(255),
+                            telefone VARCHAR(50),
+                            email    VARCHAR(150)
+                        );""")
+
+        try:
+            curs.execute("ALTER TABLE configuracao_empresa ADD COLUMN IF NOT EXISTS email VARCHAR(150);")
+            curs.execute("ALTER TABLE configuracao_empresa DROP COLUMN IF EXISTS logo_url;")
+        except Exception as e:
+            print(f"Aviso ao alterar estrutura da tabela config: {e}")
+            conectado.rollback()
+
+        #garante que tem pelo menos uma linha (id 1) com valores padrão
+        curs.execute("""
+                     INSERT INTO configuracao_empresa (id, endereco, telefone, email)
+                     SELECT 1, '', '', 'contato@petlife.com'
+                     WHERE NOT EXISTS (SELECT 1 FROM configuracao_empresa WHERE id = 1);
+                     """)
+
+        curs.execute("""
+                     CREATE TABLE IF NOT EXISTS horarios_funcionamento
+                     (
+                         id         SERIAL PRIMARY KEY,
+                         dia_semana VARCHAR(20) NOT NULL,
+                         abre       TIME,
+                         fecha      TIME,
+                         fechado    BOOLEAN DEFAULT FALSE
+                     );
+                     """)
 
         try:
             curs.execute("""
