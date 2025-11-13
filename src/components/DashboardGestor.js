@@ -229,6 +229,14 @@ function DashboardGestor({ userData, onLogout, onNavigateToHome }) {
                     <p>{agendamentosFiltrados.length}</p>
                     <span>Listados abaixo ({filtroStatusAgendamento})</span>
                 </div>
+    <button
+        className="btn-fluxo-caixa"
+        onClick={() => window.dispatchEvent(new CustomEvent('navigate', { detail: 'fluxo-caixa-report' }))}
+    >
+        {/* Opcional: adicionar ícone */}
+        📊 Relatório de Fluxo de Caixa
+    </button>
+
             </div>
 
 
@@ -243,6 +251,7 @@ function DashboardGestor({ userData, onLogout, onNavigateToHome }) {
                     </select>
                 </div>
             </div>
+
 
             {/* Tabela de Agendamentos */}
              <main className="dashboard-main" style={{ marginTop: '2rem' }}>

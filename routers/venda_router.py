@@ -1,12 +1,12 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Query
 from modelos import CriarVenda
 from services.venda_service import ServicosVenda
+from datetime import date
 
 router = APIRouter(prefix="/api/vendas", tags=["Vendas"])
 servico = ServicosVenda()
 
 
-# 🔹 Criar uma nova venda
 @router.post("/", response_model=dict, summary="Registrar uma nova venda")
 def registrar_venda(dados_venda: CriarVenda):
     """
@@ -15,7 +15,6 @@ def registrar_venda(dados_venda: CriarVenda):
     return servico.registrar_venda(dados_venda)
 
 
-# 🔹 Buscar venda por ID
 @router.get("/{venda_id}", response_model=dict, summary="Buscar venda por ID")
 def buscar_venda(venda_id: int):
     """
@@ -27,7 +26,6 @@ def buscar_venda(venda_id: int):
     return venda
 
 
-# 🔹 Listar todas as vendas
 @router.get("/", response_model=list, summary="Listar todas as vendas")
 def listar_vendas():
     """
@@ -36,7 +34,6 @@ def listar_vendas():
     return servico.listar_vendas()
 
 
-# 🔹 Atualizar uma venda
 @router.put("/{venda_id}", response_model=dict, summary="Atualizar venda existente")
 def atualizar_venda(venda_id: int, forma_pagamento: str = None, total: float = None):
     """
@@ -45,10 +42,21 @@ def atualizar_venda(venda_id: int, forma_pagamento: str = None, total: float = N
     return servico.atualizar_venda(venda_id, forma_pagamento, total)
 
 
-# 🔹 Excluir uma venda
 @router.delete("/{venda_id}", response_model=dict, summary="Excluir venda")
 def deletar_venda(venda_id: int):
     """
     Remove uma venda e todos os itens vinculados.
     """
     return servico.deletar_venda(venda_id)
+
+@router.get("", status_code=200)
+def listar_vendas_periodo(
+    data_inicio: date | None = Query(None),
+    data_fim: date | None = Query(None)
+):
+    """
+    Lista todas as vendas, ou filtra por período (data_inicio e data_fim)
+    """
+    if data_inicio and data_fim:
+        return servico.listar_por_periodo(data_inicio, data_fim)
+    return servico.listar_vendas()

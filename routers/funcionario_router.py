@@ -4,6 +4,9 @@ from seguranca import verifica_token, verificar_permissao_admin
 from services.funcionario_service import ServicosFuncionario
 from services.cliente_service import ServicosCliente
 from services.venda_service import ServicosVenda
+from services.agendamento_service import ServicosAgendamento
+from services.pet_service import ServicosPet  # Adicionar esta importação
+from services import historico_medico_service  # Adicionar esta importação
 from typing import Annotated, List, Optional
 from util.cargos import Cargo
 from modelos import (
@@ -24,22 +27,20 @@ def pegar_servicos_cliente():
 def pegar_servico_venda():
     return ServicosVenda()
 
+def pegar_servicos_agendamento():
+    from services.agendamento_service import ServicosAgendamento
+    return ServicosAgendamento()
+
 async def pegar_id_do_funcionario(token: str = Depends(dupla_autenticacao)) -> int:
-    payload = verifica_token(token) # verifica_token
-    if not payload or payload.get("tipo") != "funcionario": # Verifica o tipo
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED, # Usa status code
-            detail="Token inválido, expirado ou não é de funcionário",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
-    user_id = payload.get("sub")
+    user_id = verifica_token(token)
     if user_id is None:
-         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="ID do usuário não encontrado no token",
+        raise HTTPException(
+            status_code=401,
+            detail="Token inválido ou expirado",
             headers={"WWW-Authenticate": "Bearer"},
         )
     return int(user_id)
+
 
 @router.post("/cadastrar-cliente", status_code=status.HTTP_201_CREATED)
 async def cadastrar_cliente_por_funcionario(
@@ -244,6 +245,56 @@ async def registrar_venda_por_funcionario(
         import traceback
         traceback.print_exc()
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Ocorreu um erro interno ao registrar a venda.")
+
+@router.post("/agendamentos/{agendamento_id}/concluir", status_code=status.HTTP_200_OK)
+async def concluir_agendamento_rota(
+    agendamento_id: int,
+    funcionario_id: int = Depends(pegar_id_do_funcionario),
+    service_agendamento: ServicosAgendamento = Depends(pegar_servicos_agendamento)
+):
+    """
+    Permite que o funcionário marque um agendamento como concluído e registre no histórico médico.
+    """
+    try:
+        return service_agendamento.concluir_agendamento(agendamento_id, funcionario_id)
+    except HTTPException as e:
+        raise e
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Ocorreu um erro interno ao concluir o agendamento.")
+
+def pegar_servicos_pet():
+    return ServicosPet()
+
+@router.get("/pets/{pet_id}/perfil")
+async def obter_perfil_pet_completo(
+    pet_id: int,
+    funcionario_id: int = Depends(pegar_id_do_funcionario),
+    service_pet: ServicosPet = Depends(pegar_servicos_pet)
+):
+    """
+    Retorna dados do pet + histórico médico completo para funcionários
+    """
+    try:
+        # Buscar dados básicos do pet
+        pet_data = service_pet.buscar_pet_por_id(pet_id)
+        if not pet_data:
+            raise HTTPException(status_code=404, detail="Pet não encontrado")
+        
+        # Buscar histórico médico
+        historico = historico_medico_service.buscar_historico_pet(pet_id)
+        
+        return {
+            "dados_pet": pet_data,
+            "historico": historico
+        }
+        
+    except HTTPException as e:
+        raise e
+    except Exception as e:
+        print(f"Erro ao buscar perfil do pet: {e}")
+        raise HTTPException(status_code=500, detail="Erro ao buscar perfil do pet")
 
 @router.get("/especialistas/{servico_id}", response_model=List[dict])
 async def rota_buscar_especialistas_por_servico(

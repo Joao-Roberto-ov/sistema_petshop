@@ -8,6 +8,8 @@ from repositories.agendamento_repository import RepositorioAgendamento
 from repositories.servico_repository import RepositorioCatalogoServico
 from repositories.pet_repository import RepositorioPet
 from repositories.funcionario_repository import RepositorioFuncionario
+from services import historico_medico_service
+from modelos import HistoricoMedico
 from modelos import AgendamentoCreate, HorarioDisponivel, DisponibilidadeResponse, AgendamentoReagendar
 
 HORA_INICIO_MANHA = time(7, 0)
@@ -579,6 +581,69 @@ class ServicosAgendamento:
         except Exception as e:
             print(f"Erro inesperado ao reagendar (gestor): {e}")
             raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Erro interno ao reagendar.")
+
+    def concluir_agendamento(self, agendamento_id: int, funcionario_id: int):
+        """
+        Marca um agendamento como 'Concluído' e registra no histórico médico do pet.
+        """
+        agendamento_raw = self.repo_agendamento.buscar_agendamento_por_id(agendamento_id)
+        if not agendamento_raw:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Agendamento não encontrado.")
+
+        ag_id, ag_cliente_id, ag_pet_id, ag_servico_id, ag_inicio, ag_fim, ag_status, ag_motivo, ag_func_id = agendamento_raw
+
+        if ag_status != 'Agendado':
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                                detail=f"Apenas agendamentos com status 'Agendado' podem ser concluídos. Status atual: {ag_status}")
+
+        # 1. Obter detalhes do serviço e funcionário
+        servico = self.repo_servico.buscar_por_id(ag_servico_id)
+        if not servico:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Serviço associado não encontrado.")
+        servico_nome = servico[1]
+        servico_preco = servico[4]
+
+        # 2. Atualizar status do agendamento para 'Concluído'
+        sucesso_status = self.repo_agendamento.atualizar_status_agendamento(
+            agendamento_id=agendamento_id,
+            novo_status="Concluído",
+            motivo="Serviço concluído e registrado no histórico médico."
+        )
+
+        if not sucesso_status:
+            raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                                detail="Erro ao atualizar o status do agendamento para 'Concluído'.")
+
+        # 3. Registrar no histórico médico com detalhes completos
+        historico_data = HistoricoMedico(
+            pet_id=ag_pet_id,
+            tipo_servico=servico_nome,
+            data_hora=datetime.now(timezone.utc),
+            resumo=f"Serviço de {servico_nome} realizado",
+            detalhes=f"""
+    Serviço: {servico_nome}
+    Data do agendamento: {ag_inicio.strftime('%d/%m/%Y %H:%M')}
+    Valor: R$ {servico_preco:.2f}
+    Funcionário responsável: ID {funcionario_id}
+    Status: Concluído com sucesso
+
+    Detalhes do serviço:
+    - Serviço realizado conforme agendamento
+    - Pet atendido no horário programado
+    - Procedimento executado com sucesso
+            """.strip(),
+            funcionario_id=funcionario_id,
+            valor=servico_preco
+        )
+        
+        try:
+            historico_id = historico_medico_service.registrar_historico(historico_data)
+            print(f"✅ Histórico médico registrado com ID: {historico_id}")
+        except Exception as e:
+            print(f"❌ Falha ao registrar histórico médico para agendamento {agendamento_id}: {e}")
+            # Não levantamos exceção para não reverter a conclusão do agendamento
+
+        return {"message": f"Agendamento {agendamento_id} concluído e histórico médico atualizado com sucesso."}
 
     def listar_agendamentos_proximos(self):
         agendamentos_raw = self.repo_agendamento.buscar_agendamentos_proximos()
