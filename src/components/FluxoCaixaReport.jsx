@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import axios from "axios";
+import axios from "../api/axios";
 import * as XLSX from "xlsx";
 
 const FluxoCaixaResumoMensal = ({ onBack }) => {
@@ -29,8 +29,13 @@ const FluxoCaixaResumoMensal = ({ onBack }) => {
       const dataFim = `${mesFim}-${ultimoDia}`;
 
       const [resVendas, resDespesas] = await Promise.all([
-        axios.get("/api/vendas", { params: { data_inicio: dataInicio, data_fim: dataFim } }),
-        axios.get("/admin/despesas", { params: { data_inicio: dataInicio, data_fim: dataFim } }),
+        axios.get("/vendas/", {
+            params: { data_inicio: dataInicio, data_fim: dataFim }
+        }),
+        axios.get("/admin/despesas", {
+            baseURL: '/',
+            params: { data_inicio: dataInicio, data_fim: dataFim }
+        }),
       ]);
 
       const vendas = resVendas.data || [];
@@ -43,6 +48,12 @@ const FluxoCaixaResumoMensal = ({ onBack }) => {
       };
 
       vendas.forEach(v => {
+        // --- CORREÇÃO 1: Filtrar apenas vendas PAGAS ---
+        // Se o status não existir ou não for 'pago' (case insensitive), ignora.
+        if (!v.status_pagamento || v.status_pagamento.toLowerCase() !== 'pago') {
+            return;
+        }
+
         const mes = formatMes(v.criado_em);
         if (!resumo[mes]) resumo[mes] = { vendas: 0, despesas: 0, detalhesVendas: [], detalhesDespesas: [] };
         resumo[mes].vendas += parseFloat(v.total || 0);
@@ -82,7 +93,7 @@ const FluxoCaixaResumoMensal = ({ onBack }) => {
 
   const abrirModalVenda = async (id) => {
     try {
-      const res = await axios.get(`api/vendas/${id}`);
+      const res = await axios.get(`/vendas/${id}`);
       setVendaDetalhada(res.data);
       setModalAberto(true);
     } catch (err) {
@@ -91,67 +102,43 @@ const FluxoCaixaResumoMensal = ({ onBack }) => {
     }
   };
 
+  // --- CORREÇÃO 2: Simplificar Exportação para Excel ---
+  // Agora tratamos 'v.itens' como string, criando uma linha por venda.
   const exportarExcel = () => {
-  const wb = XLSX.utils.book_new();
+    const wb = XLSX.utils.book_new();
 
-  resumoMensal.forEach((r) => {
-    // Vendas detalhadas
-    const vendasDetalhes = r.detalhesVendas.length
-      ? r.detalhesVendas.flatMap((v) =>
-          (v.itens || []).length
-            ? v.itens.map((item) => ({
-                "ID Venda": v.id,
-                "Data": new Date(v.criado_em).toLocaleDateString("pt-BR"),
-                "Cliente": v.cliente_nome,
-                "Forma Pagamento": v.forma_pagamento,
-                "Status Pagamento": v.status_pagamento,
-                "ID Item": item.id_item,
-                "Tipo Item": item.tipo,
-                "Nome Item": item.nome,
-                "Quantidade": item.quantidade,
-                "Preço Unitário": item.preco_unitario,
-                "Total Item": (item.quantidade * item.preco_unitario).toFixed(2),
-              }))
-            : [
-                {
-                  "ID Venda": v.id,
-                  "Data": new Date(v.criado_em).toLocaleDateString("pt-BR"),
-                  "Cliente": v.cliente_nome,
-                  "Forma Pagamento": v.forma_pagamento,
-                  "Status Pagamento": v.status_pagamento,
-                  "ID Item": "",
-                  "Tipo Item": "",
-                  "Nome Item": "",
-                  "Quantidade": "",
-                  "Preço Unitário": "",
-                  "Total Item": parseFloat(v.total || 0).toFixed(2),
-                },
-              ]
-        )
-      : [
-          {
-            "ID Venda": "Nenhuma venda",
-          },
-        ];
+    resumoMensal.forEach((r) => {
+      // Se não houver vendas, cria uma linha vazia indicando isso
+      const vendasDetalhes = r.detalhesVendas.length > 0
+        ? r.detalhesVendas.map((v) => ({
+            "ID Venda": v.id,
+            "Data": new Date(v.criado_em).toLocaleDateString("pt-BR"),
+            "Cliente": v.cliente_nome || "Consumidor Final",
+            "Funcionário": v.funcionario_nome || "N/A",
+            "Forma Pagamento": v.forma_pagamento,
+            "Status": v.status_pagamento, // Será sempre 'Pago' devido ao filtro
+            "Itens Vendidos": v.itens,    // A string concatenada vinda do banco
+            "Total da Venda": parseFloat(v.total || 0).toFixed(2),
+          }))
+        : [{ "ID Venda": "Nenhuma venda registrada neste mês" }];
 
-    const sheetVendas = XLSX.utils.json_to_sheet(vendasDetalhes);
-    XLSX.utils.book_append_sheet(wb, sheetVendas, `Vendas ${r.mes}`);
+      const sheetVendas = XLSX.utils.json_to_sheet(vendasDetalhes);
+      XLSX.utils.book_append_sheet(wb, sheetVendas, `Vendas ${r.mes}`);
 
-    // Despesas detalhadas
-    const despesasDetalhes = r.detalhesDespesas.map((d) => ({
-      "ID Despesa": d.id,
-      "Descrição": d.descricao,
-      "Valor": parseFloat(d.valor).toFixed(2),
-      "Data": new Date(d.data).toLocaleDateString("pt-BR"),
-    }));
+      // Despesas detalhadas
+      const despesasDetalhes = r.detalhesDespesas.map((d) => ({
+        "ID Despesa": d.id,
+        "Descrição": d.descricao,
+        "Valor": parseFloat(d.valor).toFixed(2),
+        "Data": new Date(d.data).toLocaleDateString("pt-BR"),
+      }));
 
-    const sheetDespesas = XLSX.utils.json_to_sheet(despesasDetalhes);
-    XLSX.utils.book_append_sheet(wb, sheetDespesas, `Despesas ${r.mes}`);
-  });
+      const sheetDespesas = XLSX.utils.json_to_sheet(despesasDetalhes);
+      XLSX.utils.book_append_sheet(wb, sheetDespesas, `Despesas ${r.mes}`);
+    });
 
-  XLSX.writeFile(wb, `Fluxo_Caixa_${mesInicio}_a_${mesFim}.xlsx`);
-};
-
+    XLSX.writeFile(wb, `Fluxo_Caixa_${mesInicio}_a_${mesFim}.xlsx`);
+  };
 
   const styles = {
     container: { maxWidth: "1000px", margin: "0 auto", padding: "2rem", fontFamily: "Inter, sans-serif", backgroundColor: "#f5f7fa", color: "#1f2937" },
@@ -268,30 +255,36 @@ const FluxoCaixaResumoMensal = ({ onBack }) => {
 
           {detalhesMes[r.mes] && (
             <div style={styles.detalhes}>
-              <h4 style={{ marginBottom: "0.5rem" }}>Vendas</h4>
+              <h4 style={{ marginBottom: "0.5rem" }}>Vendas (Pagas)</h4>
               <table style={styles.table}>
                 <thead>
                   <tr>
                     <th style={styles.th}>Data</th>
                     <th style={styles.th}>Cliente</th>
+                    <th style={styles.th}>Itens</th>
                     <th style={styles.th}>Valor</th>
                     <th style={styles.th}>Detalhar</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {r.detalhesVendas.map(v => (
-                    <tr key={v.id}>
-                      <td style={styles.td}>{new Date(v.criado_em).toLocaleDateString("pt-BR")}</td>
-                      <td style={styles.td}>{v.cliente_nome}</td>
-                      <td style={styles.td}>R$ {parseFloat(v.total).toFixed(2)}</td>
-                      <td style={styles.td}>
-                        <button style={{ padding: "0.25rem 0.5rem", borderRadius: "0.25rem", cursor: "pointer", backgroundColor: "#2563eb", color: "#fff", border: "none" }}
-                          onClick={() => abrirModalVenda(v.id)}>
-                          Detalhes
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
+                  {r.detalhesVendas.length === 0 ? (
+                      <tr><td colSpan="5" style={{...styles.td, textAlign: "center"}}>Nenhuma venda paga neste mês.</td></tr>
+                  ) : (
+                      r.detalhesVendas.map(v => (
+                        <tr key={v.id}>
+                          <td style={styles.td}>{new Date(v.criado_em).toLocaleDateString("pt-BR")}</td>
+                          <td style={styles.td}>{v.cliente_nome}</td>
+                          <td style={{...styles.td, fontSize: '0.85rem', color: '#555'}}>{v.itens}</td>
+                          <td style={styles.td}>R$ {parseFloat(v.total).toFixed(2)}</td>
+                          <td style={styles.td}>
+                            <button style={{ padding: "0.25rem 0.5rem", borderRadius: "0.25rem", cursor: "pointer", backgroundColor: "#2563eb", color: "#fff", border: "none" }}
+                              onClick={() => abrirModalVenda(v.id)}>
+                              Detalhes
+                            </button>
+                          </td>
+                        </tr>
+                      ))
+                  )}
                 </tbody>
               </table>
 
@@ -330,7 +323,7 @@ const FluxoCaixaResumoMensal = ({ onBack }) => {
             <p>Status Pagamento: {vendaDetalhada.status_pagamento}</p>
             <p>Data: {new Date(vendaDetalhada.criado_em).toLocaleDateString("pt-BR")}</p>
 
-            <h4>Itens</h4>
+            <h4>Itens Detalhados</h4>
             <table style={styles.table}>
               <thead>
                 <tr>

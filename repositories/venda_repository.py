@@ -179,19 +179,22 @@ class RepositorioVenda:
         try:
             cursor = conn.cursor()
 
+            # Adicionado LEFT JOIN com ItensVenda e STRING_AGG
             query = """
                     SELECT v.id, \
                            v.total, \
                            v.forma_pagamento, \
                            v.status_pagamento, \
-                           v.criado_em,
+                           v.criado_em, \
                            c.id, \
                            c.nome, \
                            f.id, \
-                           f.nome
+                           f.nome, \
+                           COALESCE(STRING_AGG(CONCAT(iv.quantidade, 'x ', iv.nome), ', '), 'Sem itens') as lista_itens
                     FROM Vendas v
                              LEFT JOIN Clientes c ON v.cliente_id = c.id
                              LEFT JOIN Funcionarios f ON v.funcionario_id = f.id
+                             LEFT JOIN ItensVenda iv ON v.id = iv.venda_id
                     WHERE 1 = 1 \
                     """
             params = []
@@ -210,7 +213,12 @@ class RepositorioVenda:
                 params.append(filtro_data_inicio)
                 params.append(filtro_data_fim)
 
-            query += " ORDER BY v.criado_em DESC"
+            # CORREÇÃO: Adicionado GROUP BY para todas as colunas não agregadas
+            query += """
+                     GROUP BY v.id, v.total, v.forma_pagamento, v.status_pagamento, v.criado_em, 
+                              c.id, c.nome, f.id, f.nome
+                     ORDER BY v.criado_em DESC
+                     """
 
             cursor.execute(query, tuple(params))
             vendas = cursor.fetchall()
@@ -219,7 +227,8 @@ class RepositorioVenda:
                 {
                     "id": v[0], "total": v[1], "forma_pagamento": v[2], "status_pagamento": v[3],
                     "criado_em": v[4], "cliente_id": v[5], "cliente_nome": v[6],
-                    "funcionario_id": v[7], "funcionario_nome": v[8]
+                    "funcionario_id": v[7], "funcionario_nome": v[8],
+                    "itens": v[9]  # Novo campo itens
                 } for v in vendas
             ]
         finally:

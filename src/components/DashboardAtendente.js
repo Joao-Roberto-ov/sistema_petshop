@@ -1,13 +1,25 @@
 import React, { useState, useEffect } from 'react';
 import axios from '../api/axios';
+import VendaDetalhesModal from './VendaDetalhesModal'; // <--- IMPORTAR O MODAL
 import './Dashboard.css';
 import './DashboardGestor.css';
+
+// Ícone de Olho
+const IconEye = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+        <circle cx="12" cy="12" r="3"></circle>
+    </svg>
+);
 
 function DashboardAtendente({ userData, onNavigateToHome }) {
     const [minhasVendas, setMinhasVendas] = useState([]);
     const [vendasPendentesGeral, setVendasPendentesGeral] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
+
+    // Estado para o Modal
+    const [vendaSelecionada, setVendaSelecionada] = useState(null);
 
     const formatarValor = (valor) => {
         return (valor || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -27,7 +39,6 @@ function DashboardAtendente({ userData, onNavigateToHome }) {
         return status.toLowerCase().replace(/[\s/]/g, '-');
     };
 
-    // Função auxiliar para extrair dados com segurança
     const extrairDados = (response) => {
         if (response && Array.isArray(response.data)) {
             return response.data;
@@ -40,35 +51,31 @@ function DashboardAtendente({ userData, onNavigateToHome }) {
 
     useEffect(() => {
         const carregarDados = async () => {
-            // Só carrega se tiver o ID do usuário
             if (!userData || !userData.id) return;
 
             setLoading(true);
             setError('');
 
             try {
-                // Executa as requisições em paralelo, mas trata erros individualmente
                 const [resMinhas, resPendentes] = await Promise.all([
-                    axios.get(`/vendas?funcionario_id=${userData.id}`)
+                    axios.get(`/vendas/?funcionario_id=${userData.id}`)
                         .catch(err => {
                             console.warn("Erro ao carregar minhas vendas:", err);
                             return { data: [] };
                         }),
-                    axios.get(`/vendas?status=Pendente`)
+                    axios.get(`/vendas/?status=Pendente`)
                         .catch(err => {
                             console.warn("Erro ao carregar vendas pendentes:", err);
                             return { data: [] };
                         })
                 ]);
 
-                // 1. Processa Minhas Vendas (Finalizadas)
                 const dadosMinhas = extrairDados(resMinhas);
                 const finalizadas = dadosMinhas.filter(v =>
                     v.status_pagamento && v.status_pagamento.toLowerCase() !== 'pendente'
                 );
                 setMinhasVendas(finalizadas);
 
-                // 2. Processa Fila de Pendentes
                 const dadosPendentes = extrairDados(resPendentes);
                 setVendasPendentesGeral(dadosPendentes);
 
@@ -93,6 +100,12 @@ function DashboardAtendente({ userData, onNavigateToHome }) {
 
     return (
         <div className="dashboard-container">
+            {/* Renderiza o Modal */}
+            <VendaDetalhesModal
+                venda={vendaSelecionada}
+                onClose={() => setVendaSelecionada(null)}
+            />
+
             <div className="dashboard-gestor-header">
                 <h1>Painel do Atendente</h1>
                 <p>Olá, {userData?.nome || 'Colaborador'}. Aqui está o resumo das vendas.</p>
@@ -133,6 +146,7 @@ function DashboardAtendente({ userData, onNavigateToHome }) {
                                 <tr>
                                     <th>Data</th>
                                     <th>Cliente</th>
+                                    <th style={{textAlign: 'center'}}>Itens</th> {/* Header centralizado */}
                                     <th>Valor Total</th>
                                     <th>Status</th>
                                 </tr>
@@ -142,6 +156,19 @@ function DashboardAtendente({ userData, onNavigateToHome }) {
                                     <tr key={v.id} className={`status-${getStatusClass(v.status_pagamento)}`}>
                                         <td className="agendamento-data">{formatarDataHora(v.criado_em)}</td>
                                         <td>{v.cliente_nome || 'Não identificado'}</td>
+
+                                        {/* Botão do Modal */}
+                                        <td style={{textAlign: 'center'}}>
+                                            <button
+                                                className="action-btn"
+                                                style={{background: '#f3f4f6', color: '#555', margin: '0 auto'}}
+                                                onClick={() => setVendaSelecionada(v)}
+                                                title="Ver itens"
+                                            >
+                                                <IconEye />
+                                            </button>
+                                        </td>
+
                                         <td className="agendamento-valor">{formatarValor(v.total)}</td>
                                         <td>
                                             <span className={`agendamento-status ${getStatusClass(v.status_pagamento)}`}>
