@@ -57,8 +57,12 @@ def criar_tabelas():
                             Nome VARCHAR(50) UNIQUE NOT NULL
                         );""")
 
+        # (Req 5) Adicionados cargos de Atendente e Veterinário
         curs.execute("INSERT INTO Cargos (Nome) VALUES ('gestor') ON CONFLICT (Nome) DO NOTHING;")
         curs.execute("INSERT INTO Cargos (Nome) VALUES ('funcionario') ON CONFLICT (Nome) DO NOTHING;")
+        curs.execute("INSERT INTO Cargos (Nome) VALUES ('veterinario') ON CONFLICT (Nome) DO NOTHING;")
+        curs.execute("INSERT INTO Cargos (Nome) VALUES ('atendente') ON CONFLICT (Nome) DO NOTHING;")
+
 
         curs.execute("""CREATE TABLE IF NOT EXISTS produtos_externos
                         (
@@ -116,7 +120,9 @@ def criar_tabelas():
                             raca       VARCHAR(50) NOT NULL,
                             idade      SMALLINT    NOT NULL,
                             peso       FLOAT,
-                            cliente_id INTEGER REFERENCES Clientes (id) ON DELETE CASCADE
+                            cliente_id INTEGER REFERENCES Clientes (id) ON DELETE CASCADE,
+                            sexo_biologico VARCHAR(20) DEFAULT 'Não Informado',
+            observacoes TEXT
                         );""")
 
         curs.execute("""CREATE TABLE IF NOT EXISTS vacinas
@@ -200,6 +206,7 @@ def criar_tabelas():
                             status           VARCHAR(50)              DEFAULT 'Agendado',
                             observacoes      TEXT,
                             criado_em        TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+                            status_motivo    TEXT,
                             UNIQUE (funcionario_id, data_hora_inicio),
                             UNIQUE (pet_id, data_hora_inicio)
                         );""")
@@ -224,7 +231,7 @@ def criar_tabelas():
                             cliente_id       INTEGER REFERENCES Clientes (id),
                             total            NUMERIC(10, 2) NOT NULL,
                             forma_pagamento  VARCHAR(50)    NOT NULL,
-                            status_pagamento VARCHAR(20) DEFAULT 'pendente',
+                            status_pagamento VARCHAR(20) DEFAULT 'Pendente',
                             criado_em        TIMESTAMP   DEFAULT CURRENT_TIMESTAMP
                         );""")
 
@@ -236,7 +243,8 @@ def criar_tabelas():
                             id_item        INTEGER        NOT NULL,
                             nome           VARCHAR(255)   NOT NULL,
                             quantidade     INTEGER        NOT NULL,
-                            preco_unitario NUMERIC(10, 2) NOT NULL
+                            preco_unitario NUMERIC(10, 2) NOT NULL,
+                            info_agendamento TEXT
                         );""")
 
         curs.execute("""
@@ -298,13 +306,6 @@ def criar_tabelas():
                             email    VARCHAR(150)
                         );""")
 
-        try:
-            curs.execute("ALTER TABLE configuracao_empresa ADD COLUMN IF NOT EXISTS email VARCHAR(150);")
-            curs.execute("ALTER TABLE configuracao_empresa DROP COLUMN IF EXISTS logo_url;")
-        except Exception as e:
-            print(f"Aviso ao alterar estrutura da tabela config: {e}")
-            conectado.rollback()
-
         # garante que existe pelo menos uma linha (id 1) com valores padrão
         curs.execute("""
                      INSERT INTO configuracao_empresa (id, endereco, telefone, email)
@@ -312,9 +313,6 @@ def criar_tabelas():
                      WHERE NOT EXISTS (SELECT 1 FROM configuracao_empresa WHERE id = 1);
                      """)
 
-        # --- ATUALIZAÇÃO NA TABELA DE HORÁRIOS ---
-        # Verifica se a tabela antiga existe e se ela NAO tem a nova coluna.
-        # Se for a tabela antiga, dropamos para recriar com a estrutura correta.
         curs.execute("""
                      SELECT column_name
                      FROM information_schema.columns
@@ -352,16 +350,6 @@ def criar_tabelas():
                          VALUES (%s)
                          ON CONFLICT (dia_semana) DO NOTHING;
                          """, (dia,))
-
-        try:
-            curs.execute("""
-                         ALTER TABLE Agendamentos
-                             ADD COLUMN IF NOT EXISTS status_motivo TEXT;
-                         """)
-
-        except pg.Error as e:
-            print(f"Ignorando erro ao adicionar coluna (provavelmente já existe): {e}")
-            conectado.rollback()
 
         conectado.commit()
         print("Verificação e criação de tabelas concluída com sucesso.")

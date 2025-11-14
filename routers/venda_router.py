@@ -1,62 +1,68 @@
-from fastapi import APIRouter, HTTPException, Query
-from modelos import CriarVenda
+from fastapi import APIRouter, HTTPException, Query, Depends
+from modelos import CriarVenda, AtualizarStatusVenda
 from services.venda_service import ServicosVenda
+from seguranca import pegar_id_do_usuario_logado
+from typing import Optional
 from datetime import date
 
 router = APIRouter(prefix="/api/vendas", tags=["Vendas"])
 servico = ServicosVenda()
 
 
-@router.post("/", response_model=dict, summary="Registrar uma nova venda")
-def registrar_venda(dados_venda: CriarVenda):
+@router.post("/", response_model=dict, summary="Registrar uma nova venda (Pendente)")
+def registrar_venda(
+    dados_venda: CriarVenda,
+    # Pega o ID do funcionário/atendente logado
+    funcionario_id: int = Depends(pegar_id_do_usuario_logado)
+):
     """
-    Registra uma nova venda com os itens, cliente, funcionário e forma de pagamento.
+    Registra uma nova venda. (Req 1) O status será sempre 'Pendente'
+    (Req 2) Se houver serviços, 'info_agendamento' deve ser enviado nos itens.
+    (Req 3) A baixa de estoque/criação de agendamento SÓ ocorre ao mudar status para 'Pago'.
     """
-    return servico.registrar_venda(dados_venda)
+    return servico.registrar_venda(dados_venda, funcionario_id)
+
+
+@router.put("/{venda_id}/status", response_model=dict, summary="Atualizar status de uma venda Pendente")
+def atualizar_status_venda(
+    venda_id: int,
+    dados: AtualizarStatusVenda,
+    funcionario_id: int = Depends(pegar_id_do_usuario_logado) # Requer login
+):
+    """
+    (Req 6) Atualiza o status de uma venda de 'Pendente' para 'Pago' ou 'Cancelado'.
+    (Req 3) Se mudar para 'Pago', o backend processa o estoque e cria os agendamentos.
+    (Req 6) Não permite reverter de 'Pago' ou 'Cancelado' para 'Pendente'.
+    """
+    return servico.atualizar_status(venda_id, dados.status)
 
 
 @router.get("/{venda_id}", response_model=dict, summary="Buscar venda por ID")
-def buscar_venda(venda_id: int):
+def buscar_venda(
+    venda_id: int,
+    funcionario_id: int = Depends(pegar_id_do_usuario_logado) # Requer login
+):
     """
     Retorna os detalhes de uma venda específica pelo ID.
     """
-    venda = servico.buscar_venda_por_id(venda_id)
-    if not venda:
-        raise HTTPException(status_code=404, detail="Venda não encontrada.")
-    return venda
+    return servico.buscar_venda_por_id(venda_id)
 
 
-@router.get("/", response_model=list, summary="Listar todas as vendas")
-def listar_vendas():
-    """
-    Retorna uma lista com todas as vendas registradas.
-    """
-    return servico.listar_vendas()
-
-
-@router.put("/{venda_id}", response_model=dict, summary="Atualizar venda existente")
-def atualizar_venda(venda_id: int, forma_pagamento: str = None, total: float = None):
-    """
-    Atualiza os dados de uma venda (forma de pagamento ou total).
-    """
-    return servico.atualizar_venda(venda_id, forma_pagamento, total)
-
-
-@router.delete("/{venda_id}", response_model=dict, summary="Excluir venda")
-def deletar_venda(venda_id: int):
-    """
-    Remove uma venda e todos os itens vinculados.
-    """
-    return servico.deletar_venda(venda_id)
-
-@router.get("", status_code=200)
-def listar_vendas_periodo(
-    data_inicio: date | None = Query(None),
-    data_fim: date | None = Query(None)
+@router.get("/", response_model=list, summary="Listar todas as vendas (com filtros)")
+def listar_vendas(
+    status: Optional[str] = None,
+    funcionario_id: Optional[int] = None,
+    data_inicio: Optional[date] = None,
+    data_fim: Optional[date] = None,
+    token: int = Depends(pegar_id_do_usuario_logado) # Requer login
 ):
     """
-    Lista todas as vendas, ou filtra por período (data_inicio e data_fim)
+    (Req 5) Retorna uma lista com todas as vendas,
+    permitindo filtro por status, funcionário e período.
     """
-    if data_inicio and data_fim:
-        return servico.listar_por_periodo(data_inicio, data_fim)
-    return servico.listar_vendas()
+    return servico.listar_vendas_filtradas(
+        filtro_status=status,
+        filtro_funcionario=funcionario_id,
+        filtro_data_inicio=data_inicio,
+        filtro_data_fim=data_fim
+    )

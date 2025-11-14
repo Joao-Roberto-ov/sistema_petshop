@@ -12,7 +12,8 @@ function HomePageFuncionario({
     onNavigateToRegistrarVenda,
     onLogout,
     onNavigateToDashboard,
-    onNavigateToGerenciarAgendamentos
+    onNavigateToGerenciarAgendamentos,
+    onNavigateToGerenciarVendasPendentes // (Req 6) Nova prop
 }) {
 
     const cargoLower = userData?.cargo?.toLowerCase();
@@ -30,19 +31,13 @@ function HomePageFuncionario({
                          cargoLower === 'veterinário' ||
                          cargoLower?.includes('veterin');
 
+    // (Req 5 e 6) Atendente ou Gestor
+    const isAtendente = cargoId === 4 || cargoLower === 'atendente';
+    const podeVerCaixa = isGestorOuAdmin || isAtendente;
+
+
     //variável para verificar permissão de visualizar pets
     const podeVisualizarPets = isGestorOuAdmin || isVeterinario;
-
-    // Debug - dentro da função
-    console.log('Dados do usuário (CORRIGIDO):', {
-        userData,
-        cargoId: userData?.cargo_id,
-        cargo: userData?.cargo,
-        cargoLower: cargoLower,
-        isGestorOuAdmin: isGestorOuAdmin,
-        isVeterinario: isVeterinario,
-        podeVisualizarPets: podeVisualizarPets
-    });
 
     const services = [
         {
@@ -63,6 +58,16 @@ function HomePageFuncionario({
             description: "Registre uma nova venda de produtos ou serviços.",
             onClick: onNavigateToRegistrarVenda
         },
+        // (Req 6) Novo Card para Gerenciar Vendas Pendentes (Caixa)
+        ...(podeVerCaixa ? [
+            {
+                icon: '💰',
+                title: "Gerenciar Vendas (Caixa)",
+                description: "Confirmar pagamentos ou cancelar vendas pendentes.",
+                onClick: onNavigateToGerenciarVendasPendentes
+            }
+        ] : []),
+
         // Itens que só aparecem para Gestor
         ...(isGestorOuAdmin ? [
             {
@@ -150,6 +155,13 @@ function HomePageFuncionario({
                         <button className="btn btn-outline-white hover-lift" onClick={onNavigateToVisualizarClientes}>
                             👥 Visualizar Clientes
                         </button>
+
+                        {/* (Req 6) Botão de acesso rápido ao Caixa */}
+                        {podeVerCaixa && (
+                             <button className="btn btn-outline-white hover-lift" onClick={onNavigateToGerenciarVendasPendentes}>
+                                💰 Gerenciar Vendas (Caixa)
+                            </button>
+                        )}
 
                         {/* Botão Cadastrar Funcionário - apenas para gestores */}
                         {isGestorOuAdmin && (

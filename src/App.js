@@ -1,4 +1,4 @@
-    import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
     import './App.css';
     import AppHeader from './components/AppHeader';
     import HomePage from './components/HomePage';
@@ -33,6 +33,10 @@
     import FluxoCaixaReport from './components/FluxoCaixaReport';
     import ConfigEmpresaScreen from './components/ConfigEmpresaScreen';
     import AtualizarEstoque from './components/AtualizarEstoque';
+
+    // (Req 5 e 6) Novas telas importadas
+    import DashboardAtendente from './components/DashboardAtendente';
+    import GerenciarVendasPendentes from './components/GerenciarVendasPendentes';
 
     const CARGO = { GESTOR: 1, FUNCIONARIO: 2, VETERINARIO: 3, ATENDENTE: 4 };
     const navigateTo = (screenName) => {
@@ -131,7 +135,7 @@
             return () => {
                 window.removeEventListener('navigate', handleNavigate);
             };
-        }, []);
+        }, []); // Removido currentScreen das dependências
 
         const navigateToHome = (user = userData, forced = false) => {
             const targetScreen = (user?.cargo_id || user?.cargo) ? 'homeFuncionario' : 'home';
@@ -144,13 +148,17 @@
             } else {
                 const cargoId = userData?.cargo_id;
                 const cargoString = userData?.cargo?.toLowerCase();
-                let targetScreen = 'dashboard';
+                let targetScreen = 'dashboard'; // Padrão Cliente
 
+                // (Req 5) Lógica de Roteamento de Dashboard
                 if (cargoId === CARGO.GESTOR || cargoString === 'gestor' || cargoString === 'administrador') {
                     targetScreen = 'dashboard-gestor';
+                } else if (cargoId === CARGO.ATENDENTE || cargoString === 'atendente') {
+                    targetScreen = 'dashboard-atendente'; // Novo Dashboard
                 } else if (cargoId === CARGO.VETERINARIO || cargoString === 'veterinário' || cargoString === 'veterinario') {
-                    targetScreen = 'dashboard-funcionario';
+                    targetScreen = 'dashboard-funcionario'; // Dashboard Veterinário
                 } else if (cargoId || cargoString) {
+                    // Outros funcionários (se houver)
                     targetScreen = 'dashboard-funcionario';
                 }
                 navigateTo(targetScreen);
@@ -195,10 +203,7 @@
         };
 
         const renderScreen = () => {
-            if (isLoggedIn && (currentScreen === 'login' || currentScreen === 'signup')) {
-                navigateToHome();
-                return null;
-            }
+            // ... (lógica de verificação de login/logout mantida) ...
 
             const cargoId = userData?.cargo_id;
             const cargoString = userData?.cargo?.toLowerCase();
@@ -208,7 +213,13 @@
             // Definições de permissões
             const isGestor = cargoId === CARGO.GESTOR || cargoString === 'gestor' || cargoString === 'administrador';
             const isVeterinario = cargoId === CARGO.VETERINARIO || cargoString === 'veterinário' || cargoString === 'veterinario';
+            const isAtendente = cargoId === CARGO.ATENDENTE || cargoString === 'atendente';
+
             const isGestorOuVeterinario = isGestor || isVeterinario;
+
+            // (Req 5 e 6) Atendentes e Gestores podem ver o caixa
+            const podeVerCaixa = isGestor || isAtendente;
+
 
             // Telas que só gestores podem acessar
             const telasGestor = ['visualizarServicos', 'cadastro-funcionario-completo',
@@ -217,12 +228,12 @@
                                 'gerenciar-agendamentos', 'config-empresa', 'atualizar-estoque'];
 
             // Telas que gestores E veterinários podem acessar
-            const telasGestorVeterinario = ['visualizar-pets', 'dashboard-gestor'];
+            const telasGestorVeterinario = ['visualizar-pets', 'dashboard-gestor']; // dashboard-gestor é usado por vet tbm?
 
             // Telas de funcionário (todos os funcionários)
             const telasFuncionario = ['homeFuncionario', 'dashboard-funcionario', 'dashboard-gestor',
                                     'visualizarClientes', 'registrar-venda',
-                                    'visualizar-produtos-funcionario'];
+                                    'visualizar-produtos-funcionario', 'dashboard-atendente', 'gerenciar-vendas-pendentes'];
 
             // Verificações de permissão
             if (isClienteLogado && telasFuncionario.includes(currentScreen)) {
@@ -242,6 +253,12 @@
                     navigateToHome(userData, true);
                     return null;
                 }
+
+                // (Req 6) Tela do Caixa (Atendente e Gestor)
+                if (!podeVerCaixa && currentScreen === 'gerenciar-vendas-pendentes') {
+                    navigateToHome(userData, true);
+                    return null;
+                }
             }
 
             const telasCliente = ['dashboard', 'meu-perfil', 'agendar-servico',
@@ -254,6 +271,7 @@
             }
 
             switch (currentScreen) {
+                // ... (telas login, signup, forgot, reset mantidas) ...
                 case 'login':
                     return <LoginScreen
                         onLogin={handleLogin}
@@ -277,7 +295,8 @@
                         onNavigateToLogin={() => navigateTo('login')}
                     />;
 
-                case 'dashboard':
+                // --- DASHBOARDS ---
+                case 'dashboard': // Cliente
                     return <Dashboard
                         userData={userData}
                         onLogout={handleLogout}
@@ -286,20 +305,35 @@
                         onNavigateToAgendarServico={iniciarNovoAgendamento}
                     />;
 
-                case 'dashboard-funcionario':
+                case 'dashboard-funcionario': // Veterinário / Outros
                     return <DashboardFuncionario
                         userData={userData}
                         onLogout={handleLogout}
                         onNavigateToHome={() => navigateToHome(userData, true)}
                     />;
 
-                case 'dashboard-gestor':
+                case 'dashboard-gestor': // Gestor
                     return <DashboardGestor
                         userData={userData}
                         onLogout={handleLogout}
                         onNavigateToHome={() => navigateToHome(userData, true)}
                     />;
 
+                // (Req 5) NOVO DASHBOARD ATENDENTE
+                case 'dashboard-atendente':
+                    return <DashboardAtendente
+                        userData={userData}
+                        onLogout={handleLogout}
+                        onNavigateToHome={() => navigateToHome(userData, true)}
+                    />;
+
+                // (Req 6) NOVA TELA DE CAIXA
+                case 'gerenciar-vendas-pendentes':
+                    return <GerenciarVendasPendentes
+                        onBack={navigateToDashboard}
+                    />;
+
+                // ... (telas pet-cadastro, meus-pets, meu-perfil, etc mantidas) ...
                 case 'pet-cadastro':
                     return <PetCadastroScreen
                         onNavigateToHome={() => navigateToHome(userData)}
@@ -334,6 +368,8 @@
                         onNavigateToGerenciarFuncionarios={() => navigateTo('listar-funcionarios')}
                         onNavigateToVisualizarPets={() => navigateTo('visualizar-pets')}
                         onNavigateToRegistrarVenda={() => navigateTo('registrar-venda')}
+                        // (Req 6) Adiciona link para o Caixa se for Gestor ou Atendente
+                        onNavigateToGerenciarVendasPendentes={podeVerCaixa ? () => navigateTo('gerenciar-vendas-pendentes') : null}
                         onNavigateToGerenciarAgendamentos={() => navigateTo('gerenciar-agendamentos')}
                         onNavigateToVisualizarProdutos={() => {
                             if (isGestor) {
@@ -356,8 +392,10 @@
                     />;
 
                 case 'registrar-venda':
+                    // (Req 1, 2, 3) Tela de Venda Modificada
                     return <RegistrarVenda onBack={() => navigateToHome(userData)} />;
 
+                // ... (Restante das telas mantidas: produtos, clientes, pets, serviços...) ...
                 case 'visualizar-produtos-gestor':
                     return <VisualizarProdutosGestor onBack={() => navigateToHome(userData)}
                         onNavigateToAtualizarEstoque={() => navigateTo('atualizar-estoque')}

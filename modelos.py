@@ -302,18 +302,42 @@ class ServicoModel(BaseModel):
     preco: float = Field(..., gt=0, description="Preço do serviço em reais")
     criador_id: Optional[int] = None
 
+# --- NOVAS CLASSES E ATUALIZAÇÕES DE VENDA ---
+
+class VendaModel(BaseModel):
+    id: int
+    funcionario_id: Optional[int] = None
+    cliente_id: Optional[int] = None
+    total: float
+    forma_pagamento: str
+    status_pagamento: str
+    criado_em: datetime
+    funcionario_nome: Optional[str] = None
+    cliente_nome: Optional[str] = None
+
+class InfoAgendamento(BaseModel):
+    pet_id: int
+    data_hora: str # String ISO (ex: "2024-12-25T14:30:00.000Z")
+    observacoes: Optional[str] = None
+
 class CriarItemVenda(BaseModel):
     tipo: str
     id_item: int
     nome: str
     quantidade: int
     preco_unitario: float
+    info_agendamento: Optional[InfoAgendamento] = None # Novo campo opcional
 
 class CriarVenda(BaseModel):
     cliente_id: int
     forma_pagamento: str
-    status_pagamento: str = "pendente"
+    # status_pagamento foi removido, pois a venda nasce 'Pendente'
     itens: List[CriarItemVenda]
+
+class AtualizarStatusVenda(BaseModel):
+    status: str # Deve ser "Pago" ou "Cancelado"
+
+# ---------------------------------------------
 
 class AgendamentoBase(BaseModel):
     cliente_id: int
