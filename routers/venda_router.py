@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Query, Depends
+from fastapi import APIRouter, Depends
 from modelos import CriarVenda, AtualizarStatusVenda
 from services.venda_service import ServicosVenda
 from seguranca import pegar_id_do_usuario_logado
@@ -27,7 +27,6 @@ def registrar_venda(
 def atualizar_status_venda(
     venda_id: int,
     dados: AtualizarStatusVenda,
-    funcionario_id: int = Depends(pegar_id_do_usuario_logado) # Requer login
 ):
     """
     (Req 6) Atualiza o status de uma venda de 'Pendente' para 'Pago' ou 'Cancelado'.
@@ -40,7 +39,6 @@ def atualizar_status_venda(
 @router.get("/{venda_id}", response_model=dict, summary="Buscar venda por ID")
 def buscar_venda(
     venda_id: int,
-    funcionario_id: int = Depends(pegar_id_do_usuario_logado) # Requer login
 ):
     """
     Retorna os detalhes de uma venda específica pelo ID.
@@ -54,7 +52,6 @@ def listar_vendas(
     funcionario_id: Optional[int] = None,
     data_inicio: Optional[date] = None,
     data_fim: Optional[date] = None,
-    token: int = Depends(pegar_id_do_usuario_logado) # Requer login
 ):
     """
     (Req 5) Retorna uma lista com todas as vendas,

@@ -329,13 +329,12 @@ class CriarItemVenda(BaseModel):
     info_agendamento: Optional[InfoAgendamento] = None # Novo campo opcional
 
 class CriarVenda(BaseModel):
-    cliente_id: int
+    cliente_id: Optional[int] = None
     forma_pagamento: str
-    # status_pagamento foi removido, pois a venda nasce 'Pendente'
     itens: List[CriarItemVenda]
 
 class AtualizarStatusVenda(BaseModel):
-    status: str # Deve ser "Pago" ou "Cancelado"
+    status: str #"Pago" ou "Cancelado"
 
 # ---------------------------------------------
 

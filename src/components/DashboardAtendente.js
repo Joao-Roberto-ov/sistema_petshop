@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from '../api/axios';
-import './Dashboard.css'; // Reutilizando estilos
-import './DashboardGestor.css'; // Reutilizando estilos dos cards
+import './Dashboard.css';
+import './DashboardGestor.css';
 
 function DashboardAtendente({ userData, onNavigateToHome }) {
     const [minhasVendas, setMinhasVendas] = useState([]);
@@ -27,40 +27,75 @@ function DashboardAtendente({ userData, onNavigateToHome }) {
         return status.toLowerCase().replace(/[\s/]/g, '-');
     };
 
-    const carregarDados = async () => {
-        setLoading(true);
-        setError('');
-        try {
-            // 1. Minhas vendas (Concluídas/Canceladas)
-            const resMinhas = await axios.get(`/vendas?funcionario_id=${userData.id}`);
-            const finalizadas = (resMinhas.data || []).filter(v => v.status_pagamento !== 'Pendente');
-            setMinhasVendas(finalizadas);
-
-            // 2. Todas as vendas pendentes (Visível para todos os atendentes)
-            const resPendentes = await axios.get(`/vendas?status=Pendente`);
-            setVendasPendentesGeral(resPendentes.data || []);
-
-        } catch (err) {
-            console.error(err);
-            setError("Erro ao carregar dados do dashboard.");
-        } finally {
-            setLoading(false);
+    // Função auxiliar para extrair dados com segurança
+    const extrairDados = (response) => {
+        if (response && Array.isArray(response.data)) {
+            return response.data;
         }
+        if (response && response.data && Array.isArray(response.data.data)) {
+            return response.data.data;
+        }
+        return [];
     };
 
     useEffect(() => {
+        const carregarDados = async () => {
+            // Só carrega se tiver o ID do usuário
+            if (!userData || !userData.id) return;
+
+            setLoading(true);
+            setError('');
+
+            try {
+                // Executa as requisições em paralelo, mas trata erros individualmente
+                const [resMinhas, resPendentes] = await Promise.all([
+                    axios.get(`/vendas?funcionario_id=${userData.id}`)
+                        .catch(err => {
+                            console.warn("Erro ao carregar minhas vendas:", err);
+                            return { data: [] };
+                        }),
+                    axios.get(`/vendas?status=Pendente`)
+                        .catch(err => {
+                            console.warn("Erro ao carregar vendas pendentes:", err);
+                            return { data: [] };
+                        })
+                ]);
+
+                // 1. Processa Minhas Vendas (Finalizadas)
+                const dadosMinhas = extrairDados(resMinhas);
+                const finalizadas = dadosMinhas.filter(v =>
+                    v.status_pagamento && v.status_pagamento.toLowerCase() !== 'pendente'
+                );
+                setMinhasVendas(finalizadas);
+
+                // 2. Processa Fila de Pendentes
+                const dadosPendentes = extrairDados(resPendentes);
+                setVendasPendentesGeral(dadosPendentes);
+
+            } catch (err) {
+                console.error("Erro crítico no Dashboard Atendente:", err);
+                setError("Erro ao atualizar o painel. Tente recarregar a página.");
+            } finally {
+                setLoading(false);
+            }
+        };
+
         carregarDados();
-    }, [userData.id]);
+    }, [userData]);
 
     if (loading) {
-        return <div className="loading-message">Carregando Dashboard...</div>;
+        return (
+            <div className="dashboard-container">
+                <div className="loading-message">Carregando Dashboard...</div>
+            </div>
+        );
     }
 
     return (
         <div className="dashboard-container">
             <div className="dashboard-gestor-header">
                 <h1>Painel do Atendente</h1>
-                <p>Olá, {userData.nome}. Aqui está o resumo das vendas.</p>
+                <p>Olá, {userData?.nome || 'Colaborador'}. Aqui está o resumo das vendas.</p>
             </div>
 
             {error && <div className="error-message" style={{marginBottom: '1rem'}}>{error}</div>}
@@ -106,7 +141,7 @@ function DashboardAtendente({ userData, onNavigateToHome }) {
                                 {minhasVendas.map(v => (
                                     <tr key={v.id} className={`status-${getStatusClass(v.status_pagamento)}`}>
                                         <td className="agendamento-data">{formatarDataHora(v.criado_em)}</td>
-                                        <td>{v.cliente_nome}</td>
+                                        <td>{v.cliente_nome || 'Não identificado'}</td>
                                         <td className="agendamento-valor">{formatarValor(v.total)}</td>
                                         <td>
                                             <span className={`agendamento-status ${getStatusClass(v.status_pagamento)}`}>

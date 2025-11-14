@@ -26,11 +26,21 @@ function GerenciarVendasPendentes({ onBack }) {
         setLoading(true);
         setError('');
         try {
-            // (Req 6) Busca apenas vendas Pendentes
             const res = await axios.get('/vendas?status=Pendente');
-            setVendas(res.data);
+
+            // Validação robusta: garante que setVendas sempre recebe um array
+            let lista = [];
+            if (Array.isArray(res.data)) {
+                lista = res.data;
+            } else if (res.data && Array.isArray(res.data.data)) {
+                lista = res.data.data;
+            }
+
+            setVendas(lista);
         } catch (err) {
-            setError("Erro ao carregar vendas pendentes.");
+            console.error("Erro ao carregar vendas:", err);
+            setError("Erro ao carregar vendas pendentes. Verifique sua conexão.");
+            setVendas([]); // Fallback para array vazio
         } finally {
             setLoading(false);
         }
@@ -49,13 +59,9 @@ function GerenciarVendasPendentes({ onBack }) {
 
         try {
             await axios.put(`/vendas/${vendaId}/status`, { status: novoStatus });
-
-            // (Req 3) Se foi 'Pago', o backend deu baixa no estoque e criou agendamentos
             alert(`Venda #${vendaId} atualizada para ${novoStatus} com sucesso!`);
-
-            // Remove da lista local (pois não está mais pendente)
-            setVendas(vendas.filter(v => v.id !== vendaId));
-
+            // Remove a venda da lista localmente
+            setVendas(prev => prev.filter(v => v.id !== vendaId));
         } catch (err) {
             setError(err.response?.data?.detail || "Erro ao atualizar status da venda.");
         } finally {
@@ -78,7 +84,7 @@ function GerenciarVendasPendentes({ onBack }) {
 
             <main className="dashboard-main">
                 <h2>Fila de Vendas Aguardando Ação</h2>
-                {loading ? <p>Carregando...</p> : (
+                {loading ? <div className="loading-message">Carregando...</div> : (
                     <div style={{ overflowX: 'auto' }}>
                         <table className="agendamentos-table gestor-table">
                             <thead>
@@ -93,7 +99,7 @@ function GerenciarVendasPendentes({ onBack }) {
                                 </tr>
                             </thead>
                             <tbody>
-                                {vendas.length === 0 ? (
+                                {(!vendas || vendas.length === 0) ? (
                                     <tr><td colSpan="7" style={{textAlign: 'center', padding: '2rem'}}>Nenhuma venda pendente no momento.</td></tr>
                                 ) : (
                                     vendas.map(v => (
@@ -112,7 +118,7 @@ function GerenciarVendasPendentes({ onBack }) {
                                                         onClick={() => atualizarStatus(v.id, 'Pago')}
                                                         disabled={loadingAction === v.id}
                                                     >
-                                                        Confirmar Pagamento
+                                                        Confirmar
                                                     </button>
                                                     <button
                                                         className="btn-submit"
@@ -120,7 +126,7 @@ function GerenciarVendasPendentes({ onBack }) {
                                                         onClick={() => atualizarStatus(v.id, 'Cancelado')}
                                                         disabled={loadingAction === v.id}
                                                     >
-                                                        Cancelar Venda
+                                                        Cancelar
                                                     </button>
                                                 </div>
                                             </td>

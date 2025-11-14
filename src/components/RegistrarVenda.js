@@ -1,13 +1,25 @@
 import React, { useEffect, useState } from "react";
-import axios from '../api/axios'; // Importa a instância local do axios
-import './RegistrarVenda.css'; // Vamos adicionar estilos de modal
+import axios from '../api/axios';
+import './RegistrarVenda.css';
 
-// (Req 2) Modal para capturar dados do agendamento
-const ModalAgendamentoVenda = ({ isOpen, onClose, onConfirm, servicoNome, clienteId }) => {
+// --- Helper para formatar hora ---
+const formatTime = (dateTimeString) => {
+    try {
+        const date = new Date(dateTimeString);
+        return date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', timeZone: 'UTC' });
+    } catch { return 'Inválido'; }
+};
+
+// (Req 2) Modal para capturar dados do agendamento com VALIDAÇÃO DE HORÁRIO
+const ModalAgendamentoVenda = ({ isOpen, onClose, onConfirm, servico, clienteId }) => {
     const [pets, setPets] = useState([]);
     const [petId, setPetId] = useState("");
     const [data, setData] = useState("");
-    const [hora, setHora] = useState("");
+
+    // Novos estados para validação de horário
+    const [availableSlots, setAvailableSlots] = useState([]);
+    const [selectedSlot, setSelectedSlot] = useState(""); // Guarda o objeto do slot (inicio/fim)
+    const [loadingSlots, setLoadingSlots] = useState(false);
     const [error, setError] = useState("");
 
     // Busca os pets do cliente selecionado
@@ -16,35 +28,83 @@ const ModalAgendamentoVenda = ({ isOpen, onClose, onConfirm, servicoNome, client
             setError("");
             setPetId("");
             setData("");
-            setHora("");
+            setSelectedSlot("");
+            setAvailableSlots([]);
 
             const fetchPetsCliente = async () => {
                 try {
-                    // Usamos a rota pública de pets do cliente
                     const res = await axios.get(`/pets/cliente/${clienteId}`);
-                    setPets(res.data || []);
+                    // Validação de array
+                    const listaPets = Array.isArray(res.data) ? res.data : [];
+                    setPets(listaPets);
                 } catch (err) {
-                    console.error("Erro ao buscar pets do cliente:", err);
-                    setError("Erro ao buscar pets do cliente.");
+                    console.error("Erro ao buscar pets:", err);
                     setPets([]);
+                    if (err.response?.status !== 404) {
+                        setError("Erro ao buscar pets do cliente.");
+                    }
                 }
             };
             fetchPetsCliente();
         }
     }, [isOpen, clienteId]);
 
-    const handleConfirm = () => {
-        if (!petId || !data || !hora) {
-            setError("Preencha todos os campos do agendamento.");
+    // (Novo) Busca horários disponíveis quando Data ou Serviço mudam
+    useEffect(() => {
+        if (!data || !servico?.id) {
+            setAvailableSlots([]);
             return;
         }
 
-        // (Req 2) Formata a data e hora para o padrão ISO (UTC)
-        const dataHoraISO = `${data}T${hora}:00.000Z`;
+        const fetchSlots = async () => {
+            setLoadingSlots(true);
+            setError("");
+            try {
+                const response = await axios.get('/agendamentos/disponibilidade', {
+                    params: {
+                        servico_id: servico.id,
+                        data_consulta: data
+                    }
+                });
+                setAvailableSlots(response.data.horarios || []);
+            } catch (err) {
+                console.error("Erro ao buscar horários:", err);
+                // Se for erro 400 (dia fechado), mostramos mensagem amigável
+                if (err.response?.status === 400) {
+                    setError("O Petshop não funciona nesta data ou horário.");
+                } else {
+                    setError("Erro ao carregar horários disponíveis.");
+                }
+                setAvailableSlots([]);
+            } finally {
+                setLoadingSlots(false);
+            }
+        };
+
+        fetchSlots();
+    }, [data, servico]);
+
+    const handleConfirm = () => {
+        if (!petId || !data || !selectedSlot) {
+            setError("Preencha todos os campos e selecione um horário válido.");
+            return;
+        }
+
+        // Recupera o objeto do slot (que está como string JSON no value do select)
+        let slotObj;
+        try {
+            slotObj = JSON.parse(selectedSlot);
+        } catch (e) {
+            setError("Horário inválido.");
+            return;
+        }
+
+        // A dataHora já vem completa do backend (ISO com timezone UTC)
+        // Ex: "2024-11-15T14:00:00+00:00"
 
         onConfirm({
             pet_id: parseInt(petId),
-            data_hora: dataHoraISO, // Envia como string ISO
+            data_hora: slotObj.inicio, // Envia a data/hora exata retornada pelo backend
             observacoes: "Agendado via Venda Balcão"
         });
         onClose();
@@ -55,31 +115,64 @@ const ModalAgendamentoVenda = ({ isOpen, onClose, onConfirm, servicoNome, client
     return (
         <div className="modal-overlay-venda">
             <div className="modal-container-venda">
-                <h3>Agendar: {servicoNome}</h3>
+                <h3>Agendar: {servico?.nome}</h3>
                 {error && <p className="error-text">{error}</p>}
 
                 <div className="form-group-venda">
                     <label>Pet do Cliente:</label>
                     <select value={petId} onChange={e => setPetId(e.target.value)}>
                         <option value="">Selecione um Pet</option>
-                        {pets.length > 0 ? (
-                            pets.map(p => <option key={p.id} value={p.id}>{p.nome} ({p.raca})</option>)
-                        ) : (
-                            <option disabled>Nenhum pet encontrado</option>
-                        )}
+                        {pets.map(p => <option key={p.id} value={p.id}>{p.nome} ({p.raca})</option>)}
                     </select>
+                    {pets.length === 0 && <small style={{color: '#666', display: 'block', marginTop: '5px'}}>Nenhum pet encontrado para este cliente.</small>}
                 </div>
+
                 <div className="form-group-venda">
                     <label>Data:</label>
-                    <input type="date" value={data} onChange={e => setData(e.target.value)} min={new Date().toISOString().split('T')[0]} />
+                    <input
+                        type="date"
+                        value={data}
+                        onChange={e => {
+                            setData(e.target.value);
+                            setSelectedSlot(""); // Limpa horário ao mudar data
+                        }}
+                        min={new Date().toISOString().split('T')[0]}
+                    />
                 </div>
+
                 <div className="form-group-venda">
-                    <label>Hora:</label>
-                    <input type="time" value={hora} onChange={e => setHora(e.target.value)} />
+                    <label>Horário Disponível:</label>
+                    {loadingSlots ? (
+                        <p style={{fontSize: '0.9rem', color: '#666'}}>Buscando horários...</p>
+                    ) : (
+                        <select
+                            value={selectedSlot}
+                            onChange={e => setSelectedSlot(e.target.value)}
+                            disabled={!data || availableSlots.length === 0}
+                        >
+                            <option value="">
+                                {availableSlots.length === 0 && data
+                                    ? "Nenhum horário vago ou dia fechado"
+                                    : "-- Selecione um horário --"}
+                            </option>
+                            {availableSlots.map((slot, index) => (
+                                <option key={index} value={JSON.stringify(slot)}>
+                                    {formatTime(slot.inicio)} - {formatTime(slot.fim)}
+                                </option>
+                            ))}
+                        </select>
+                    )}
                 </div>
+
                 <div className="modal-buttons-venda">
                     <button className="btn-cancelar-venda" onClick={onClose}>Cancelar</button>
-                    <button className="btn-confirmar-venda" onClick={handleConfirm}>Confirmar Agendamento</button>
+                    <button
+                        className="btn-confirmar-venda"
+                        onClick={handleConfirm}
+                        disabled={!selectedSlot || !petId}
+                    >
+                        Confirmar
+                    </button>
                 </div>
             </div>
         </div>
@@ -95,19 +188,14 @@ function RegistrarVenda({ onBack }) {
   const [clienteSelecionado, setClienteSelecionado] = useState(null);
   const [itens, setItens] = useState([]);
   const [formaPagamento, setFormaPagamento] = useState("Dinheiro");
-  // (Req 1) Status removido, será sempre pendente
 
-  // (Req 2) Controle do Modal de Agendamento
   const [modalAgendamentoOpen, setModalAgendamentoOpen] = useState(false);
-  const [servicoPendente, setServicoPendente] = useState(null); // Guarda o serviço clicado
-
+  const [servicoPendente, setServicoPendente] = useState(null);
   const [toast, setToast] = useState({ show: false, message: '', type: 'error' });
 
   const showToast = (message, type = 'error') => {
     setToast({ show: true, message, type });
-    setTimeout(() => {
-      setToast({ show: false, message: '', type: '' });
-    }, 4000);
+    setTimeout(() => setToast({ show: false, message: '', type: '' }), 4000);
   };
 
   useEffect(() => {
@@ -118,10 +206,16 @@ function RegistrarVenda({ onBack }) {
 
   const buscarClientes = async () => {
     try {
-      const res = await axios.get("/users");
-      setClientes(Array.isArray(res.data) ? res.data : (res.data.data || []));
+      const res = await axios.get("/users/");
+      let listaClientes = [];
+      if (Array.isArray(res.data)) {
+          listaClientes = res.data;
+      } else if (res.data && Array.isArray(res.data.data)) {
+          listaClientes = res.data.data;
+      }
+      setClientes(listaClientes);
     } catch (error) {
-      console.error("Erro clientes:", error);
+      console.error("Erro ao buscar clientes:", error);
       setClientes([]);
     }
   };
@@ -129,41 +223,35 @@ function RegistrarVenda({ onBack }) {
   const buscarProdutos = async () => {
     try {
       const res = await axios.get("/produtos/listar");
-      setProdutos(res.data || []);
+      setProdutos(Array.isArray(res.data) ? res.data : []);
     } catch (error) { console.error(error); }
   };
 
   const buscarServicos = async () => {
     try {
       const res = await axios.get("/servicos");
-      setServicos(res.data || []);
+      setServicos(Array.isArray(res.data) ? res.data : []);
     } catch (error) { console.error(error); }
   };
 
-  // (Req 2) Etapa 1: Iniciar adição de item
   const iniciarAdicaoItem = (tipo, item) => {
       if (tipo === 'servico') {
-          // Se for serviço, abre o modal de agendamento
           if (!clienteSelecionado) {
-              showToast("Selecione um cliente antes de adicionar serviços.", "error");
+              showToast("Selecione um cliente antes de agendar serviços.", "error");
               return;
           }
-          setServicoPendente(item);
+          setServicoPendente(item); // Passa o objeto completo do serviço
           setModalAgendamentoOpen(true);
       } else {
-          // Se for produto, adiciona direto
           adicionarItemCarrinho(tipo, item);
       }
   };
 
-  // (Req 2) Etapa 2: Confirmação do modal
   const confirmarAgendamentoServico = (dadosAgendamento) => {
-      // Adiciona o serviço ao carrinho JUNTO com os dados do agendamento
       adicionarItemCarrinho('servico', servicoPendente, dadosAgendamento);
       setServicoPendente(null);
   };
 
-  // (Req 2) Etapa 3: Adicionar item ao carrinho (agora aceita infoAgendamento)
   const adicionarItemCarrinho = (tipo, item, infoAgendamento = null) => {
     const novoItem = {
         tipo,
@@ -171,17 +259,16 @@ function RegistrarVenda({ onBack }) {
         nome: item.nome,
         quantidade: 1,
         preco_unitario: item.preco_venda || item.preco || 0,
-        estoque: item.estoque, // Apenas para referência visual
-        info_agendamento: infoAgendamento // (Req 2) Guarda dados do agendamento
+        estoque: item.estoque,
+        info_agendamento: infoAgendamento
     };
 
-    // Se for produto, verifica estoque localmente
     if (tipo === 'produto') {
         const jaExiste = itens.find(i => i.id_item === item.id && i.tipo === 'produto');
         const qtdNoCarrinho = jaExiste ? jaExiste.quantidade : 0;
 
         if (qtdNoCarrinho + 1 > item.estoque) {
-            showToast(`Estoque insuficiente para "${item.nome}". Disponível: ${item.estoque}`, 'error');
+            showToast(`Estoque insuficiente para "${item.nome}".`, 'error');
             return;
         }
 
@@ -191,11 +278,9 @@ function RegistrarVenda({ onBack }) {
             setItens([...itens, novoItem]);
         }
     } else {
-        // (Req 2) Sempre adiciona serviços como nova linha
         setItens([...itens, novoItem]);
     }
   };
-
 
   const removerItem = (index) => {
     const novos = [...itens];
@@ -206,55 +291,55 @@ function RegistrarVenda({ onBack }) {
   const total = itens.reduce((acc, i) => acc + i.quantidade * i.preco_unitario, 0);
 
   const registrarVenda = async () => {
-    if (!clienteSelecionado) {
-      showToast("Selecione um cliente!", 'error');
-      return;
+    const temServico = itens.some(i => i.tipo === 'servico');
+
+    if (temServico && !clienteSelecionado) {
+        showToast("Para agendar serviços, selecione um cliente.", 'error');
+        return;
     }
+
     if (itens.length === 0) {
-      showToast("Adicione pelo menos um item à venda.", 'error');
+      showToast("Adicione itens à venda.", 'error');
       return;
     }
 
     const venda = {
-      cliente_id: clienteSelecionado.id,
+      cliente_id: clienteSelecionado ? clienteSelecionado.id : null,
       forma_pagamento: formaPagamento,
-      // (Req 1) Status removido, o backend define como 'Pendente'
-      itens, // Itens agora contêm info_agendamento se for serviço
+      itens,
     };
 
     try {
-      await axios.post("/vendas/", venda); // Rota base (POST)
-      showToast("Venda registrada como PENDENTE! Aguardando pagamento.", 'success');
+      await axios.post("/vendas/", venda);
+      showToast("Venda registrada com sucesso! Status: Pendente.", 'success');
       setItens([]);
       setClienteSelecionado(null);
       setBuscaCliente("");
-      // Atualiza lista de produtos para refletir estoque (embora só baixe no pagamento)
       buscarProdutos();
     } catch (error) {
-      console.error("Erro ao registrar venda:", error);
+      console.error("Erro venda:", error);
       showToast("Erro: " + (error.response?.data?.detail || error.message), 'error');
     }
   };
 
-  // Estilos inline simplificados
   const styles = {
-    container: { display: "flex", flexDirection: "row", gap: "20px", padding: "20px", maxWidth: "1400px", margin: "0 auto" },
-    painelEsquerdo: { flex: 2, backgroundColor: "#fff", padding: "20px", borderRadius: "12px", boxShadow: "0 4px 10px rgba(0,0,0,0.1)" },
-    painelDireito: { flex: 1, backgroundColor: "#fff", padding: "20px", borderRadius: "12px", boxShadow: "0 4px 10px rgba(0,0,0,0.1)", display: "flex", flexDirection: "column", height: 'fit-content', position: 'sticky', top: '20px' },
-    title: { fontSize: "22px", fontWeight: "bold", marginBottom: "15px", textAlign: "center" },
-    horizontalScroll: { display: "flex", overflowX: "auto", gap: "10px", padding: "10px 0", borderTop: '1px solid #eee', borderBottom: '1px solid #eee' },
-    cardItem: { flex: "0 0 auto", border: "1px solid #ddd", borderRadius: "10px", padding: "10px", backgroundColor: "#fafafa", minWidth: "150px", textAlign: "center", boxShadow: "0 2px 5px rgba(0,0,0,0.05)" },
-    buttonAdd: { backgroundColor: "#4CAF50", color: "#fff", border: "none", borderRadius: "6px", padding: "5px 10px", cursor: "pointer", marginTop: "5px" },
+    container: { display: "flex", flexDirection: "row", gap: "20px", padding: "20px", maxWidth: "1400px", margin: "0 auto", height: 'calc(100vh - 100px)' },
+    painelEsquerdo: { flex: 2, backgroundColor: "#fff", padding: "20px", borderRadius: "12px", boxShadow: "0 4px 10px rgba(0,0,0,0.1)", overflowY: 'auto' },
+    painelDireito: { flex: 1, backgroundColor: "#fff", padding: "20px", borderRadius: "12px", boxShadow: "0 4px 10px rgba(0,0,0,0.1)", display: "flex", flexDirection: "column" },
+    title: { fontSize: "22px", fontWeight: "bold", marginBottom: "15px", textAlign: "center", color: '#333' },
+    horizontalScroll: { display: "flex", overflowX: "auto", gap: "10px", padding: "10px 0", borderTop: '1px solid #eee', borderBottom: '1px solid #eee', marginBottom: '20px' },
+    cardItem: { flex: "0 0 auto", border: "1px solid #ddd", borderRadius: "10px", padding: "10px", backgroundColor: "#fafafa", minWidth: "160px", textAlign: "center", boxShadow: "0 2px 5px rgba(0,0,0,0.05)" },
+    buttonAdd: { backgroundColor: "#4CAF50", color: "#fff", border: "none", borderRadius: "6px", padding: "5px 10px", cursor: "pointer", marginTop: "8px", width: '100%' },
     buttonAddDisabled: { backgroundColor: "#9e9e9e", cursor: "not-allowed" },
-    listaCarrinho: { flex: 1, minHeight: '300px', overflowY: "auto", marginBottom: "15px", border: "1px solid #eee", borderRadius: "8px", padding: "10px" },
+    listaCarrinho: { flex: 1, overflowY: "auto", marginBottom: "15px", border: "1px solid #eee", borderRadius: "8px", padding: "10px" },
     itemCarrinho: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "10px", padding: "8px", borderBottom: "1px solid #eee" },
     btnRemover: { backgroundColor: "#f44336", color: "#fff", border: "none", borderRadius: "5px", padding: "5px 8px", cursor: "pointer" },
     select: { width: "100%", padding: "10px", borderRadius: "8px", border: "1px solid #ccc", marginBottom: "10px" },
     buttonAction: { width: "100%", padding: "12px", border: "none", borderRadius: "8px", backgroundColor: "#2196F3", color: "#fff", fontWeight: "bold", cursor: "pointer", marginTop: "10px" },
     inputBusca: { width: "100%", padding: "10px", borderRadius: "8px", border: "1px solid #ccc", marginBottom: "10px" },
-    listaClientes: { maxHeight: "150px", overflowY: "auto", border: "1px solid #eee", borderRadius: "8px", marginBottom: "20px", backgroundColor: "#fafafa" },
-    clienteItem: { padding: "8px", cursor: "pointer" },
-    total: { textAlign: "right", fontWeight: "bold", fontSize: "18px", marginTop: "10px" },
+    listaClientes: { maxHeight: "200px", overflowY: "auto", border: "1px solid #eee", borderRadius: "8px", marginBottom: "20px", backgroundColor: "#fafafa" },
+    clienteItem: { padding: "10px", cursor: "pointer", borderBottom: "1px solid #eee" },
+    total: { textAlign: "right", fontWeight: "bold", fontSize: "18px", marginTop: "10px", marginBottom: "10px" },
   };
 
   return (
@@ -270,53 +355,53 @@ function RegistrarVenda({ onBack }) {
         </div>
       )}
 
-      {/* (Req 2) Modal de Agendamento */}
+      {/* Passando a prop 'servico' corretamente (objeto completo, não só o nome) */}
       <ModalAgendamentoVenda
         isOpen={modalAgendamentoOpen}
         onClose={() => setModalAgendamentoOpen(false)}
         onConfirm={confirmarAgendamentoServico}
-        servicoNome={servicoPendente?.nome}
+        servico={servicoPendente}
         clienteId={clienteSelecionado?.id}
       />
 
-      {/* Painel esquerdo */}
       <div style={styles.painelEsquerdo}>
-        <h2 style={styles.title}>Registrar Venda</h2>
+        <h2 style={styles.title}>Registrar Venda (Balcão)</h2>
 
+        <label style={{fontWeight:'bold', display:'block', marginBottom:'5px'}}>Buscar Cliente (Opcional para produtos)</label>
         <input
           type="text"
-          placeholder="Buscar cliente..."
+          placeholder="Digite o nome do cliente..."
           style={styles.inputBusca}
           value={buscaCliente}
           onChange={(e) => setBuscaCliente(e.target.value)}
         />
 
         <div style={styles.listaClientes}>
-          {Array.isArray(clientes) && clientes
-            .filter((c) =>
-              c.nome.toLowerCase().includes(buscaCliente.toLowerCase())
-            )
+          {clientes.length === 0 && <div style={{padding:'10px', color:'#888'}}>Carregando ou nenhum cliente...</div>}
+
+          {clientes
+            .filter((c) => c.nome && c.nome.toLowerCase().includes(buscaCliente.toLowerCase()))
             .map((c) => (
               <div
                 key={c.id}
                 style={{
                   ...styles.clienteItem,
-                  backgroundColor:
-                    clienteSelecionado?.id === c.id ? "#d0f0d0" : "transparent",
+                  backgroundColor: clienteSelecionado?.id === c.id ? "#d0f0d0" : "transparent",
+                  fontWeight: clienteSelecionado?.id === c.id ? "bold" : "normal"
                 }}
                 onClick={() => setClienteSelecionado(c)}
               >
-                {c.nome}
+                {c.nome} <span style={{fontSize:'0.8em', color:'#666'}}>({c.email})</span>
               </div>
             ))}
         </div>
 
-        <h3>Serviços</h3>
+        <h3 style={{marginTop: '20px', color: '#444'}}>Serviços (Requer Cliente)</h3>
         <div style={styles.horizontalScroll}>
           {servicos.map((s) => (
             <div key={s.id} style={styles.cardItem}>
               <strong>{s.nome}</strong>
-              <p>R$ {s.preco}</p>
+              <p style={{color: '#2196F3', fontWeight: 'bold'}}>R$ {s.preco}</p>
               <button
                 style={styles.buttonAdd}
                 onClick={() => iniciarAdicaoItem("servico", s)}
@@ -327,13 +412,13 @@ function RegistrarVenda({ onBack }) {
           ))}
         </div>
 
-        <h3>Produtos</h3>
+        <h3 style={{color: '#444'}}>Produtos</h3>
         <div style={styles.horizontalScroll}>
           {produtos.map((p) => (
             <div key={p.id} style={styles.cardItem}>
               <strong>{p.nome}</strong>
-              <p>R$ {p.preco_venda}</p>
-              <p style={{color: p.estoque <= 0 ? 'red' : 'green'}}>
+              <p style={{color: '#4CAF50', fontWeight: 'bold'}}>R$ {p.preco_venda}</p>
+              <p style={{fontSize: '0.8em', color: p.estoque <= 0 ? 'red' : 'gray'}}>
                 Estoque: {p.estoque}
               </p>
               <button
@@ -348,31 +433,36 @@ function RegistrarVenda({ onBack }) {
         </div>
       </div>
 
-      {/* Painel direito */}
       <div style={styles.painelDireito}>
-        <div>
-          <h3 style={styles.title}>Cliente: {clienteSelecionado?.nome || "Nenhum"}</h3>
+        <div style={{flex: 1, display: 'flex', flexDirection: 'column'}}>
+          <h3 style={styles.title}>
+            Cliente: <span style={{color: clienteSelecionado ? '#2E7D32' : '#F57C00'}}>
+                {clienteSelecionado?.nome || "Não Selecionado (Venda Avulsa)"}
+            </span>
+          </h3>
+
           <div style={styles.listaCarrinho}>
-            {itens.length === 0 && <p>Nenhum item adicionado.</p>}
+            {itens.length === 0 && <p style={{textAlign:'center', color:'#999', marginTop:'40px'}}>O carrinho está vazio.</p>}
             {itens.map((i, index) => (
               <div key={index} style={styles.itemCarrinho}>
-                <span>
-                  {i.nome} ({i.quantidade}x)
-                  {i.info_agendamento && <span style={{fontSize: '0.8em', color: 'blue', display: 'block'}}>📅 Agendado</span>}
-                </span>
-                <span>R$ {(i.quantidade * i.preco_unitario).toFixed(2)}</span>
-                <button
-                  style={styles.btnRemover}
-                  onClick={() => removerItem(index)}
-                >
-                  X
-                </button>
+                <div>
+                  <span style={{fontWeight: 'bold', display: 'block'}}>{i.nome}</span>
+                  <span style={{fontSize: '0.9em', color: '#666'}}>
+                    {i.quantidade}x R$ {Number(i.preco_unitario).toFixed(2)}
+                  </span>
+                  {i.info_agendamento && <span style={{fontSize: '0.8em', color: '#2196F3', display: 'block'}}>📅 {new Date(i.info_agendamento.data_hora).toLocaleDateString()} {new Date(i.info_agendamento.data_hora).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>}
+                </div>
+                <div style={{display:'flex', alignItems:'center', gap:'10px'}}>
+                    <span style={{fontWeight: 'bold'}}>R$ {(i.quantidade * i.preco_unitario).toFixed(2)}</span>
+                    <button style={styles.btnRemover} onClick={() => removerItem(index)}>X</button>
+                </div>
               </div>
             ))}
           </div>
 
           <div style={styles.total}>Total: R$ {total.toFixed(2)}</div>
 
+          <label style={{fontWeight:'bold', display:'block', marginBottom:'5px'}}>Forma de Pagamento:</label>
           <select
             value={formaPagamento}
             onChange={(e) => setFormaPagamento(e.target.value)}
@@ -383,19 +473,13 @@ function RegistrarVenda({ onBack }) {
             <option>Cartão de débito</option>
             <option>Pix</option>
           </select>
-
-          {/* (Req 1) Seletor de status removido */}
-
         </div>
 
         <div>
           <button style={styles.buttonAction} onClick={registrarVenda}>
-            Registrar Venda (Pendente)
+            Finalizar Venda (Pendente)
           </button>
-          <button
-            style={{ ...styles.buttonAction, backgroundColor: "#777" }}
-            onClick={onBack}
-          >
+          <button style={{ ...styles.buttonAction, backgroundColor: "#777" }} onClick={onBack}>
             Voltar
           </button>
         </div>
