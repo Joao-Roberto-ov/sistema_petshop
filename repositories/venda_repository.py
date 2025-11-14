@@ -209,7 +209,7 @@ class RepositorioVenda:
             query += " AND v.funcionario_id = %s"
             params.append(filtro_funcionario)
         if filtro_data_inicio and filtro_data_fim:
-            # Garante que as datas cubram o dia todo
+            # Garante que as datas cubram o dia completo
             query += " AND v.criado_em BETWEEN %s::date AND (%s::date + '1 day'::interval)"
             params.append(filtro_data_inicio)
             params.append(filtro_data_fim)
