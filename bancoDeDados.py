@@ -305,23 +305,53 @@ def criar_tabelas():
             print(f"Aviso ao alterar estrutura da tabela config: {e}")
             conectado.rollback()
 
-        #garante que tem pelo menos uma linha (id 1) com valores padrão
+        # garante que existe pelo menos uma linha (id 1) com valores padrão
         curs.execute("""
                      INSERT INTO configuracao_empresa (id, endereco, telefone, email)
                      SELECT 1, '', '', 'contato@petlife.com'
                      WHERE NOT EXISTS (SELECT 1 FROM configuracao_empresa WHERE id = 1);
                      """)
 
+        # --- ATUALIZAÇÃO NA TABELA DE HORÁRIOS ---
+        # Verifica se a tabela antiga existe e se ela NAO tem a nova coluna.
+        # Se for a tabela antiga, dropamos para recriar com a estrutura correta.
+        curs.execute("""
+                     SELECT column_name
+                     FROM information_schema.columns
+                     WHERE table_name = 'horarios_funcionamento'
+                       AND column_name = 'inicio_manha';
+                     """)
+        if not curs.fetchone():
+            print("Atualizando estrutura da tabela de horários (migração)...")
+            curs.execute("DROP TABLE IF EXISTS horarios_funcionamento;")
+
+        # Cria a tabela com suporte a Manhã/Tarde e Ativo/Inativo
         curs.execute("""
                      CREATE TABLE IF NOT EXISTS horarios_funcionamento
                      (
-                         id         SERIAL PRIMARY KEY,
-                         dia_semana VARCHAR(20) NOT NULL,
-                         abre       TIME,
-                         fecha      TIME,
-                         fechado    BOOLEAN DEFAULT FALSE
+                         id           SERIAL PRIMARY KEY,
+                         dia_semana   VARCHAR(20) UNIQUE NOT NULL,
+                         inicio_manha TIME    DEFAULT '08:00',
+                         fim_manha    TIME    DEFAULT '12:00',
+                         manha_ativa  BOOLEAN DEFAULT TRUE,
+                         inicio_tarde TIME    DEFAULT '13:00',
+                         fim_tarde    TIME    DEFAULT '18:00',
+                         tarde_ativa  BOOLEAN DEFAULT TRUE
                      );
                      """)
+
+        # Inserir os 7 dias da semana automaticamente se não existirem
+        dias = [
+            'Segunda-feira', 'Terça-feira', 'Quarta-feira',
+            'Quinta-feira', 'Sexta-feira', 'Sábado', 'Domingo'
+        ]
+
+        for dia in dias:
+            curs.execute("""
+                         INSERT INTO horarios_funcionamento (dia_semana)
+                         VALUES (%s)
+                         ON CONFLICT (dia_semana) DO NOTHING;
+                         """, (dia,))
 
         try:
             curs.execute("""

@@ -55,15 +55,31 @@ def listar_horarios():
 
     try:
         cursor = conn.cursor()
-        cursor.execute("SELECT id, dia_semana, abre, fecha, fechado FROM horarios_funcionamento ORDER BY id")
+        # A ordem é importante para o frontend: Segunda a Domingo
+        # Vamos usar um CASE para ordenar corretamente ou confiar na ordem de inserção (ID)
+        cursor.execute("""
+                       SELECT id,
+                              dia_semana,
+                              inicio_manha,
+                              fim_manha,
+                              manha_ativa,
+                              inicio_tarde,
+                              fim_tarde,
+                              tarde_ativa
+                       FROM horarios_funcionamento
+                       ORDER BY id ASC
+                       """)
         rows = cursor.fetchall()
         return [
             {
                 "id": r[0],
                 "dia_semana": r[1],
-                "abre": str(r[2]) if r[2] else None,
-                "fecha": str(r[3]) if r[3] else None,
-                "fechado": r[4]
+                "inicio_manha": str(r[2])[:5] if r[2] else "",
+                "fim_manha": str(r[3])[:5] if r[3] else "",
+                "manha_ativa": r[4],
+                "inicio_tarde": str(r[5])[:5] if r[5] else "",
+                "fim_tarde": str(r[6])[:5] if r[6] else "",
+                "tarde_ativa": r[7]
             } for r in rows
         ]
     finally:
@@ -80,56 +96,62 @@ def atualizar_horario(id: int, horario):
         cursor.execute(
             """
             UPDATE horarios_funcionamento
-            SET dia_semana = %s,
-                abre       = %s,
-                fecha      = %s,
-                fechado    = %s
+            SET inicio_manha = %s,
+                fim_manha    = %s,
+                manha_ativa  = %s,
+                inicio_tarde = %s,
+                fim_tarde    = %s,
+                tarde_ativa  = %s
             WHERE id = %s
             """,
-            (horario.dia_semana, horario.abre, horario.fecha, horario.fechado, id)
+            (
+                horario.inicio_manha, horario.fim_manha, horario.manha_ativa,
+                horario.inicio_tarde, horario.fim_tarde, horario.tarde_ativa,
+                id
+            )
         )
         conn.commit()
     finally:
         encerra_conexao(conn)
 
 
-def criar_horario(horario):
-    conn = conectar()
-    if not conn:
-        raise Exception("Erro ao conectar ao banco de dados")
+ # def criar_horario(horario):
+ #    conn = conectar()
+ #    if not conn:
+ #        raise Exception("Erro ao conectar ao banco de dados")
+ #
+ #    try:
+ #        cursor = conn.cursor()
+ #        cursor.execute(
+ #            """
+ #            INSERT INTO horarios_funcionamento (dia_semana, abre, fecha, fechado)
+ #            VALUES (%s, %s, %s, %s)
+ #            RETURNING id, dia_semana, abre, fecha, fechado
+ #            """,
+ #            (horario.dia_semana, horario.abre, horario.fecha, horario.fechado)
+ #        )
+ #        row = cursor.fetchone()
+ #        conn.commit()
+ #        return {
+ #            "id": row[0],
+ #            "dia_semana": row[1],
+ #            "abre": str(row[2]) if row[2] else None,
+ #            "fecha": str(row[3]) if row[3] else None,
+ #            "fechado": row[4]
+ #        }
+ #    finally:
+ #        encerra_conexao(conn)
 
-    try:
-        cursor = conn.cursor()
-        cursor.execute(
-            """
-            INSERT INTO horarios_funcionamento (dia_semana, abre, fecha, fechado)
-            VALUES (%s, %s, %s, %s)
-            RETURNING id, dia_semana, abre, fecha, fechado
-            """,
-            (horario.dia_semana, horario.abre, horario.fecha, horario.fechado)
-        )
-        row = cursor.fetchone()
-        conn.commit()
-        return {
-            "id": row[0],
-            "dia_semana": row[1],
-            "abre": str(row[2]) if row[2] else None,
-            "fecha": str(row[3]) if row[3] else None,
-            "fechado": row[4]
-        }
-    finally:
-        encerra_conexao(conn)
 
-
-def deletar_horario(id: int):
-    conn = conectar()
-    if not conn:
-        raise Exception("Erro ao conectar ao banco de dados")
-
-    try:
-        cursor = conn.cursor()
-        cursor.execute("DELETE FROM horarios_funcionamento WHERE id = %s", (id,))
-        conn.commit()
-        return {"mensagem": "Horário removido com sucesso"}
-    finally:
-        encerra_conexao(conn)
+# def deletar_horario(id: int):
+#     conn = conectar()
+#     if not conn:
+#         raise Exception("Erro ao conectar ao banco de dados")
+#
+#     try:
+#         cursor = conn.cursor()
+#         cursor.execute("DELETE FROM horarios_funcionamento WHERE id = %s", (id,))
+#         conn.commit()
+#         return {"mensagem": "Horário removido com sucesso"}
+#     finally:
+#         encerra_conexao(conn)

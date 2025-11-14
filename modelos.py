@@ -288,6 +288,13 @@ class ProdutoCadastro(BaseModel):
     descricao: Optional[str] = None
     url_imagem: Optional[str] = None
 
+class ItemEstoqueUpdate(BaseModel):
+    produto_id: int
+    quantidade_adicionar: int = Field(..., gt=0, description="A quantidade a ser adicionada deve ser maior que zero")
+
+class LoteEstoqueUpdate(BaseModel):
+    itens: List[ItemEstoqueUpdate]
+
 class ServicoModel(BaseModel):
     nome: str
     descricao: Optional[str] = None

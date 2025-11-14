@@ -32,14 +32,14 @@
     import Checkout from './components/Checkout';
     import FluxoCaixaReport from './components/FluxoCaixaReport';
     import ConfigEmpresaScreen from './components/ConfigEmpresaScreen';
-    import configEmpresaScreen from "./components/ConfigEmpresaScreen";
+    import AtualizarEstoque from './components/AtualizarEstoque';
 
     const CARGO = { GESTOR: 1, FUNCIONARIO: 2, VETERINARIO: 3, ATENDENTE: 4 };
     const navigateTo = (screenName) => {
         window.dispatchEvent(new CustomEvent('navigate', { detail: screenName }));
     };
 
-    // --- FUNÇÃO HELPER PARA PEGAR O CARRINHO DO LOCALSTORAGE ---
+    //funçao helper para pegar o carrinho do localstorage
     const getCartFromStorage = (userId) => {
         if (!userId) return [];
         try {
@@ -58,13 +58,12 @@
         const [servicoParaAgendar, setServicoParaAgendar] = useState(null);
         const [agendamentoParaReagendar, setAgendamentoParaReagendar] = useState(null);
 
-        // --- ESTADO DO CARRINHO AGORA VIVE AQUI ---
+        //estado do carrinho
         const [carrinho, _setCarrinho] = useState([]); // Renomeado para _setCarrinho
 
-        // --- WRAPPER PARA ATUALIZAR ESTADO E LOCALSTORAGE ---
+        //wrapper para atualizar o estado e o localstorage
         const setCarrinho = (novoCarrinho) => {
-            // Se o novoCarrinho for uma função (como em setCarrinho(prev => ...)),
-            // precisamos executá-la para obter o valor final.
+
             const valorFinal = typeof novoCarrinho === 'function'
                 ? novoCarrinho(carrinho)
                 : novoCarrinho;
@@ -98,7 +97,7 @@
                     setIsLoggedIn(true);
                     setUserData(parsedUser);
 
-                    // --- CARREGA O CARRINHO SALVO NO LOGIN ---
+                    //carrega o carrinho salvo no login
                     if (parsedUser.id) {
                         _setCarrinho(getCartFromStorage(parsedUser.id));
                     }
@@ -132,7 +131,7 @@
             return () => {
                 window.removeEventListener('navigate', handleNavigate);
             };
-        }, []); // Dependência 'carrinho' removida para evitar re-render desnecessário
+        }, []);
 
         const navigateToHome = (user = userData, forced = false) => {
             const targetScreen = (user?.cargo_id || user?.cargo) ? 'homeFuncionario' : 'home';
@@ -161,7 +160,7 @@
         const handleLogin = (data) => {
             setIsLoggedIn(true);
             setUserData(data);
-            // --- CARREGA O CARRINHO DO USUÁRIO QUE ACABOU DE LOGAR ---
+            //carrega o carrinho do usuario que fez login
             if (data.id) {
                 _setCarrinho(getCartFromStorage(data.id));
             }
@@ -169,14 +168,14 @@
         };
 
         const handleLogout = () => {
-            // Não limpa o carrinho do localStorage, apenas do estado
+            //naoo limpa o carrinho do localStorage, apenas do estado
             localStorage.removeItem('token');
             localStorage.removeItem('userData');
             setIsLoggedIn(false);
             setUserData(null);
             setServicoParaAgendar(null);
             setAgendamentoParaReagendar(null);
-            _setCarrinho([]); // Limpa o carrinho do estado
+            _setCarrinho([]); //limpa o carrinho do estado
             navigateToHome(null, true);
         };
 
@@ -192,7 +191,6 @@
         };
 
         const handleNavigateToCheckout = (carrinho) => {
-            // A função agora só navega, pois o carrinho já está no App.js
             navigateTo('checkout');
         };
 
@@ -216,7 +214,7 @@
             const telasGestor = ['visualizarServicos', 'cadastro-funcionario-completo',
                                 'listar-funcionarios', 'cadastrarProduto',
                                 'visualizar-produtos-gestor', 'funcionario-cadastro-admin',
-                                'gerenciar-agendamentos', 'config-empresa'];
+                                'gerenciar-agendamentos', 'config-empresa', 'atualizar-estoque'];
 
             // Telas que gestores E veterinários podem acessar
             const telasGestorVeterinario = ['visualizar-pets', 'dashboard-gestor'];
@@ -248,7 +246,7 @@
 
             const telasCliente = ['dashboard', 'meu-perfil', 'agendar-servico',
                                 'checkout', 'visualizar-produtos-cliente',
-                                'pet-cadastro', 'meus-pets', 'visualizar-servicos-cliente'];
+                                'pet-cadastro', 'meus-pets'];
 
             if (isFuncionarioLogado && telasCliente.includes(currentScreen)) {
                 navigateToHome(userData, true);
@@ -361,7 +359,14 @@
                     return <RegistrarVenda onBack={() => navigateToHome(userData)} />;
 
                 case 'visualizar-produtos-gestor':
-                    return <VisualizarProdutosGestor onBack={() => navigateToHome(userData)} />;
+                    return <VisualizarProdutosGestor onBack={() => navigateToHome(userData)}
+                        onNavigateToAtualizarEstoque={() => navigateTo('atualizar-estoque')}
+                    />;
+
+                case 'atualizar-estoque':
+                    return <AtualizarEstoque
+                        onBack={() => navigateTo('visualizar-produtos-gestor')}
+                    />;
 
                 case 'visualizar-produtos-funcionario':
                     return <VisualizarProdutosFuncionario onBack={() => navigateToHome(userData)} />;
@@ -371,7 +376,6 @@
                         <VisualizarProdutosCliente
                             onBack={() => navigateToHome(userData)}
                             onNavigateToCheckout={handleNavigateToCheckout}
-                            // --- NOVAS PROPS PARA O CARRINHO E AUTENTICAÇÃO ---
                             carrinho={carrinho}
                             setCarrinho={setCarrinho}
                             isLoggedIn={isLoggedIn}

@@ -27,9 +27,10 @@ const IconActivate = () => (
 
 // ID do cargo Funcionário
 const CARGO_FUNCIONARIO_ID = 2;
+const diasSemana = ['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado', 'Domingo'];
 
-// Estilos para especialidades
-const especialidadeStyles = {
+// CORREÇÃO: Renomeado de especialidadeStyles para styles para uso geral
+const styles = {
     container: {
         gridColumn: '1 / -1',
         backgroundColor: '#f8f9fa',
@@ -60,6 +61,12 @@ const especialidadeStyles = {
         display: 'flex',
         alignItems: 'center',
         gap: '0.5rem'
+    },
+    checkboxGroup: {
+        display: 'flex',
+        flexWrap: 'wrap',
+        gap: '15px',
+        marginTop: '8px'
     }
 };
 
@@ -139,6 +146,32 @@ function GerenciarFuncionarios({ onNavigateToHome }) {
         return cargos[cargoId] || 'Cargo Desconhecido';
     };
 
+    // --- MÁSCARAS E FORMATAÇÃO ---
+    const capitalizeName = (value) => {
+        if (!value) return '';
+        return value.toLowerCase().split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+    };
+
+    const formatPhone = (value) => {
+        if (!value) return "";
+        const digits = value.replace(/\D/g, "").slice(0, 11);
+        let result = "";
+        if (digits.length > 0) result = "(" + digits.substring(0, 2);
+        if (digits.length > 2) result += ") " + digits.substring(2, 7);
+        if (digits.length > 7) result += "-" + digits.substring(7, 11);
+        return result;
+    };
+
+    const formatCPF = (value) => {
+        if (!value) return '';
+        let digits = value.replace(/\D/g, '');
+        if (digits.length > 11) digits = digits.slice(0, 11);
+        if (digits.length > 9) return `${digits.slice(0, 3)}.${digits.slice(3, 6)}.${digits.slice(6, 9)}-${digits.slice(9)}`;
+        else if (digits.length > 6) return `${digits.slice(0, 3)}.${digits.slice(3, 6)}.${digits.slice(6)}`;
+        else if (digits.length > 3) return `${digits.slice(0, 3)}.${digits.slice(3)}`;
+        return digits;
+    };
+
     // Filtrar funcionários
     const funcionariosFiltrados = Array.isArray(funcionarios) ? funcionarios.filter(funcionario => {
         const matchSearch = !searchTerm ||
@@ -158,8 +191,8 @@ function GerenciarFuncionarios({ onNavigateToHome }) {
 
     const cargosUnicos = Array.isArray(funcionarios) ? [...new Set(funcionarios.map(f => f.cargo_funcao))] : [];
 
-    // Funções de formatação
-    const formatarTelefone = (telefone) => {
+    // Funções de formatação (Mantidas para exibição na tabela)
+    const formatarTelefoneTabela = (telefone) => {
         if (!telefone) return 'Não informado';
         const numeros = telefone.replace(/\D/g, '');
         if (numeros.length === 11) {
@@ -170,12 +203,6 @@ function GerenciarFuncionarios({ onNavigateToHome }) {
         return telefone;
     };
 
-    const formatarCPF = (cpf) => {
-        if (!cpf) return 'Não informado';
-        const numeros = cpf.replace(/\D/g, '');
-        return numeros.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
-    };
-
     const formatarData = (dataString) => {
         if (!dataString) return 'Não informado';
         const data = new Date(dataString);
@@ -184,20 +211,37 @@ function GerenciarFuncionarios({ onNavigateToHome }) {
 
     const abrirModalEdicao = (funcionario) => {
         setEditingFuncionario(funcionario);
+
+        // Converte string "Segunda,Terça" para array ["Segunda", "Terça"]
+        const diasArray = funcionario.dias_trabalho ? funcionario.dias_trabalho.split(',').map(d => d.trim()) : [];
+
         setEditFormData({
             nome: funcionario.nome,
             cargo_id: funcionario.cargo_id,
             email: funcionario.email,
-            telefone: funcionario.telefone,
-            cpf: funcionario.cpf || '',
+            // Aplica máscara ao abrir para edição
+            telefone: formatPhone(funcionario.telefone || ''),
+            cpf: formatCPF(funcionario.cpf || ''),
             endereco: funcionario.endereco || '',
             horario_inicio: funcionario.horario_inicio,
             horario_fim: funcionario.horario_fim,
-            dias_trabalho: funcionario.dias_trabalho,
+            dias_trabalho: diasArray, // Array para checkboxes
             is_ativo: funcionario.is_ativo,
             especialidades: Array.isArray(funcionario.especialidades) ? funcionario.especialidades : []
         });
         setShowEditModal(true);
+    };
+
+    // Handler para mudança nos checkboxes de dias
+    const handleModalDiaTrabalhoChange = (dia) => {
+        setEditFormData(prev => {
+            const dias = prev.dias_trabalho || [];
+            if (dias.includes(dia)) {
+                return { ...prev, dias_trabalho: dias.filter(d => d !== dia) };
+            } else {
+                return { ...prev, dias_trabalho: [...dias, dia] };
+            }
+        });
     };
 
     const handleModalEspecialidadeChange = (servicoId) => {
@@ -222,21 +266,36 @@ function GerenciarFuncionarios({ onNavigateToHome }) {
     const salvarEdicao = async () => {
         if (!editingFuncionario) return;
 
+        // Validação básica de e-mail
+        if (editFormData.email && !/\S+@\S+\.\S+/.test(editFormData.email)) {
+            alert("Por favor, insira um e-mail válido.");
+            return;
+        }
+
+        // Validação de dias de trabalho
+        if (!editFormData.dias_trabalho || editFormData.dias_trabalho.length === 0) {
+            alert("Selecione pelo menos um dia de trabalho.");
+            return;
+        }
+
         try {
             setEditLoading(true);
             const token = localStorage.getItem('token');
 
-            // Prepara os dados para enviar
+            // Converte array de dias de volta para string
+            const diasString = editFormData.dias_trabalho.join(',');
+
+            // Prepara os dados para enviar (remove formatação de máscaras)
             const dadosAtualizacao = {
                 nome: editFormData.nome?.trim(),
                 cargo_id: editFormData.cargo_id,
                 email: editFormData.email?.trim().toLowerCase(),
-                telefone: editFormData.telefone?.trim(),
+                telefone: editFormData.telefone?.replace(/\D/g, ''),
                 cpf: editFormData.cpf ? editFormData.cpf.replace(/\D/g, '') : '',
                 endereco: editFormData.endereco?.trim() || '',
                 horario_inicio: editFormData.horario_inicio,
                 horario_fim: editFormData.horario_fim,
-                dias_trabalho: editFormData.dias_trabalho?.trim(),
+                dias_trabalho: diasString,
                 is_ativo: editFormData.is_ativo,
                 especialidades: editFormData.especialidades
             };
@@ -252,6 +311,12 @@ function GerenciarFuncionarios({ onNavigateToHome }) {
                      }
                 }
             }
+
+            // Verifica dias de trabalho separadamente pois converteu array->string
+            if (diasString !== editingFuncionario.dias_trabalho) {
+                payload.dias_trabalho = diasString;
+            }
+
             if(payload.cargo_id && payload.cargo_id !== editingFuncionario.cargo_id) {
                 payload.especialidades = dadosAtualizacao.especialidades;
             }
@@ -405,7 +470,6 @@ function GerenciarFuncionarios({ onNavigateToHome }) {
                     <div className="container">
                         <div className="error-message" style={{ textAlign: 'center' }}>
                             {error}
-                            {/* O botão "Tentar Novamente" foi removido pois a lógica de recarga agora está no useEffect principal */}
                         </div>
                     </div>
                 </section>
@@ -650,7 +714,7 @@ function GerenciarFuncionarios({ onNavigateToHome }) {
                                                     {funcionario.email}
                                                 </td>
                                                 <td style={{ padding: '1rem', color: '#7f8c8d' }}>
-                                                    {formatarTelefone(funcionario.telefone)}
+                                                    {formatarTelefoneTabela(funcionario.telefone)}
                                                 </td>
                                                 <td style={{ padding: '1rem' }}>
                                                     <span style={{
@@ -822,7 +886,7 @@ function GerenciarFuncionarios({ onNavigateToHome }) {
                                 <input
                                     type="text"
                                     value={editFormData.nome}
-                                    onChange={(e) => setEditFormData({...editFormData, nome: e.target.value})}
+                                    onChange={(e) => setEditFormData({...editFormData, nome: capitalizeName(e.target.value)})}
                                     style={{
                                         width: '100%',
                                         padding: '0.75rem',
@@ -849,7 +913,6 @@ function GerenciarFuncionarios({ onNavigateToHome }) {
                                         background: 'white'
                                     }}
                                 >
-                                    <option value="">Selecione um cargo</option>
                                     <option value={1}>Gestor</option>
                                     <option value={2}>Funcionário</option>
                                     <option value={3}>Veterinário</option>
@@ -882,7 +945,8 @@ function GerenciarFuncionarios({ onNavigateToHome }) {
                                 <input
                                     type="text"
                                     value={editFormData.telefone}
-                                    onChange={(e) => setEditFormData({...editFormData, telefone: e.target.value})}
+                                    onChange={(e) => setEditFormData({...editFormData, telefone: formatPhone(e.target.value)})}
+                                    maxLength="15"
                                     style={{
                                         width: '100%',
                                         padding: '0.75rem',
@@ -900,7 +964,8 @@ function GerenciarFuncionarios({ onNavigateToHome }) {
                                 <input
                                     type="text"
                                     value={editFormData.cpf}
-                                    onChange={(e) => setEditFormData({...editFormData, cpf: e.target.value})}
+                                    onChange={(e) => setEditFormData({...editFormData, cpf: formatCPF(e.target.value)})}
+                                    maxLength="14"
                                     style={{
                                         width: '100%',
                                         padding: '0.75rem',
@@ -969,31 +1034,30 @@ function GerenciarFuncionarios({ onNavigateToHome }) {
                                 <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '600', color: '#2c3e50' }}>
                                     Dias de Trabalho *
                                 </label>
-                                <input
-                                    type="text"
-                                    value={editFormData.dias_trabalho}
-                                    onChange={(e) => setEditFormData({...editFormData, dias_trabalho: e.target.value})}
-                                    style={{
-                                        width: '100%',
-                                        padding: '0.75rem',
-                                        border: '2px solid #ecf0f1',
-                                        borderRadius: '8px',
-                                        fontSize: '1rem'
-                                    }}
-                                    placeholder="Ex: Segunda,Terça,Quarta,Quinta,Sexta"
-                                />
+                                <div style={styles.checkboxGroup}>
+                                    {diasSemana.map(dia => (
+                                        <label key={dia} style={styles.checkboxLabel}>
+                                            <input
+                                                type="checkbox"
+                                                checked={editFormData.dias_trabalho && editFormData.dias_trabalho.includes(dia)}
+                                                onChange={() => handleModalDiaTrabalhoChange(dia)}
+                                            />
+                                            {dia}
+                                        </label>
+                                    ))}
+                                </div>
                             </div>
 
                             {/* campo condicional das especialidades  */}
                             {editFormData.cargo_id === CARGO_FUNCIONARIO_ID && (
-                                <div style={especialidadeStyles.container}>
+                                <div style={styles.container}>
                                     <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '600', color: '#2c3e50' }}>Especialidades</label>
                                     <p style={{ fontSize: '0.85rem', color: '#6c757d', marginBottom: '1rem' }}>
                                         Selecione os serviços que este funcionário realiza.
                                     </p>
 
-                                    <div style={especialidadeStyles.item}>
-                                        <label style={{...especialidadeStyles.checkboxLabel, fontWeight: 'bold'}}>
+                                    <div style={styles.item}>
+                                        <label style={{...styles.checkboxLabel, fontWeight: 'bold'}}>
                                             <input
                                                 type="checkbox"
                                                 // Verifica se todos os serviços estão marcados
@@ -1004,11 +1068,11 @@ function GerenciarFuncionarios({ onNavigateToHome }) {
                                         </label>
                                     </div>
 
-                                    <div style={especialidadeStyles.grid}>
+                                    <div style={styles.grid}>
                                         {catalogoServicos.length > 0 ? (
                                             catalogoServicos.map(servico => (
-                                                <div key={servico.id} style={especialidadeStyles.item}>
-                                                    <label style={especialidadeStyles.checkboxLabel}>
+                                                <div key={servico.id} style={styles.item}>
+                                                    <label style={styles.checkboxLabel}>
                                                         <input
                                                             type="checkbox"
                                                             value={servico.id}

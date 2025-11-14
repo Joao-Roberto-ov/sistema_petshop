@@ -1,6 +1,8 @@
 from bancoDeDados import conectar, encerra_conexao
-class RepositorioProduto:
+from typing import List
+from psycopg2.extras import execute_values
 
+class RepositorioProduto:
     def buscar_produto_externo(self, query: str):
         conn = None
         try:
@@ -137,7 +139,7 @@ class RepositorioProduto:
                 dados_produto.nome, dados_produto.marca, dados_produto.categoria,
                 dados_produto.descricao, dados_produto.url_imagem,
                 dados_produto.preco_venda, dados_produto.estoque,
-                dados_produto.animais_alvo,  # NOVO CAMPO
+                dados_produto.animais_alvo,
                 produto_id
             ))
             resultado = cursor.fetchone()
@@ -157,6 +159,39 @@ class RepositorioProduto:
             resultado = cursor.fetchone()
             conn.commit()
             return resultado is not None
+        finally:
+            if conn:
+                encerra_conexao(conn)
+
+    def atualizar_estoque_lote(self, itens: List[dict]):
+
+        # Atualiza o estoque de varios produtos em lote
+        # Usamos execute_values para alta performance
+
+        conn = None
+        try:
+            conn = conectar()
+            cursor = conn.cursor()
+
+            # Query otimizada para atualizar varios produtos de uma vez
+            sql = """
+                  UPDATE produtos_cadastrados
+                  SET estoque = estoque + data.quantidade_adicionar
+                  FROM (VALUES %s) AS data (produto_id, quantidade_adicionar)
+                  WHERE produtos_cadastrados.id = data.produto_id; \
+                  """
+
+            # Formata os dados para o execute_values: [(id1, qtd1), (id2, qtd2)]
+            valores = [(item['produto_id'], item['quantidade_adicionar']) for item in itens]
+
+            execute_values(cursor, sql, valores)
+            conn.commit()
+            return True  # Sucesso
+        except Exception as e:
+            if conn:
+                conn.rollback()
+            print(f"Erro ao atualizar estoque em lote: {e}")
+            raise  # Propaga o erro para o service
         finally:
             if conn:
                 encerra_conexao(conn)

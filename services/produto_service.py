@@ -1,6 +1,6 @@
 from fastapi import HTTPException
 from repositories.produto_repository import RepositorioProduto
-from modelos import ProdutoCadastro
+from modelos import ProdutoCadastro, LoteEstoqueUpdate
 
 
 class ServicosProduto:
@@ -81,3 +81,24 @@ class ServicosProduto:
             raise
         except Exception as e:
             raise HTTPException(status_code=500, detail=f"Erro ao excluir produto: {e}")
+
+    def atualizar_estoque_lote(self, dados_lote: LoteEstoqueUpdate, gestor_id: int):
+
+        # serviço para atualizar o estoque de varios produtos.
+
+        try:
+            # Converte os modelos Pydantic em uma lista de dicionarios
+            itens_list = [item.model_dump() for item in dados_lote.itens]
+
+            if not itens_list:
+                raise HTTPException(status_code=400, detail="Nenhum item fornecido para atualização.")
+
+            sucesso = self.repo.atualizar_estoque_lote(itens_list)
+
+            if not sucesso:
+                raise HTTPException(status_code=500, detail="Erro ao salvar dados no banco.")
+
+            return {"message": "Estoque atualizado com sucesso!"}
+        except Exception as e:
+            print(f"Erro no serviço de atualização de estoque: {e}")
+            raise HTTPException(status_code=500, detail=f"Erro ao processar atualização de estoque: {e}")

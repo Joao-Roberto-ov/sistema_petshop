@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from seguranca import pegar_id_do_usuario_logado
 from services.funcionario_service import ServicosFuncionario
 from services.produto_service import ServicosProduto
-from modelos import ProdutoCadastro
+from modelos import ProdutoCadastro, LoteEstoqueUpdate
 from util.cargos import Cargo
 
 router = APIRouter(prefix="/api/produtos", tags=["Produtos"])
@@ -25,7 +25,6 @@ async def pegar_gestor_logado(
 @router.get("/buscar-externo")
 async def buscar_produtos_externos(
         q: str,
-        gestor_id: int = Depends(pegar_gestor_logado),
         service: ServicosProduto = Depends(ServicosProduto)
 ):
     # endpoint para procurar sugestoes de produtos
@@ -35,7 +34,6 @@ async def buscar_produtos_externos(
 @router.get("/detalhes-externo/{barcode}")
 async def buscar_detalhes_produto_externo(
         barcode: str,
-        gestor_id: int = Depends(pegar_gestor_logado),
         service: ServicosProduto = Depends(ServicosProduto)
 ):
     return service.buscar_detalhes_para_cadastro(barcode)
@@ -82,27 +80,33 @@ async def excluir_produto(
 @router.get("/verificar-externo/{barcode}")
 async def verificar_produto_externo(
         barcode: str,
-        gestor_id: int = Depends(pegar_gestor_logado),
         service: ServicosProduto = Depends(ServicosProduto)
 ):
     """Verifica se produto existe na base externa - apenas gestores"""
     eh_externo = service.repo.verificar_produto_externo(barcode)
     return {"eh_externo": eh_externo}
 
+@router.post("/atualizar-estoque-lote")
+async def atualizar_estoque_em_lote(
+        dados_lote: LoteEstoqueUpdate,
+        gestor_id: int = Depends(pegar_gestor_logado),
+        service: ServicosProduto = Depends(ServicosProduto)
+):
+    # Recebe uma lista de produtos e quantidades para adicionar ao estoque -- gestores
+    return service.atualizar_estoque_lote(dados_lote, gestor_id)
 
-# --- INÍCIO DA MODIFICAÇÃO ---
-# Endpoint público para verificar o estoque em tempo real de um produto
+
+# Endpoint publico para verificar o estoque em tempo real de um produto
 @router.get("/{produto_id}/estoque")
 async def get_estoque_produto(
         produto_id: int,
         service: ServicosProduto = Depends(ServicosProduto)
 ):
-    """
-    Retorna o estoque atual de um produto específico.
-    Público para que o frontend (carrinho) possa verificar.
-    """
+
+    #retorna o estoque atual de um produto especifico
+    #publico para que o frontend (carrinho) possa verificar.
     try:
-        # Reutiliza o serviço que lista todos (que já busca no DB)
+        # Reutiliza o serviço que lista todos
         produtos = service.listar_todos_produtos()
         produto = next((p for p in produtos if p["id"] == produto_id), None)
 
@@ -116,4 +120,3 @@ async def get_estoque_produto(
         # Captura genérica caso o produto não seja encontrado no 'next'
         print(f"Erro ao buscar estoque para ID {produto_id}: {e}")
         raise HTTPException(status_code=500, detail=f"Erro ao buscar estoque: {e}")
-# --- FIM DA MODIFICAÇÃO ---

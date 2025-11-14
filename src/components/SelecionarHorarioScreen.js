@@ -19,6 +19,17 @@ const IconPencil = () => (
     </svg>
 );
 
+// Mapa JS (Date.getDay() -> Nome da tabela no Banco)
+// 0 = Domingo no JS
+const DIAS_SEMANA_MAP_JS = [
+    "Domingo",
+    "Segunda-feira",
+    "Terça-feira",
+    "Quarta-feira",
+    "Quinta-feira",
+    "Sexta-feira",
+    "Sábado"
+];
 
 function SelecionarHorarioScreen({
     servico,
@@ -54,6 +65,11 @@ function SelecionarHorarioScreen({
     const [success, setSuccess] = useState('');
     const [clienteId, setClienteId] = useState(null);
 
+    // --- NOVOS ESTADOS PARA CONFIGURAÇÃO DE HORÁRIOS ---
+    const [configHorarios, setConfigHorarios] = useState(null); // Armazena a config como objeto { "Segunda-feira": {...}, ... }
+    const [loadingConfig, setLoadingConfig] = useState(true);
+    // ---------------------------------------------------
+
     const formatDateForInput = (date) => date.toISOString().split('T')[0];
     const formatTime = (dateTimeString) => {
         try {
@@ -62,16 +78,15 @@ function SelecionarHorarioScreen({
         } catch { return 'Inválido'; }
     };
 
-    //busca pets e id do cliente
+    // Busca pets e id do cliente
     useEffect(() => {
         const fetchClienteE = async () => {
             setLoadingPets(true);
             setError('');
             try {
                 const token = localStorage.getItem('token');
-                    //reagendamento do gestor
                 if (modoReagendamento) {
-                    setClienteId(agendamentoParaReagendar.cliente_id || true); // Define um valor para passar na validação
+                    setClienteId(agendamentoParaReagendar.cliente_id || true);
                     setSelectedPetId(agendamentoParaReagendar.pet_id);
                     setMeusPets([{
                         id: agendamentoParaReagendar.pet_id,
@@ -79,7 +94,6 @@ function SelecionarHorarioScreen({
                         raca: '(Reagendamento)'
                     }]);
                 } else {
-                    // novo agendamento cliente: Busca dados do cliente
                     const userDataRes = await axios.get('/users/me', {
                         headers: { 'Authorization': `Bearer ${token}` }
                     });
@@ -95,17 +109,7 @@ function SelecionarHorarioScreen({
                 }
             } catch (err) {
                 console.error("Erro ao buscar dados:", err);
-                if (modoReagendamento) {
-                    setClienteId(agendamentoParaReagendar.cliente_id || true);
-                    setSelectedPetId(agendamentoParaReagendar.pet_id);
-                    setMeusPets([{
-                        id: agendamentoParaReagendar.pet_id,
-                        nome: agendamentoParaReagendar.pet_nome,
-                        raca: '(Reagendamento)'
-                    }]);
-                } else {
-                    setError('Erro ao carregar dados. Tente novamente.');
-                }
+                setError('Erro ao carregar dados. Tente novamente.');
             } finally {
                 setLoadingPets(false);
             }
@@ -113,24 +117,46 @@ function SelecionarHorarioScreen({
         fetchClienteE();
     }, [modoReagendamento, agendamentoParaReagendar]);
 
+    // --- BUSCAR CONFIGURAÇÃO DE HORÁRIOS ---
+    useEffect(() => {
+        const fetchConfigHorarios = async () => {
+            setLoadingConfig(true);
+            try {
+                const response = await axios.get("/admin/config/horarios");
+                if (Array.isArray(response.data)) {
+                    // Transforma array em objeto para acesso rápido: { "Domingo": { manha_ativa: true... }, ... }
+                    const mapa = response.data.reduce((acc, dia) => {
+                        acc[dia.dia_semana] = dia;
+                        return acc;
+                    }, {});
+                    setConfigHorarios(mapa);
+                }
+            } catch (err) {
+                console.error("Erro ao buscar config de horários:", err);
+                // Não bloqueia o fluxo, mas a validação no front pode falhar (fallback no back)
+            } finally {
+                setLoadingConfig(false);
+            }
+        };
+        fetchConfigHorarios();
+    }, []);
+
+    // Busca especialistas
     useEffect(() => {
         const fetchEspecialistas = async () => {
-            //só busca se tiver id do serviço e nao estiver reagendando
             if (!servicoDetalhes?.id || modoReagendamento) {
                 setEspecialistas([]);
-                setSelectedFuncionarioId(''); //reseta seleção
+                setSelectedFuncionarioId('');
                 return;
             }
 
             setLoadingEspecialistas(true);
             try {
-                //chama a nova rota do backend
                 const response = await axios.get(`/funcionario/especialistas/${servicoDetalhes.id}`);
                 setEspecialistas(response.data || []);
                 setSelectedFuncionarioId('');
             } catch (err) {
                 console.error("Erro ao buscar especialistas:", err);
-                //nao mostra erro para o usuario, apenas nao mostra a opçao
                 setEspecialistas([]);
                 setSelectedFuncionarioId('');
             } finally {
@@ -141,7 +167,7 @@ function SelecionarHorarioScreen({
         fetchEspecialistas();
     }, [servicoDetalhes, modoReagendamento]);
 
-    //busca horarios disponiveis
+    // Busca horários disponíveis
     useEffect(() => {
         if (!servicoDetalhes?.id || !selectedDate) {
             setAvailableSlots([]);
@@ -153,7 +179,6 @@ function SelecionarHorarioScreen({
             setError('');
             setSelectedSlot('');
             try {
-
                 const params = {
                     servico_id: servicoDetalhes.id,
                     data_consulta: selectedDate
@@ -167,7 +192,10 @@ function SelecionarHorarioScreen({
                 setAvailableSlots(response.data.horarios || []);
             } catch (err) {
                 console.error("Erro ao buscar horários:", err);
-                setError(err.response?.data?.detail || 'Erro ao buscar horários disponíveis.');
+                // Se o erro for 400 (dia fechado), a mensagem vem do backend, mas vamos tratar no front também
+                if (err.response?.status !== 400) {
+                    setError(err.response?.data?.detail || 'Erro ao buscar horários disponíveis.');
+                }
                 setAvailableSlots([]);
             } finally {
                 setLoadingSlots(false);
@@ -186,6 +214,27 @@ function SelecionarHorarioScreen({
         }
     }
 
+    // --- VERIFICAÇÃO SE O DIA ESTÁ ABERTO ---
+    const getDiaStatus = () => {
+        if (!configHorarios || !selectedDate) return { aberto: true };
+
+        // Cria a data considerando o fuso local para pegar o dia da semana correto
+        const dataObj = new Date(selectedDate + "T00:00:00");
+        const diaSemanaStr = DIAS_SEMANA_MAP_JS[dataObj.getDay()];
+
+        const configDia = configHorarios[diaSemanaStr];
+
+        if (!configDia) return { aberto: true }; // Se não achar config, assume aberto (backend valida)
+
+        // Verifica se tem pelo menos um turno ativo
+        const aberto = configDia.manha_ativa || configDia.tarde_ativa;
+
+        return {
+            aberto,
+            mensagem: aberto ? "" : `O Petshop não funciona ${diaSemanaStr === 'Sábado' || diaSemanaStr === 'Domingo' ? 'no' : 'na'} ${diaSemanaStr}.`
+        };
+    };
+
     const handleSubmit = async () => {
         const slotObj = getSelectedSlotObject();
 
@@ -201,7 +250,6 @@ function SelecionarHorarioScreen({
             const token = localStorage.getItem('token');
 
             if (modoReagendamento) {
-                //logica de reagendamento
                 const reagendarData = {
                     nova_data_hora_inicio: slotObj.inicio
                 };
@@ -213,7 +261,6 @@ function SelecionarHorarioScreen({
                 setSuccess(response.data.message || 'Agendamento reagendado com sucesso!');
 
             } else {
-                //logica de novo agendamento
                 const agendamentoData = {
                     cliente_id: clienteId,
                     pet_id: parseInt(selectedPetId),
@@ -228,7 +275,7 @@ function SelecionarHorarioScreen({
             }
 
             setSelectedSlot('');
-            setSelectedFuncionarioId(''); //limpa seleção de funcionario
+            setSelectedFuncionarioId('');
              if (onAgendamentoSuccess) {
                  setTimeout(() => onAgendamentoSuccess(), 2000);
              }
@@ -236,14 +283,11 @@ function SelecionarHorarioScreen({
             console.error("Erro ao submeter:", err);
              let errorMsg = `Erro ao ${modoReagendamento ? 'reagendar' : 'agendar'}.`;
              if (err.response?.status === 409) {
-                 //mensagem mais específica se o conflito for do funcionsrio
                  if (err.response?.data?.detail.includes("funcionário")) {
                       errorMsg = err.response?.data?.detail || 'Ops! Este funcionário já está ocupado neste horário. Escolha outro horário ou funcionário.';
                  } else {
                       errorMsg = err.response?.data?.detail || 'Ops! Este horário foi ocupado. Por favor, escolha outro.';
                  }
-
-                 //refresca os horários
                  const currentSelectedDate = selectedDate;
                  setSelectedDate('');
                  setTimeout(() => setSelectedDate(currentSelectedDate), 10);
@@ -258,6 +302,10 @@ function SelecionarHorarioScreen({
 
     const today = formatDateForInput(new Date());
     const selectedSlotObj = getSelectedSlotObject();
+
+    // Verifica status do dia selecionado
+    const diaStatus = getDiaStatus();
+    const diaFechado = !diaStatus.aberto;
 
     return (
         <div className="agendamento-container">
@@ -298,6 +346,13 @@ function SelecionarHorarioScreen({
                     <input type="date" id="dateSelect" className="form-input-agendamento" value={selectedDate} min={today} onChange={(e) => setSelectedDate(e.target.value)} disabled={agendando}/>
                 </div>
 
+                {/* --- MENSAGEM DE DIA FECHADO --- */}
+                {diaFechado && (
+                    <div className="info-message" style={{ backgroundColor: '#fee2e2', color: '#991b1b', borderLeft: '4px solid #dc2626' }}>
+                        <IconInfo /> {diaStatus.mensagem}
+                    </div>
+                )}
+
                 {!modoReagendamento && (especialistas.length > 0 || loadingEspecialistas) && (
                      <div className="form-group-agendamento">
                         <label htmlFor="funcionarioSelect">Preferência de Funcionário (Opcional):</label>
@@ -309,7 +364,7 @@ function SelecionarHorarioScreen({
                                 className="form-input-agendamento"
                                 value={selectedFuncionarioId}
                                 onChange={(e) => setSelectedFuncionarioId(e.target.value)}
-                                disabled={agendando}
+                                disabled={agendando || diaFechado}
                             >
                                 <option value="">Qualquer Funcionário Disponível</option>
                                 {especialistas.map(func => (
@@ -330,6 +385,7 @@ function SelecionarHorarioScreen({
                 <div className="form-group-agendamento">
                     <label htmlFor="slotSelect">Selecione o {modoReagendamento ? 'Novo ' : ''}Horário de Início:</label>
                     {loadingSlots ? (<p>Verificando horários...</p>)
+                     : diaFechado ? (<p className="slot-info">Selecione uma data válida para ver os horários.</p>)
                      : availableSlots.length === 0 ? (<p className="info-message"><IconInfo /> Nenhum horário disponível para esta data/serviço{selectedFuncionarioId ? '/funcionário' : ''}.</p>)
                      : (
                         <select
@@ -351,8 +407,7 @@ function SelecionarHorarioScreen({
                 <button
                     className="btn-confirmar-agendamento"
                     onClick={handleSubmit}
-                    // A validação do botão (que exige !selectedSlot) está correta
-                    disabled={agendando || loadingSlots || loadingPets || !selectedPetId || !selectedSlot || (meusPets.length === 0 && !modoReagendamento)}
+                    disabled={agendando || loadingSlots || loadingPets || !selectedPetId || !selectedSlot || (meusPets.length === 0 && !modoReagendamento) || diaFechado}
                     style={modoReagendamento ? {backgroundColor: '#3498db'} : {}}
                 >
                     {agendando ? (modoReagendamento ? 'Reagendando...' : 'Agendando...')

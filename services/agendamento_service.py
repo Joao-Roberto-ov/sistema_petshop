@@ -1,9 +1,8 @@
 from fastapi import HTTPException, status
-# --- INÍCIO DA MODIFICAÇÃO ---
 from datetime import date, datetime, time, timedelta, timezone
-# --- FIM DA MODIFICAÇÃO ---
 from typing import List, Optional
 import psycopg2
+
 from repositories.agendamento_repository import RepositorioAgendamento
 from repositories.servico_repository import RepositorioCatalogoServico
 from repositories.pet_repository import RepositorioPet
@@ -12,11 +11,21 @@ from services import historico_medico_service
 from modelos import HistoricoMedico
 from modelos import AgendamentoCreate, HorarioDisponivel, DisponibilidadeResponse, AgendamentoReagendar
 
-HORA_INICIO_MANHA = time(7, 0)
-HORA_FIM_MANHA = time(11, 30)
-HORA_INICIO_TARDE = time(14, 0)
-HORA_FIM_TARDE = time(18, 0)
-INTERVALO_MINUTOS = 15  # Define a granularidade dos slots (ex: de 15 em 15 minutos)
+# IMPORTAÇÃO ADICIONADA: Precisamos ler o repositório de configuração
+from repositories.config_repository import listar_horarios as repo_listar_horarios
+
+INTERVALO_MINUTOS = 15  # Define a granularidade dos slots
+
+# Mapeamento do Python (datetime.weekday()) para os nomes no banco
+DIAS_DA_SEMANA_MAP = [
+    "Segunda-feira",  # 0
+    "Terça-feira",  # 1
+    "Quarta-feira",  # 2
+    "Quinta-feira",  # 3
+    "Sexta-feira",  # 4
+    "Sábado",  # 5
+    "Domingo"  # 6
+]
 
 
 class ServicosAgendamento:
@@ -25,8 +34,48 @@ class ServicosAgendamento:
         self.repo_servico = RepositorioCatalogoServico()
         self.repo_pet = RepositorioPet()
         self.repo_funcionario = RepositorioFuncionario()
+        # Cache para armazenar os horários de funcionamento (evita N consultas ao DB)
+        self._horarios_cache = None
 
-    # --- INÍCIO DA NOVA FUNÇÃO HELPER ---
+    def _get_horarios_config(self):
+        """Busca os horários do banco ou do cache."""
+        if self._horarios_cache is None:
+            print("INFO: Cache de horários de funcionamento vazio. Buscando do banco...")
+            lista_horarios = repo_listar_horarios()
+            # Converte a lista de dicts em um mapa para acesso rápido
+            self._horarios_cache = {h['dia_semana']: h for h in lista_horarios}
+        return self._horarios_cache
+
+    def _get_horario_dia(self, dia: date):
+        """Pega os horários de funcionamento específicos para um dia da semana."""
+        dia_str = DIAS_DA_SEMANA_MAP[dia.weekday()]
+        config_horarios = self._get_horarios_config()
+
+        horario_dia = config_horarios.get(dia_str)
+
+        if not horario_dia:
+            raise HTTPException(status_code=500,
+                                detail=f"Configuração de horário para '{dia_str}' não encontrada no banco.")
+
+        def str_to_time(time_str):
+            """Converte 'HH:MM' (string) para objeto time()"""
+            if not time_str or len(time_str) < 5:
+                return None
+            try:
+                return datetime.strptime(time_str[:5], '%H:%M').time()
+            except (ValueError, TypeError):
+                return None
+
+        # Retorna um dicionário estruturado com os horários do dia
+        return {
+            "inicio_manha": str_to_time(horario_dia.get("inicio_manha")),
+            "fim_manha": str_to_time(horario_dia.get("fim_manha")),
+            "manha_ativa": horario_dia.get("manha_ativa", False),
+            "inicio_tarde": str_to_time(horario_dia.get("inicio_tarde")),
+            "fim_tarde": str_to_time(horario_dia.get("fim_tarde")),
+            "tarde_ativa": horario_dia.get("tarde_ativa", False),
+        }
+
     def _atualizar_status_para_ausencia(self, status: str, data_hora_inicio: datetime) -> str:
         """
         Verifica se um agendamento 'Agendado' já passou da data/hora.
@@ -44,8 +93,6 @@ class ServicosAgendamento:
 
         return status
 
-    # --- FIM DA NOVA FUNÇÃO HELPER ---
-
     def _obter_duracao_servico(self, servico_id: int) -> int:
         """Busca a duração de um serviço pelo ID."""
         servico = self.repo_servico.buscar_por_id(servico_id)
@@ -57,7 +104,8 @@ class ServicosAgendamento:
             raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                                 detail="Não foi possível obter a duração do serviço.")
 
-    def _calcular_fim_trabalho(self, inicio_servico: datetime, duracao_minutos: int) -> Optional[datetime]:
+    def _calcular_fim_trabalho(self, inicio_servico: datetime, duracao_minutos: int, horario_dia: dict) -> Optional[
+        datetime]:
         """
         Calcula o horário de término real de um serviço, pulando o horário de almoço.
         Retorna None se o serviço não couber no dia.
@@ -65,84 +113,104 @@ class ServicosAgendamento:
         dia = inicio_servico.date()
         tz = inicio_servico.tzinfo
 
-        # define os limites do dia de trabalho com timezone
-        inicio_manha = datetime.combine(dia, HORA_INICIO_MANHA, tzinfo=tz)
-        fim_manha = datetime.combine(dia, HORA_FIM_MANHA, tzinfo=tz)
-        inicio_tarde = datetime.combine(dia, HORA_INICIO_TARDE, tzinfo=tz)
-        fim_tarde = datetime.combine(dia, HORA_FIM_TARDE, tzinfo=tz)
+        # Pega horários do dicionário (podem ser None se o turno estiver inativo ou não definido)
+        inicio_manha = datetime.combine(dia, horario_dia["inicio_manha"], tzinfo=tz) if horario_dia["manha_ativa"] and \
+                                                                                        horario_dia[
+                                                                                            "inicio_manha"] else None
+        fim_manha = datetime.combine(dia, horario_dia["fim_manha"], tzinfo=tz) if horario_dia["manha_ativa"] and \
+                                                                                  horario_dia["fim_manha"] else None
+        inicio_tarde = datetime.combine(dia, horario_dia["inicio_tarde"], tzinfo=tz) if horario_dia["tarde_ativa"] and \
+                                                                                        horario_dia[
+                                                                                            "inicio_tarde"] else None
+        fim_tarde = datetime.combine(dia, horario_dia["fim_tarde"], tzinfo=tz) if horario_dia["tarde_ativa"] and \
+                                                                                  horario_dia["fim_tarde"] else None
 
         minutos_restantes = duracao_minutos
         fim_calculado = inicio_servico
 
-        # serviço deve começar dentro do horario de trabalho
-        if not ((inicio_servico >= inicio_manha and inicio_servico < fim_manha) or \
-                (inicio_servico >= inicio_tarde and inicio_servico < fim_tarde)):
-            return None
+        # Verifica se o início está dentro de um turno ativo
+        in_manha = inicio_manha and fim_manha and (inicio_servico >= inicio_manha and inicio_servico < fim_manha)
+        in_tarde = inicio_tarde and fim_tarde and (inicio_servico >= inicio_tarde and inicio_servico < fim_tarde)
 
-        # serviço começa de manhã
-        if inicio_servico < fim_manha:
+        if not (in_manha or in_tarde):
+            return None  # Começa fora do expediente
+
+        # Serviço começa de manhã
+        if in_manha:
             minutos_disponiveis_manha = (fim_manha - inicio_servico).total_seconds() / 60
 
             if minutos_restantes <= minutos_disponiveis_manha:
                 # Serviço termina antes do almoço
                 fim_calculado = inicio_servico + timedelta(minutes=minutos_restantes)
-                # Verifica se o término calculado exatamente no fim da manhã ou antes
                 if fim_calculado > fim_manha:
-                    return None  # Não pode terminar depois do fim da manhã
+                    return None  # Termina exatamente ou depois do fim da manhã
                 return fim_calculado
+
+            # Serviço "pula" o almoço
             else:
+                if not (inicio_tarde and fim_tarde):  # Tarde inativa
+                    return None  # Não cabe na manhã e não tem tarde
+
                 minutos_restantes -= minutos_disponiveis_manha
                 fim_calculado = inicio_tarde + timedelta(minutes=minutos_restantes)
                 if fim_calculado > fim_tarde:
-                    return None
+                    return None  # Não cabe na tarde
                 return fim_calculado
 
-        # serviço começa a tarde
-        elif inicio_servico >= inicio_tarde:
+        # Serviço começa a tarde
+        elif in_tarde:
             minutos_disponiveis_tarde = (fim_tarde - inicio_servico).total_seconds() / 60
 
             if minutos_restantes <= minutos_disponiveis_tarde:
                 fim_calculado = inicio_servico + timedelta(minutes=minutos_restantes)
-                # Verifica se o fim calculado ultrapassa o fim do expediente da tarde
                 if fim_calculado > fim_tarde:
                     return None
                 return fim_calculado
             else:
-                # nao cabe na tarde
-                return None
-        if fim_calculado > fim_tarde:
-            return None
+                return None  # Nao cabe na tarde
 
-        return fim_calculado  # Retorno padrão caso a lógica acima falhe (improvável)
+        return None  # Fallback
 
-    def _gerar_slots_dia(self, dia: date) -> List[datetime]:
-        """Gera todos os slots de *início* possíveis dentro do horário de funcionamento."""
+    def _gerar_slots_dia(self, dia: date, horario_dia: dict) -> List[datetime]:
+        """Gera todos os slots de *início* possíveis baseado nos turnos ATIVOS."""
         slots_inicio = []
         tz = timezone.utc
         intervalo = timedelta(minutes=INTERVALO_MINUTOS)
 
-        # Manhã
-        atual = datetime.combine(dia, HORA_INICIO_MANHA, tzinfo=tz)
-        fim_manha = datetime.combine(dia, HORA_FIM_MANHA, tzinfo=tz)
-        while atual < fim_manha:
-            slots_inicio.append(atual)
-            atual += intervalo
+        # Manhã (se ativa e horários definidos)
+        if horario_dia["manha_ativa"] and horario_dia["inicio_manha"] and horario_dia["fim_manha"]:
+            atual = datetime.combine(dia, horario_dia["inicio_manha"], tzinfo=tz)
+            fim_manha = datetime.combine(dia, horario_dia["fim_manha"], tzinfo=tz)
+            while atual < fim_manha:
+                slots_inicio.append(atual)
+                atual += intervalo
 
-        # Tarde
-        atual = datetime.combine(dia, HORA_INICIO_TARDE, tzinfo=tz)
-        fim_tarde = datetime.combine(dia, HORA_FIM_TARDE, tzinfo=tz)
-        while atual < fim_tarde:
-            slots_inicio.append(atual)
-            atual += intervalo
+        # Tarde (se ativa e horários definidos)
+        if horario_dia["tarde_ativa"] and horario_dia["inicio_tarde"] and horario_dia["fim_tarde"]:
+            atual = datetime.combine(dia, horario_dia["inicio_tarde"], tzinfo=tz)
+            fim_tarde = datetime.combine(dia, horario_dia["fim_tarde"], tzinfo=tz)
+            while atual < fim_tarde:
+                slots_inicio.append(atual)
+                atual += intervalo
 
         return slots_inicio
 
     def buscar_disponibilidade_servico(self, servico_id: int, data_consulta: date,
                                        agendamento_id_excluir: Optional[int] = None) -> DisponibilidadeResponse:
-        """
-        Calcula os horários de início disponíveis para um serviço,
-        opcionalmente ignorando um agendamento existente (para reagendamento).
-        """
+
+        # 1. Obter configuração do dia
+        try:
+            horario_dia = self._get_horario_dia(data_consulta)
+        except HTTPException:
+            # Dia não encontrado (erro de config), retorna vazio
+            return DisponibilidadeResponse(data=data_consulta, horarios=[])
+
+        # 2. VERIFICAÇÃO DE DIA ATIVO (Req 1 & 2)
+        if not horario_dia["manha_ativa"] and not horario_dia["tarde_ativa"]:
+            print(f"INFO: Tentativa de agendamento em dia inativo: {data_consulta}")
+            return DisponibilidadeResponse(data=data_consulta, horarios=[])  # Retorna vazio
+
+        # 3. Obter duração do serviço
         try:
             duracao_servico = self._obter_duracao_servico(servico_id)
         except HTTPException:
@@ -159,54 +227,57 @@ class ServicosAgendamento:
             exclude_id=agendamento_id_excluir
         )
         agendamentos_existentes = [
-            # garante que as datas/horas do banco tenham timezone UTC
             (ag[5].replace(tzinfo=timezone.utc), ag[6].replace(tzinfo=timezone.utc)) for ag in
             agendamentos_existentes_raw
         ]
 
-        # cria todos os slots de inicio possíveis no dia
-        slots_inicio_possiveis = self._gerar_slots_dia(data_consulta)
+        # 4. GERAR SLOTS (Req 3 - usa a nova função dinâmica)
+        slots_inicio_possiveis = self._gerar_slots_dia(data_consulta, horario_dia)
 
         horarios_disponiveis: List[HorarioDisponivel] = []
 
-        fim_manha_dia = datetime.combine(data_consulta, HORA_FIM_MANHA, tzinfo=tz)
-        inicio_tarde_dia = datetime.combine(data_consulta, HORA_INICIO_TARDE, tzinfo=tz)
+        # (Definindo limites para o cálculo do "pulo do almoço")
+        fim_manha_dia = datetime.combine(data_consulta, horario_dia["fim_manha"], tzinfo=tz) if horario_dia[
+                                                                                                    "manha_ativa"] and \
+                                                                                                horario_dia[
+                                                                                                    "fim_manha"] else None
+        inicio_tarde_dia = datetime.combine(data_consulta, horario_dia["inicio_tarde"], tzinfo=tz) if horario_dia[
+                                                                                                          "tarde_ativa"] and \
+                                                                                                      horario_dia[
+                                                                                                          "inicio_tarde"] else None
 
         for inicio_potencial in slots_inicio_possiveis:
-            # calcula o fim real do serviço a partir deste inicio, considerando o almoço
-            fim_potencial_real = self._calcular_fim_trabalho(inicio_potencial, duracao_servico)
+            # 5. CALCULAR FIM (Req 3 - usa a nova função dinâmica)
+            fim_potencial_real = self._calcular_fim_trabalho(inicio_potencial, duracao_servico, horario_dia)
 
             if fim_potencial_real is None:
-                continue  # oserviço nao cabe no dia a partir deste horário de início
+                continue  # o serviço nao cabe no dia a partir deste horário de início
 
-            # defini os segmentos de tempo que os serviços ocupariam
+            # Definição dos segmentos de tempo que os serviços ocupariam
             segments_to_check = []
-            if fim_potencial_real <= fim_manha_dia:  # Serviço termina antes do almoço
+            if fim_manha_dia and fim_potencial_real <= fim_manha_dia:  # Serviço termina antes do almoço
                 segments_to_check.append((inicio_potencial, fim_potencial_real))
             else:
-                # Segmento da manhã (se o serviço começa antes do fim da manhã)
-                if inicio_potencial < fim_manha_dia:
+                # Pula almoço ou começa à tarde
+                if fim_manha_dia and inicio_potencial < fim_manha_dia:
                     segments_to_check.append((inicio_potencial, fim_manha_dia))
-                # O início do segmento da tarde é o MAIOR entre o início do serviço e o início da tarde
-                start_afternoon_segment = max(inicio_potencial, inicio_tarde_dia)
-                if fim_potencial_real > inicio_tarde_dia:
-                    segments_to_check.append((start_afternoon_segment, fim_potencial_real))
 
-            # valida se algum desses segmentos colide com agendamentos existentes
+                if inicio_tarde_dia:
+                    start_afternoon_segment = max(inicio_potencial, inicio_tarde_dia)
+                    if fim_potencial_real > inicio_tarde_dia:
+                        segments_to_check.append((start_afternoon_segment, fim_potencial_real))
+
             colide = False
             for (seg_inicio, seg_fim) in segments_to_check:
-                # Ignora segmentos inválidos (duração zero ou negativa)
                 if (seg_fim - seg_inicio).total_seconds() <= 0:
                     continue
-                # Verifica colisão com cada agendamento existente
                 for (ag_inicio, ag_fim) in agendamentos_existentes:
                     if seg_inicio < ag_fim and seg_fim > ag_inicio:
                         colide = True
-                        break  # Se colidiu com um, não precisa verificar os outros
+                        break
                 if colide:
-                    break  # Se um segmento colidiu, o slot não está disponível
+                    break
 
-            # adiciona o horário a lista de disponíveis
             if not colide:
                 horarios_disponiveis.append(HorarioDisponivel(inicio=inicio_potencial, fim=fim_potencial_real))
 
@@ -222,6 +293,13 @@ class ServicosAgendamento:
         if not pet:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                                 detail="Pet não encontrado ou não pertence a este cliente.")
+
+        # Obter horários do dia selecionado
+        horario_dia = self._get_horario_dia(agendamento_data.data_hora_inicio.date())
+        if not horario_dia["manha_ativa"] and not horario_dia["tarde_ativa"]:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                                detail="A data selecionada não possui atendimento (dia fechado).")
+
         try:
             duracao_servico = self._obter_duracao_servico(agendamento_data.servico_id)
         except HTTPException as e:
@@ -231,40 +309,43 @@ class ServicosAgendamento:
         if data_hora_inicio.tzinfo is None:
             data_hora_inicio = data_hora_inicio.replace(tzinfo=timezone.utc)
 
-        # Calcula fim real
-        data_hora_fim = self._calcular_fim_trabalho(data_hora_inicio, duracao_servico)
+        # Calcula fim real usando os horários do dia
+        data_hora_fim = self._calcular_fim_trabalho(data_hora_inicio, duracao_servico, horario_dia)
         if data_hora_fim is None:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
                                 detail="O horário solicitado é inválido ou não cabe no expediente.")
 
-        # Verifica conflitos gerais
+        # Verifica conflitos gerais (lógica de segmentos atualizada)
         segments_to_check = []
         dia = data_hora_inicio.date()
         tz = data_hora_inicio.tzinfo
-        fim_manha_dia = datetime.combine(dia, HORA_FIM_MANHA, tzinfo=tz)
-        inicio_tarde_dia = datetime.combine(dia, HORA_INICIO_TARDE, tzinfo=tz)
+        fim_manha_dia = datetime.combine(dia, horario_dia["fim_manha"], tzinfo=tz) if horario_dia["manha_ativa"] and \
+                                                                                      horario_dia["fim_manha"] else None
+        inicio_tarde_dia = datetime.combine(dia, horario_dia["inicio_tarde"], tzinfo=tz) if horario_dia[
+                                                                                                "tarde_ativa"] and \
+                                                                                            horario_dia[
+                                                                                                "inicio_tarde"] else None
 
-        if data_hora_fim <= fim_manha_dia:
+        if fim_manha_dia and data_hora_fim <= fim_manha_dia:
             segments_to_check.append((data_hora_inicio, data_hora_fim))
         else:
-            if data_hora_inicio < fim_manha_dia:
+            if fim_manha_dia and data_hora_inicio < fim_manha_dia:
                 segments_to_check.append((data_hora_inicio, fim_manha_dia))
-            start_afternoon_segment = max(data_hora_inicio, inicio_tarde_dia)
-            if data_hora_fim > inicio_tarde_dia:
-                segments_to_check.append((start_afternoon_segment, data_hora_fim))
+            if inicio_tarde_dia:
+                start_afternoon_segment = max(data_hora_inicio, inicio_tarde_dia)
+                if data_hora_fim > inicio_tarde_dia:
+                    segments_to_check.append((start_afternoon_segment, data_hora_fim))
 
         for (seg_inicio, seg_fim) in segments_to_check:
             if (seg_fim - seg_inicio).total_seconds() <= 0: continue
             agendamentos_colidentes = self.repo_agendamento.buscar_agendamentos_por_intervalo(seg_inicio, seg_fim)
             if agendamentos_colidentes:
-                # Verifica se a colisão é com o funcionário específico, se um foi escolhido
                 if agendamento_data.funcionario_id:
                     for ag_colidente in agendamentos_colidentes:
                         if ag_colidente[4] == agendamento_data.funcionario_id:
                             raise HTTPException(status_code=status.HTTP_409_CONFLICT,
                                                 detail="O funcionário selecionado já está ocupado neste horário.")
                 else:
-                    # Se nenhum funcionário foi escolhido, qualquer colisão geral impede
                     raise HTTPException(status_code=status.HTTP_409_CONFLICT,
                                         detail="O horário solicitado já está ocupado.")
 
@@ -303,26 +384,21 @@ class ServicosAgendamento:
         """Lista os agendamentos de um cliente."""
         agendamentos_raw = self.repo_agendamento.buscar_agendamentos_cliente(cliente_id)
         agendamentos = []
-        # mapeamento atualizado para incluir servico_id, duracao e pet_id
         for row in agendamentos_raw:
-            # --- INÍCIO DA MODIFICAÇÃO (Cliente) ---
-            # row[3] é o status, row[1] é data_hora_inicio
             status_atualizado = self._atualizar_status_para_ausencia(row[3], row[1])
-            # --- FIM DA MODIFICAÇÃO (Cliente) ---
-
             agendamentos.append({
                 "id": row[0],
                 "data_hora_inicio": row[1].isoformat(),
                 "data_hora_fim": row[2].isoformat(),
-                "status": status_atualizado,  # <-- Variável atualizada
+                "status": status_atualizado,
                 "servico_nome": row[4],
                 "servico_preco": float(row[5]),
                 "pet_nome": row[6],
                 "funcionario_nome": row[7] or "Não atribuído",
                 "status_motivo": row[8],
-                "servico_id": row[9],  # ID do serviço
-                "servico_duracao": row[10],  # Duração do serviço
-                "pet_id": row[11]  # ID do pet
+                "servico_id": row[9],
+                "servico_duracao": row[10],
+                "pet_id": row[11]
             })
         return agendamentos
 
@@ -335,11 +411,9 @@ class ServicosAgendamento:
         if not agendamento_raw:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Agendamento não encontrado.")
 
-        # Desempacota incluindo o status_motivo se ele existir na tupla
         ag_id, ag_cliente_id, ag_pet_id, ag_servico_id, ag_inicio, ag_fim, ag_status, *extra = agendamento_raw[:8]
-        ag_status_motivo = extra[0] if extra else None  # Pega o motivo se existir
+        ag_status_motivo = extra[0] if extra else None
 
-        # Garante timezone para comparação
         ag_inicio_tz = ag_inicio.replace(tzinfo=timezone.utc) if ag_inicio.tzinfo is None else ag_inicio
 
         agendamento = {
@@ -349,22 +423,18 @@ class ServicosAgendamento:
             "status": ag_status
         }
 
-        # Verifica permissão
         if agendamento["cliente_id"] != cliente_id_token:
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
                                 detail="Você não tem permissão para cancelar este agendamento.")
 
-        # Verifica se já ocorreu
         agora = datetime.now(timezone.utc)
         if agendamento["data_hora_inicio"] <= agora:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
                                 detail="Não é possível cancelar um agendamento que já ocorreu ou está em andamento.")
 
-        # Verifica se já está cancelado
         if agendamento["status"] == 'Cancelado':
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Este agendamento já está cancelado.")
 
-        # Define o motivo do cancelamento
         diferenca_tempo = agendamento["data_hora_inicio"] - agora
         motivo_cancelamento = ""
         if diferenca_tempo > timedelta(hours=24):
@@ -372,7 +442,6 @@ class ServicosAgendamento:
         else:
             motivo_cancelamento = "Cancelado pelo cliente com menos de 24h."
 
-        # Atualiza o status no banco
         sucesso = self.repo_agendamento.atualizar_status_agendamento(
             agendamento_id=agendamento_id,
             novo_status="Cancelado",
@@ -420,25 +489,38 @@ class ServicosAgendamento:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
                                 detail="Não é possível reagendar para uma data ou hora no passado.")
 
-        nova_data_hora_fim = self._calcular_fim_trabalho(nova_data_hora_inicio, duracao_servico)
+        # Obter horários do dia
+        horario_dia = self._get_horario_dia(nova_data_hora_inicio.date())
+        if not horario_dia["manha_ativa"] and not horario_dia["tarde_ativa"]:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                                detail="A data selecionada não possui atendimento (dia fechado).")
+
+        nova_data_hora_fim = self._calcular_fim_trabalho(nova_data_hora_inicio, duracao_servico, horario_dia)
 
         if nova_data_hora_fim is None:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
                                 detail="O novo horário selecionado é inválido ou não cabe no expediente.")
 
-        # verificação de conflitos
+        # verificação de conflitos (com segmentos atualizados)
         segments_to_check = []
         dia = nova_data_hora_inicio.date()
         tz = nova_data_hora_inicio.tzinfo
-        fim_manha_dia = datetime.combine(dia, HORA_FIM_MANHA, tzinfo=tz)
-        inicio_tarde_dia = datetime.combine(dia, HORA_INICIO_TARDE, tzinfo=tz)
-        if nova_data_hora_fim <= fim_manha_dia:
+        fim_manha_dia = datetime.combine(dia, horario_dia["fim_manha"], tzinfo=tz) if horario_dia["manha_ativa"] and \
+                                                                                      horario_dia["fim_manha"] else None
+        inicio_tarde_dia = datetime.combine(dia, horario_dia["inicio_tarde"], tzinfo=tz) if horario_dia[
+                                                                                                "tarde_ativa"] and \
+                                                                                            horario_dia[
+                                                                                                "inicio_tarde"] else None
+
+        if fim_manha_dia and nova_data_hora_fim <= fim_manha_dia:
             segments_to_check.append((nova_data_hora_inicio, nova_data_hora_fim))
         else:
-            if nova_data_hora_inicio < fim_manha_dia: segments_to_check.append((nova_data_hora_inicio, fim_manha_dia))
-            start_afternoon_segment = max(nova_data_hora_inicio, inicio_tarde_dia)
-            if nova_data_hora_fim > inicio_tarde_dia: segments_to_check.append(
-                (start_afternoon_segment, nova_data_hora_fim))
+            if fim_manha_dia and nova_data_hora_inicio < fim_manha_dia:
+                segments_to_check.append((nova_data_hora_inicio, fim_manha_dia))
+            if inicio_tarde_dia:
+                start_afternoon_segment = max(nova_data_hora_inicio, inicio_tarde_dia)
+                if nova_data_hora_fim > inicio_tarde_dia:
+                    segments_to_check.append((start_afternoon_segment, nova_data_hora_fim))
 
         for (seg_inicio, seg_fim) in segments_to_check:
             if (seg_fim - seg_inicio).total_seconds() <= 0: continue
@@ -471,7 +553,6 @@ class ServicosAgendamento:
         if not agendamento_raw:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Agendamento não encontrado.")
 
-        # Ajuste no desempacotamento
         ag_id, ag_cliente_id, ag_pet_id, ag_servico_id, ag_inicio, ag_fim, ag_status, *extra = agendamento_raw[:8]
         ag_inicio_tz = ag_inicio.replace(tzinfo=timezone.utc) if ag_inicio.tzinfo is None else ag_inicio
 
@@ -509,7 +590,6 @@ class ServicosAgendamento:
         agendamento_raw = self.repo_agendamento.buscar_agendamento_por_id(agendamento_id)
         if not agendamento_raw:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Agendamento não encontrado.")
-        # Ajuste no desempacotamento
         ag_id, ag_cliente_id, ag_pet_id, ag_servico_id, ag_inicio, ag_fim, ag_status, *_ = agendamento_raw[:8]
 
         if ag_status != 'Agendado':
@@ -534,24 +614,38 @@ class ServicosAgendamento:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
                                 detail="Não é possível reagendar para uma data ou hora no passado.")
 
-        nova_data_hora_fim = self._calcular_fim_trabalho(nova_data_hora_inicio, duracao_servico)
+        # Obter horários do dia
+        horario_dia = self._get_horario_dia(nova_data_hora_inicio.date())
+        if not horario_dia["manha_ativa"] and not horario_dia["tarde_ativa"]:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                                detail="A data selecionada não possui atendimento (dia fechado).")
+
+        nova_data_hora_fim = self._calcular_fim_trabalho(nova_data_hora_inicio, duracao_servico, horario_dia)
 
         if nova_data_hora_fim is None:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
                                 detail="O novo horário selecionado é inválido ou não cabe no expediente.")
 
+        # Verificação de conflitos (segmentos atualizados)
         segments_to_check = []
         dia = nova_data_hora_inicio.date()
         tz = nova_data_hora_inicio.tzinfo
-        fim_manha_dia = datetime.combine(dia, HORA_FIM_MANHA, tzinfo=tz)
-        inicio_tarde_dia = datetime.combine(dia, HORA_INICIO_TARDE, tzinfo=tz)
-        if nova_data_hora_fim <= fim_manha_dia:
+        fim_manha_dia = datetime.combine(dia, horario_dia["fim_manha"], tzinfo=tz) if horario_dia["manha_ativa"] and \
+                                                                                      horario_dia["fim_manha"] else None
+        inicio_tarde_dia = datetime.combine(dia, horario_dia["inicio_tarde"], tzinfo=tz) if horario_dia[
+                                                                                                "tarde_ativa"] and \
+                                                                                            horario_dia[
+                                                                                                "inicio_tarde"] else None
+
+        if fim_manha_dia and nova_data_hora_fim <= fim_manha_dia:
             segments_to_check.append((nova_data_hora_inicio, nova_data_hora_fim))
         else:
-            if nova_data_hora_inicio < fim_manha_dia: segments_to_check.append((nova_data_hora_inicio, fim_manha_dia))
-            start_afternoon_segment = max(nova_data_hora_inicio, inicio_tarde_dia)
-            if nova_data_hora_fim > inicio_tarde_dia: segments_to_check.append(
-                (start_afternoon_segment, nova_data_hora_fim))
+            if fim_manha_dia and nova_data_hora_inicio < fim_manha_dia:
+                segments_to_check.append((nova_data_hora_inicio, fim_manha_dia))
+            if inicio_tarde_dia:
+                start_afternoon_segment = max(nova_data_hora_inicio, inicio_tarde_dia)
+                if nova_data_hora_fim > inicio_tarde_dia:
+                    segments_to_check.append((start_afternoon_segment, nova_data_hora_fim))
 
         for (seg_inicio, seg_fim) in segments_to_check:
             if (seg_fim - seg_inicio).total_seconds() <= 0: continue
@@ -635,7 +729,7 @@ class ServicosAgendamento:
             funcionario_id=funcionario_id,
             valor=servico_preco
         )
-        
+
         try:
             historico_id = historico_medico_service.registrar_historico(historico_data)
             print(f"✅ Histórico médico registrado com ID: {historico_id}")
@@ -668,16 +762,12 @@ class ServicosAgendamento:
         agendamentos_raw = self.repo_agendamento.buscar_todos_agendamentos()
         agendamentos = []
         for row in agendamentos_raw:
-            # --- INÍCIO DA MODIFICAÇÃO (Gestor) ---
-            # row[3] é o status, row[1] é data_hora_inicio
             status_atualizado = self._atualizar_status_para_ausencia(row[3], row[1])
-            # --- FIM DA MODIFICAÇÃO (Gestor) ---
-
             agendamentos.append({
                 "id": row[0],
                 "data_hora_inicio": row[1].isoformat(),
                 "data_hora_fim": row[2].isoformat(),
-                "status": status_atualizado,  # <-- Variável atualizada
+                "status": status_atualizado,
                 "servico_nome": row[4],
                 "servico_preco": float(row[5]),
                 "pet_nome": row[6],
@@ -693,32 +783,27 @@ class ServicosAgendamento:
         """
         Permite que um funcionário assuma um agendamento vago.
         """
-        # 1. Buscar dados do funcionário (para retornar o nome)
         funcionario = self.repo_funcionario.procurar_pelo_id(funcionario_id)
         if not funcionario:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Funcionário não encontrado.")
 
-        # 2. Verificar se o agendamento existe e está vago
         agendamento_raw = self.repo_agendamento.buscar_agendamento_por_id(agendamento_id)
         if not agendamento_raw:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Agendamento não encontrado.")
 
-        ag_funcionario_id = agendamento_raw[8]  # O índice 8 é o funcionario_id na tupla
+        ag_funcionario_id = agendamento_raw[8]
 
         if ag_funcionario_id is not None:
             raise HTTPException(status_code=status.HTTP_409_CONFLICT,
-                                detail="Este agendamento já foi assumido por outro funcionário.")
+                                detail="Este agendamento já foi assumido por outra pessoa.")
 
-        # 3. Tentar atribuir o funcionário ao agendamento
         try:
             linhas_afetadas = self.repo_agendamento.atribuir_funcionario(agendamento_id, funcionario_id)
 
-            # 4. Verificar se a atribuição foi bem-sucedida (evita race condition)
             if linhas_afetadas == 0:
                 raise HTTPException(status_code=status.HTTP_409_CONFLICT,
                                     detail="Este agendamento foi assumido por outra pessoa.")
 
-            # 5. Retornar sucesso
             return {
                 "message": "Agendamento assumido com sucesso!",
                 "funcionario_id": funcionario_id,

@@ -319,10 +319,9 @@ app.include_router(produto_router.router)
 app.include_router(checkout_router.router)
 app.include_router(agendamento_router.router)
 app.include_router(despesa_router.router)
-app.include_router(config_router.router)
+app.include_router(config_router.router, prefix="/api")
 app.include_router(user_router.router)
-
-# app.mount("/static", StaticFiles(directory=os.path.join(frontend_dir, "static")), name="static")
+app.mount("/static", StaticFiles(directory=os.path.join(frontend_dir, "static")), name="static")
 
 @app.get("/{full_path:path}")
 async def serve_react_app(full_path: str):

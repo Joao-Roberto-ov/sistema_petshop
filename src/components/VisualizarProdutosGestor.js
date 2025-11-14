@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import axios from '../api/axios';
 
-function VisualizarProdutosGestor({ onBack }) {
+function VisualizarProdutosGestor({ onBack, onNavigateToAtualizarEstoque }) {
     const [produtos, setProdutos] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
@@ -149,9 +149,12 @@ function VisualizarProdutosGestor({ onBack }) {
                 <div className="container">
                     <h1 className="animate-fade-in-up">Gerenciar Produtos</h1>
                     <p className="animate-fade-in-up">
-                        Visualize e edite todos os produtos cadastrados no sistema.
+                        Visualize, edite e atualize o estoque dos produtos cadastrados.
                     </p>
                     <div className="hero-buttons">
+                        <button className="btn btn-outline-white hover-lift" onClick={onNavigateToAtualizarEstoque}>
+                            📦 Atualizar Estoque
+                        </button>
                         <button className="btn btn-outline-white hover-lift" onClick={onBack}>
                             Voltar
                         </button>

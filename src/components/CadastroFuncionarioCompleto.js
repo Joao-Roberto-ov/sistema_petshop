@@ -10,8 +10,44 @@ const CARGOS = {
     ATENDENTE: 4
 };
 
+// --- Componentes Visuais (Ícones e Medidor) ---
+
+const IconEye = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+        <circle cx="12" cy="12" r="3"></circle>
+    </svg>
+);
+
+const IconEyeOff = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
+        <line x1="1" y1="1" x2="23" y2="23"></line>
+    </svg>
+);
+
+const PasswordStrengthMeter = ({ checks }) => {
+    const checkItems = [
+        { key: 'length', text: 'Pelo menos 8 caracteres' },
+        { key: 'case', text: 'Letras maiúsculas e minúsculas' },
+        { key: 'number', text: 'Pelo menos um número' },
+        { key: 'noSpaces', text: 'Não conter espaços' },
+    ];
+
+    return (
+        <div className="password-tooltip">
+            <ul>
+                {checkItems.map(item => (
+                    <li key={item.key} className={checks[item.key] ? 'valid' : 'invalid'}>
+                        {checks[item.key] ? '✓' : '✗'} {item.text}
+                    </li>
+                ))}
+            </ul>
+        </div>
+    );
+};
+
 function CadastroFuncionarioCompleto({ onNavigateToHome }) {
-    // Estados para os campos do formulário
     const [nome, setNome] = useState('');
     const [cargoId, setCargoId] = useState('');
     const [email, setEmail] = useState('');
@@ -30,9 +66,16 @@ function CadastroFuncionarioCompleto({ onNavigateToHome }) {
     const [fieldErrors, setFieldErrors] = useState({});
     const [catalogoServicos, setCatalogoServicos] = useState([]);
     const [especialidades, setEspecialidades] = useState([]);
+
+    // Estados para validação e visualização de senha
+    const [showPassword, setShowPassword] = useState(false);
+    const [isPasswordFocused, setIsPasswordFocused] = useState(false);
+    const [passwordChecks, setPasswordChecks] = useState({
+        length: false, case: false, number: false, noSpaces: true
+    });
+
     const diasSemana = ['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado', 'Domingo'];
 
-    // Busca o catálogo de serviços
     useEffect(() => {
         const fetchServicos = async () => {
             try {
@@ -43,22 +86,87 @@ function CadastroFuncionarioCompleto({ onNavigateToHome }) {
                 setError("Não foi possível carregar a lista de serviços para as especialidades.");
             }
         };
-
         fetchServicos();
-    }, []); // Executa apenas uma vez
+    }, []);
 
-    // Função para validar campos obrigatórios
+    // Validação de senha em tempo real
+    useEffect(() => {
+        const validatePassword = (password) => {
+            const checks = {
+                length: password.length >= 8,
+                case: /(?=.*[a-z])(?=.*[A-Z])/.test(password),
+                number: /(?=.*\d)/.test(password),
+                noSpaces: !/\s/.test(password),
+            };
+            setPasswordChecks(checks);
+        };
+        validatePassword(senha);
+    }, [senha]);
+
+    const isPasswordValid = Object.values(passwordChecks).every(Boolean);
+
+    // --- FUNÇÃO PARA LIMPAR ERROS ---
+    const clearError = (fieldName) => {
+        if (fieldErrors[fieldName]) {
+            setFieldErrors(prev => {
+                const newErrors = { ...prev };
+                delete newErrors[fieldName];
+                return newErrors;
+            });
+        }
+    };
+
+    // --- MÁSCARAS E FORMATAÇÃO ---
+    const capitalizeName = (value) => {
+        if (!value) return '';
+        return value.toLowerCase().split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+    };
+
+    const handleNameChange = (e) => {
+        const valueWithoutNumbers = e.target.value.replace(/[0-9]/g, '');
+        setNome(capitalizeName(valueWithoutNumbers));
+        clearError('nome');
+    };
+
+    const formatPhone = (value) => {
+        if (!value) return "";
+        const digits = value.replace(/\D/g, "").slice(0, 11);
+        let result = "";
+        if (digits.length > 0) result = "(" + digits.substring(0, 2);
+        if (digits.length > 2) result += ") " + digits.substring(2, 7);
+        if (digits.length > 7) result += "-" + digits.substring(7, 11);
+        return result;
+    };
+
+    const formatCPF = (value) => {
+        if (!value) return '';
+        let digits = value.replace(/\D/g, '');
+        if (digits.length > 11) digits = digits.slice(0, 11);
+        if (digits.length > 9) return `${digits.slice(0, 3)}.${digits.slice(3, 6)}.${digits.slice(6, 9)}-${digits.slice(9)}`;
+        else if (digits.length > 6) return `${digits.slice(0, 3)}.${digits.slice(3, 6)}.${digits.slice(6)}`;
+        else if (digits.length > 3) return `${digits.slice(0, 3)}.${digits.slice(3)}`;
+        return digits;
+    };
+
     const validarCampos = () => {
         const errors = {};
         if (!nome || !nome.trim()) errors.nome = 'Nome completo é obrigatório';
         if (!cargoId) errors.cargoId = 'Cargo é obrigatório';
-        if (!email) errors.email = 'E-mail é obrigatório';
+
+        if (!email) {
+            errors.email = 'E-mail é obrigatório';
+        } else if (!/\S+@\S+\.\S+/.test(email)) {
+            errors.email = 'Formato de e-mail inválido';
+        }
+
         if (!telefone || !telefone.trim()) errors.telefone = 'Telefone é obrigatório';
         if (!horarioInicio) errors.horarioInicio = 'Horário de início é obrigatório';
         if (!horarioFim) errors.horarioFim = 'Horário de fim é obrigatório';
         if (diasTrabalho.length === 0) errors.diasTrabalho = 'Pelo menos um dia de trabalho deve ser selecionado';
-        if (!senha || senha.length < 6) errors.senha = 'Senha deve ter pelo menos 6 caracteres';
+
+        if (!isPasswordValid) errors.senha = 'A senha não atende aos requisitos de segurança';
         if (senha !== confirmarSenha) errors.confirmarSenha = 'Senhas não coincidem';
+
         if (horarioInicio && horarioFim && horarioInicio >= horarioFim) errors.horarioFim = 'Horário de fim deve ser posterior ao horário de início';
 
         setFieldErrors(errors);
@@ -66,14 +174,19 @@ function CadastroFuncionarioCompleto({ onNavigateToHome }) {
     };
 
     const handleDiaTrabalhoChange = (dia) => {
-        setDiasTrabalho(prev => prev.includes(dia) ? prev.filter(d => d !== dia) : [...prev, dia]);
+        setDiasTrabalho(prev => {
+            const novosDias = prev.includes(dia) ? prev.filter(d => d !== dia) : [...prev, dia];
+            if (novosDias.length > 0) clearError('diasTrabalho');
+            return novosDias;
+        });
     };
+
     const handleEspecialidadeChange = (servicoId) => {
         setEspecialidades(prev => {
             if (prev.includes(servicoId)) {
-                return prev.filter(id => id !== servicoId); // Desmarca
+                return prev.filter(id => id !== servicoId);
             } else {
-                return [...prev, servicoId]; // Marca
+                return [...prev, servicoId];
             }
         });
     };
@@ -84,17 +197,6 @@ function CadastroFuncionarioCompleto({ onNavigateToHome }) {
         } else {
             setEspecialidades([]);
         }
-    };
-
-    // Funções de formatação
-    const formatarCPF = (value) => {
-        const numeros = value.replace(/\D/g, '');
-        return numeros.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
-    };
-    const formatarTelefone = (value) => {
-        const numeros = value.replace(/\D/g, '');
-        if (numeros.length <= 10) return numeros.replace(/(\d{2})(\d{4})(\d{4})/, '($1) $2-$3');
-        return numeros.replace(/(\d{2})(\d{5})(\d{4})/, '($1) $2-$3');
     };
 
     const handleSubmit = async (e) => {
@@ -137,7 +239,7 @@ function CadastroFuncionarioCompleto({ onNavigateToHome }) {
 
             setSuccess(response.data.message || 'Funcionário cadastrado com sucesso!');
 
-            // Limpar formulário
+            // Limpar campos
             setNome('');
             setCargoId('');
             setEmail('');
@@ -150,8 +252,8 @@ function CadastroFuncionarioCompleto({ onNavigateToHome }) {
             setSenha('');
             setConfirmarSenha('');
             setIsAtivo(true);
-            setEspecialidades([]); // Limpa especialidades
-            setFieldErrors({});
+            setEspecialidades([]);
+            setFieldErrors({}); // Limpar erros
 
         } catch (err) {
             console.error('Erro ao cadastrar funcionário:', err);
@@ -160,6 +262,7 @@ function CadastroFuncionarioCompleto({ onNavigateToHome }) {
             setIsLoading(false);
         }
     };
+
     const isServicosGerais = catalogoServicos.length > 0 && especialidades.length === catalogoServicos.length;
 
     return (
@@ -174,7 +277,6 @@ function CadastroFuncionarioCompleto({ onNavigateToHome }) {
                 {success && <div className="success-message">{success}</div>}
 
                 <form onSubmit={handleSubmit}>
-                    {/* Nome Completo */}
                     <div className="form-group">
                         <label className="form-label">Nome Completo <span className="required">*</span></label>
                         <input
@@ -182,18 +284,17 @@ function CadastroFuncionarioCompleto({ onNavigateToHome }) {
                             className={`form-input ${fieldErrors.nome ? 'error' : ''}`}
                             placeholder="Digite o nome completo"
                             value={nome}
-                            onChange={(e) => setNome(e.target.value)}
+                            onChange={handleNameChange}
                         />
                         {fieldErrors.nome && <span className="field-error">{fieldErrors.nome}</span>}
                     </div>
 
-                    {/* Cargo/Função */}
                     <div className="form-group">
                         <label className="form-label">Cargo <span className="required">*</span></label>
                         <select
                             className={`form-input ${fieldErrors.cargoId ? 'error' : ''}`}
                             value={cargoId}
-                            onChange={(e) => setCargoId(e.target.value)}
+                            onChange={(e) => { setCargoId(e.target.value); clearError('cargoId'); }}
                         >
                             <option value="">Selecione um cargo</option>
                             <option value={CARGOS.GESTOR}>Gestor</option>
@@ -207,19 +308,13 @@ function CadastroFuncionarioCompleto({ onNavigateToHome }) {
                     {cargoId === String(CARGOS.FUNCIONARIO) && (
                         <div className="form-group especialidades-container">
                             <label className="form-label">Especialidades (Opcional)</label>
-                            <p>Selecione os serviços que este funcionário realiza. Se nada for selecionado, ele será considerado apto para "Serviços Gerais".</p>
-
+                            <p>Selecione os serviços que este funcionário realiza.</p>
                             <div className="especialidade-item">
                                 <label className="checkbox-label" style={{fontWeight: 'bold'}}>
-                                    <input
-                                        type="checkbox"
-                                        checked={isServicosGerais}
-                                        onChange={handleServicosGerais}
-                                    />
+                                    <input type="checkbox" checked={isServicosGerais} onChange={handleServicosGerais} />
                                     Serviços Gerais (Selecionar Todos)
                                 </label>
                             </div>
-
                             <div className="especialidades-grid">
                                 {catalogoServicos.length > 0 ? (
                                     catalogoServicos.map(servico => (
@@ -235,13 +330,11 @@ function CadastroFuncionarioCompleto({ onNavigateToHome }) {
                                             </label>
                                         </div>
                                     ))
-                                ) : (
-                                    <p>Carregando serviços...</p>
-                                )}
+                                ) : (<p>Carregando serviços...</p>)}
                             </div>
                         </div>
                     )}
-                    {/* Informações de Contato */}
+
                     <div className="form-row">
                         <div className="form-group">
                             <label className="form-label">E-mail <span className="required">*</span></label>
@@ -250,7 +343,7 @@ function CadastroFuncionarioCompleto({ onNavigateToHome }) {
                                 className={`form-input ${fieldErrors.email ? 'error' : ''}`}
                                 placeholder="Digite o e-mail"
                                 value={email}
-                                onChange={(e) => setEmail(e.target.value)}
+                                onChange={(e) => { setEmail(e.target.value); clearError('email'); }}
                             />
                             {fieldErrors.email && <span className="field-error">{fieldErrors.email}</span>}
                         </div>
@@ -259,16 +352,15 @@ function CadastroFuncionarioCompleto({ onNavigateToHome }) {
                             <input
                                 type="text"
                                 className={`form-input ${fieldErrors.telefone ? 'error' : ''}`}
-                                placeholder="(11) 99999-9999"
+                                placeholder="(00) 00000-0000"
                                 value={telefone}
-                                onChange={(e) => setTelefone(formatarTelefone(e.target.value))}
+                                onChange={(e) => { setTelefone(formatPhone(e.target.value)); clearError('telefone'); }}
                                 maxLength="15"
                             />
                             {fieldErrors.telefone && <span className="field-error">{fieldErrors.telefone}</span>}
                         </div>
                     </div>
 
-                    {/* CPF e Endereço */}
                     <div className="form-row">
                         <div className="form-group">
                             <label className="form-label">CPF</label>
@@ -277,7 +369,7 @@ function CadastroFuncionarioCompleto({ onNavigateToHome }) {
                                 className="form-input"
                                 placeholder="000.000.000-00"
                                 value={cpf}
-                                onChange={(e) => setCpf(formatarCPF(e.target.value))}
+                                onChange={(e) => setCpf(formatCPF(e.target.value))}
                                 maxLength="14"
                             />
                         </div>
@@ -293,7 +385,6 @@ function CadastroFuncionarioCompleto({ onNavigateToHome }) {
                         </div>
                     </div>
 
-                    {/* Horários de Trabalho */}
                     <div className="form-row">
                         <div className="form-group">
                             <label className="form-label">Horário de Início <span className="required">*</span></label>
@@ -301,7 +392,7 @@ function CadastroFuncionarioCompleto({ onNavigateToHome }) {
                                 type="time"
                                 className={`form-input ${fieldErrors.horarioInicio ? 'error' : ''}`}
                                 value={horarioInicio}
-                                onChange={(e) => setHorarioInicio(e.target.value)}
+                                onChange={(e) => { setHorarioInicio(e.target.value); clearError('horarioInicio'); }}
                             />
                             {fieldErrors.horarioInicio && <span className="field-error">{fieldErrors.horarioInicio}</span>}
                         </div>
@@ -311,13 +402,12 @@ function CadastroFuncionarioCompleto({ onNavigateToHome }) {
                                 type="time"
                                 className={`form-input ${fieldErrors.horarioFim ? 'error' : ''}`}
                                 value={horarioFim}
-                                onChange={(e) => setHorarioFim(e.target.value)}
+                                onChange={(e) => { setHorarioFim(e.target.value); clearError('horarioFim'); }}
                             />
                             {fieldErrors.horarioFim && <span className="field-error">{fieldErrors.horarioFim}</span>}
                         </div>
                     </div>
 
-                    {/* Dias de Trabalho */}
                     <div className="form-group">
                         <label className="form-label">Dias de Trabalho <span className="required">*</span></label>
                         <div className="checkbox-group">
@@ -335,19 +425,43 @@ function CadastroFuncionarioCompleto({ onNavigateToHome }) {
                         {fieldErrors.diasTrabalho && <span className="field-error">{fieldErrors.diasTrabalho}</span>}
                     </div>
 
-                    {/* Senha */}
                     <div className="form-row">
-                        <div className="form-group">
+                        <div className="form-group" style={{ position: 'relative' }}>
                             <label className="form-label">Senha <span className="required">*</span></label>
-                            <input
-                                type="password"
-                                className={`form-input ${fieldErrors.senha ? 'error' : ''}`}
-                                placeholder="Mínimo 6 caracteres"
-                                value={senha}
-                                onChange={(e) => setSenha(e.target.value)}
-                            />
+                            <div style={{ position: 'relative' }}>
+                                <input
+                                    type={showPassword ? "text" : "password"}
+                                    className={`form-input ${fieldErrors.senha ? 'error' : ''}`}
+                                    placeholder="Mínimo 8 caracteres"
+                                    value={senha}
+                                    onChange={(e) => { setSenha(e.target.value); clearError('senha'); }}
+                                    onFocus={() => setIsPasswordFocused(true)}
+                                    onBlur={() => setIsPasswordFocused(false)}
+                                    style={{ paddingRight: '40px' }}
+                                />
+                                <button
+                                    type="button"
+                                    onClick={() => setShowPassword(!showPassword)}
+                                    style={{
+                                        position: 'absolute',
+                                        right: '10px',
+                                        top: '50%',
+                                        transform: 'translateY(-50%)',
+                                        background: 'none',
+                                        border: 'none',
+                                        cursor: 'pointer',
+                                        color: '#6c757d',
+                                        display: 'flex',
+                                        alignItems: 'center'
+                                    }}
+                                >
+                                    {showPassword ? <IconEyeOff /> : <IconEye />}
+                                </button>
+                            </div>
+                            {isPasswordFocused && senha && <PasswordStrengthMeter checks={passwordChecks} />}
                             {fieldErrors.senha && <span className="field-error">{fieldErrors.senha}</span>}
                         </div>
+
                         <div className="form-group">
                             <label className="form-label">Confirmar Senha <span className="required">*</span></label>
                             <input
@@ -355,13 +469,14 @@ function CadastroFuncionarioCompleto({ onNavigateToHome }) {
                                 className={`form-input ${fieldErrors.confirmarSenha ? 'error' : ''}`}
                                 placeholder="Confirme a senha"
                                 value={confirmarSenha}
-                                onChange={(e) => setConfirmarSenha(e.target.value)}
+                                onChange={(e) => { setConfirmarSenha(e.target.value); clearError('confirmarSenha'); }}
                             />
-                            {fieldErrors.confirmarSenha && <span className="field-error">{fieldErrors.confirmarSenha}</span>}
+                            {confirmarSenha && senha !== confirmarSenha && (
+                                <span className="field-error">As senhas não coincidem</span>
+                            )}
                         </div>
                     </div>
 
-                    {/* Status Ativo */}
                     <div className="form-group" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                         <input
                             type="checkbox"
@@ -370,16 +485,10 @@ function CadastroFuncionarioCompleto({ onNavigateToHome }) {
                             onChange={(e) => setIsAtivo(e.target.checked)}
                             style={{ width: 'auto' }}
                         />
-                        <label htmlFor="isAtivo" style={{ margin: 0, fontWeight: '500' }}>
-                            Funcionário ativo
-                        </label>
+                        <label htmlFor="isAtivo" style={{ margin: 0, fontWeight: '500' }}>Funcionário ativo</label>
                     </div>
 
-                    <button
-                        type="submit"
-                        className="btn-submit"
-                        disabled={isLoading}
-                    >
+                    <button type="submit" className="btn-submit" disabled={isLoading}>
                         {isLoading ? 'Cadastrando...' : 'Cadastrar Funcionário'}
                     </button>
                 </form>
