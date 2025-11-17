@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import axios from '../api/axios';
-import VendaDetalhesModal from './VendaDetalhesModal'; // Importando o modal
+import axios, { obterRelatorioProdutosMaisVendidos, exportarRelatorioProdutosCSV, exportarRelatorioProdutosPDF } from '../api/axios';
+import VendaDetalhesModal from './VendaDetalhesModal';
 import './Dashboard.css';
 import './DashboardGestor.css';
 
@@ -39,7 +39,7 @@ const getDataLimite = (filtro) => {
         case 'mes':
             const inicioMes = new Date(agora.getFullYear(), agora.getMonth(), 1);
             const fimMes = new Date(agora.getFullYear(), agora.getMonth() + 1, 0, 23, 59, 59, 999);
-             return { inicio: inicioMes, fim: fimMes };
+            return { inicio: inicioMes, fim: fimMes };
         case 'todos':
         default:
             return { inicio: null, fim: null };
@@ -55,7 +55,112 @@ const getStatusClass = (status) => {
 };
 
 function DashboardGestor({ userData, onLogout, onNavigateToHome }) {
+    // --- Estados para o Relatório de Produtos Mais Vendidos ---
+    const [relatorioProdutos, setRelatorioProdutos] = useState([]);
+    const [dataInicioRelatorio, setDataInicioRelatorio] = useState('');
+    const [dataFimRelatorio, setDataFimRelatorio] = useState('');
+    const [loadingRelatorio, setLoadingRelatorio] = useState(false);
+    const [erroRelatorio, setErroRelatorio] = useState('');
+    const [ultimaAtualizacao, setUltimaAtualizacao] = useState('');
 
+    // --- Funções Auxiliares ---
+    const formatarDataParaInput = (date) => {
+        if (!date) return '';
+        const d = new Date(date);
+        const dLocal = new Date(d.getTime() - (d.getTimezoneOffset() * 60000));
+        const month = '' + (dLocal.getMonth() + 1);
+        const day = '' + dLocal.getDate();
+        const year = dLocal.getFullYear();
+
+        return [year, month.padStart(2, '0'), day.padStart(2, '0')].join('-');
+    };
+
+    const carregarRelatorioProdutos = async (inicio, fim) => {
+        if (!inicio || !fim) {
+            setErroRelatorio('Selecione as datas de início e fim.');
+            setRelatorioProdutos([]);
+            return;
+        }
+        
+        setLoadingRelatorio(true);
+        setErroRelatorio('');
+        
+        try {
+            const data = await obterRelatorioProdutosMaisVendidos(inicio, fim);
+            setRelatorioProdutos(data);
+            setUltimaAtualizacao(new Date().toLocaleTimeString('pt-BR'));
+        } catch (err) {
+            console.error("❌ Erro ao carregar relatório de produtos:", err);
+            setErroRelatorio('Erro ao carregar o relatório. Verifique o console para detalhes.');
+            setRelatorioProdutos([]);
+        } finally {
+            setLoadingRelatorio(false);
+        }
+    };
+
+    // --- Lógica de Exportação ---
+    const handleExportacao = async (formato) => {
+        if (!dataInicioRelatorio || !dataFimRelatorio) {
+            alert("Selecione as datas de início e fim para exportar.");
+            return;
+        }
+
+        setLoadingRelatorio(true);
+        setErroRelatorio('');
+        try {
+            let response;
+            let filename = `relatorio_produtos_${dataInicioRelatorio}_${dataFimRelatorio}`;
+
+            if (formato === 'csv') {
+                response = await exportarRelatorioProdutosCSV(dataInicioRelatorio, dataFimRelatorio);
+                filename += '.csv';
+            } else if (formato === 'pdf') {
+                response = await exportarRelatorioProdutosPDF(dataInicioRelatorio, dataFimRelatorio);
+                filename += '.pdf';
+            } else {
+                throw new Error("Formato de exportação inválido.");
+            }
+
+            // Criar URL para download
+            const url = window.URL.createObjectURL(new Blob([response]));
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', filename);
+            document.body.appendChild(link);
+            link.click();
+            link.parentNode.removeChild(link);
+            window.URL.revokeObjectURL(url);
+
+        } catch (err) {
+            console.error(`❌ Erro ao exportar ${formato}:`, err);
+            alert(`Erro ao exportar o relatório para ${formato}. Verifique o console.`);
+        } finally {
+            setLoadingRelatorio(false);
+        }
+    };
+
+// --- Efeito para carregar o relatório inicial (Mês Atual) ---
+useEffect(() => {
+    const agora = new Date();
+    const inicioMes = new Date(agora.getFullYear(), agora.getMonth(), 1);
+    const fimMes = new Date(agora.getFullYear(), agora.getMonth() + 1, 0);
+
+    const inicioFormatado = formatarDataParaInput(inicioMes);
+    const fimFormatado = formatarDataParaInput(fimMes);
+
+    setDataInicioRelatorio(inicioFormatado);
+    setDataFimRelatorio(fimFormatado);
+    carregarRelatorioProdutos(inicioFormatado, fimFormatado);
+}, []);
+
+    // --- Função para recarregar o relatório ---
+    const recarregarRelatorio = () => {
+        if (dataInicioRelatorio && dataFimRelatorio) {
+            carregarRelatorioProdutos(dataInicioRelatorio, dataFimRelatorio);
+        }
+    };
+
+    // --- Lógica de Dashboard Existente ---
     const [todosAgendamentos, setTodosAgendamentos] = useState([]);
     const [todasVendas, setTodasVendas] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -96,14 +201,16 @@ function DashboardGestor({ userData, onLogout, onNavigateToHome }) {
                 );
                 setTodasVendas(vendasOrdenadas);
 
+                console.log(`✅ Dashboard carregado: ${vendasOrdenadas.length} vendas, ${agendamentosOrdenados.length} agendamentos`);
+
             } catch (err) {
-                console.error("Erro ao buscar dados do gestor:", err);
+                console.error("❌ Erro ao buscar dados do gestor:", err);
                 if (err.response && (err.response.status === 401 || err.response.status === 403)) {
                     setError('Sessão expirada ou acesso negado. Faça login novamente.');
                     onLogout();
                 } else if (err.message === "Token não encontrado.") {
-                     setError('Sessão inválida. Faça login novamente.');
-                     onLogout();
+                    setError('Sessão inválida. Faça login novamente.');
+                    onLogout();
                 } else {
                     setError('Erro ao carregar os dados.');
                 }
@@ -123,30 +230,30 @@ function DashboardGestor({ userData, onLogout, onNavigateToHome }) {
         let filtrados = todosAgendamentos;
 
         if (inicio && fim) {
-             const inicioAjustado = filtroTempo === 'mes' ? inicio : new Date(inicio.setHours(0, 0, 0, 0));
-             const fimAjustado = new Date(fim.setHours(23, 59, 59, 999));
+            const inicioAjustado = filtroTempo === 'mes' ? inicio : new Date(inicio.setHours(0, 0, 0, 0));
+            const fimAjustado = new Date(fim.setHours(23, 59, 59, 999));
 
-             filtrados = todosAgendamentos.filter(ag => {
-                  const dataAg = new Date(ag.data_hora_inicio);
-                  return dataAg >= inicioAjustado && dataAg <= fimAjustado;
-             });
+            filtrados = todosAgendamentos.filter(ag => {
+                const dataAg = new Date(ag.data_hora_inicio);
+                return dataAg >= inicioAjustado && dataAg <= fimAjustado;
+            });
         }
 
         if (filtroStatusAgendamento !== 'todos') {
-             filtrados = filtrados.filter(ag => ag.status.toLowerCase() === filtroStatusAgendamento.toLowerCase());
+            filtrados = filtrados.filter(ag => ag.status.toLowerCase() === filtroStatusAgendamento.toLowerCase());
         }
 
         let previsto = 0;
         let realizado = 0;
 
         const agendamentosParaCalculo = (inicio && fim)
-             ? todosAgendamentos.filter(ag => {
-                   const dataAg = new Date(ag.data_hora_inicio);
-                   const inicioAjustado = filtroTempo === 'mes' ? inicio : new Date(inicio.setHours(0, 0, 0, 0));
-                   const fimAjustado = new Date(fim.setHours(23, 59, 59, 999));
-                   return dataAg >= inicioAjustado && dataAg <= fimAjustado;
-                })
-             : todosAgendamentos;
+            ? todosAgendamentos.filter(ag => {
+                const dataAg = new Date(ag.data_hora_inicio);
+                const inicioAjustado = filtroTempo === 'mes' ? inicio : new Date(inicio.setHours(0, 0, 0, 0));
+                const fimAjustado = new Date(fim.setHours(23, 59, 59, 999));
+                return dataAg >= inicioAjustado && dataAg <= fimAjustado;
+            })
+            : todosAgendamentos;
 
         agendamentosParaCalculo.forEach(ag => {
             const dataAg = new Date(ag.data_hora_inicio);
@@ -177,7 +284,6 @@ function DashboardGestor({ userData, onLogout, onNavigateToHome }) {
             });
         }
 
-        // CORREÇÃO: Verifica status sem case sensitivity ('Pago' == 'pago')
         const totalPagas = vendasParaCalculo
             .filter(v => v.status_pagamento && v.status_pagamento.toLowerCase() === 'pago')
             .reduce((acc, v) => acc + (parseFloat(v.total) || 0), 0);
@@ -200,7 +306,6 @@ function DashboardGestor({ userData, onLogout, onNavigateToHome }) {
         return { vendasFiltradas: filtradas, totalVendasPagas: totalPagas };
 
     }, [todasVendas, filtroTempo, filtroStatusVenda, filtroBuscaVendas]);
-
 
     if (loading) {
         return <div className="loading-message">Carregando Dashboard do Gestor...</div>;
@@ -234,27 +339,37 @@ function DashboardGestor({ userData, onLogout, onNavigateToHome }) {
                     <p>{formatarValor(totalServicosRealizados)}</p>
                     <span>Agendamentos (status Realizado)</span>
                 </div>
-                <div className="card card-realizado" style={{borderColor: '#28a745'}}>
+                <div className="card card-realizado" style={{ borderColor: '#28a745' }}>
                     <h3>Vendas Pagas ({filtroTempo})</h3>
                     <p>{formatarValor(totalVendasPagas)}</p>
                     <span>Checkout + Balcão (status Pago)</span>
                 </div>
-                 <div className="card card-total-agendamentos">
+                <div className="card card-total-agendamentos">
                     <h3>Agendamentos ({filtroTempo})</h3>
                     <p>{agendamentosFiltrados.length}</p>
                     <span>Listados abaixo ({filtroStatusAgendamento})</span>
                 </div>
-                <button
-                    className="btn-fluxo-caixa"
-                    onClick={() => window.dispatchEvent(new CustomEvent('navigate', { detail: 'fluxo-caixa-report' }))}
-                >
-                    📊 Relatório de Fluxo de Caixa
-                </button>
+                
+                <div className="buttons-container">
+                    <button
+                        className="btn-fluxo-caixa"
+                        onClick={() => window.dispatchEvent(new CustomEvent('navigate', { detail: 'fluxo-caixa-report' }))}
+                    >
+                        📊 Relatório de Fluxo de Caixa
+                    </button>
+                    <button
+                        className="btn-relatorio-produtos"
+                        onClick={() => {
+                            document.getElementById('relatorio-produtos-mais-vendidos').scrollIntoView({ behavior: 'smooth' });
+                        }}
+                    >
+                        📈 Produtos Mais Vendidos
+                    </button>
+                </div>
             </div>
 
-
             <div className="table-filters">
-                 <div>
+                <div>
                     <label>Período (Geral):</label>
                     <select value={filtroTempo} onChange={(e) => setFiltroTempo(e.target.value)}>
                         <option value="7dias">Próximos 7 dias</option>
@@ -265,12 +380,9 @@ function DashboardGestor({ userData, onLogout, onNavigateToHome }) {
                 </div>
             </div>
 
-
             {/* Tabela de Agendamentos */}
-             <main className="dashboard-main" style={{ marginTop: '2rem' }}>
+            <main className="dashboard-main" style={{ marginTop: '2rem' }}>
                 <h2>Lista de Agendamentos ({filtroTempo})</h2>
-                {/* ... Filtros e Tabela de Agendamentos Mantidos ... */}
-                {/* (Mantive a estrutura da tabela de agendamentos original aqui para brevidade, pois não alteramos ela) */}
                 <div style={{ overflowX: 'auto' }}>
                     <table className="agendamentos-table gestor-table">
                         <thead>
@@ -299,7 +411,7 @@ function DashboardGestor({ userData, onLogout, onNavigateToHome }) {
                         </tbody>
                     </table>
                 </div>
-             </main>
+            </main>
 
             {/* Tabela de Vendas */}
             <main className="dashboard-main" style={{ marginTop: '2rem' }}>
@@ -332,7 +444,6 @@ function DashboardGestor({ userData, onLogout, onNavigateToHome }) {
                     </div>
                 </div>
 
-
                 {vendasFiltradas.length === 0 ? (
                     <div className="no-agendamentos">
                         <p>Nenhuma venda encontrada para os filtros selecionados.</p>
@@ -345,7 +456,7 @@ function DashboardGestor({ userData, onLogout, onNavigateToHome }) {
                                     <th>Data / Hora</th>
                                     <th>Cliente</th>
                                     <th>Atendente (Balcão)</th>
-                                    <th style={{textAlign: 'center'}}>Itens</th> {/* Nova Coluna */}
+                                    <th style={{ textAlign: 'center' }}>Itens</th>
                                     <th>Forma Pgto.</th>
                                     <th>Total (R$)</th>
                                     <th>Status Pgto.</th>
@@ -361,10 +472,10 @@ function DashboardGestor({ userData, onLogout, onNavigateToHome }) {
                                         <td>{v.funcionario_nome}</td>
 
                                         {/* Botão de Itens */}
-                                        <td style={{textAlign: 'center'}}>
+                                        <td style={{ textAlign: 'center' }}>
                                             <button
                                                 className="action-btn"
-                                                style={{background: '#f3f4f6', color: '#555', margin: '0 auto'}}
+                                                style={{ background: '#f3f4f6', color: '#555', margin: '0 auto' }}
                                                 onClick={() => setVendaSelecionada(v)}
                                                 title="Ver itens"
                                             >
@@ -386,6 +497,122 @@ function DashboardGestor({ userData, onLogout, onNavigateToHome }) {
                     </div>
                 )}
             </main>
+
+            {/* --- Relatório de Produtos Mais Vendidos --- */}
+            <section id="relatorio-produtos-mais-vendidos" className="dashboard-main" style={{ marginTop: '3rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                    <h2>📈 Relatório de Produtos Mais Vendidos</h2>
+                </div>
+                
+                <p>Selecione o período para gerar o relatório dos produtos mais vendidos por quantidade e receita.</p>
+                
+                {ultimaAtualizacao && (
+                    <div style={{ fontSize: '0.9rem', color: '#666', marginBottom: '1rem' }}>
+                        Última atualização: {ultimaAtualizacao}
+                    </div>
+                )}
+
+                <div className="table-filters" style={{ marginBottom: '1rem' }}>
+                    <label htmlFor="data-inicio-relatorio">Data Início:</label>
+                    <input
+                        type="date"
+                        id="data-inicio-relatorio"
+                        value={dataInicioRelatorio}
+                        onChange={(e) => setDataInicioRelatorio(e.target.value)}
+                    />
+                    <label htmlFor="data-fim-relatorio" style={{ marginLeft: '1rem' }}>Data Fim:</label>
+                    <input
+                        type="date"
+                        id="data-fim-relatorio"
+                        value={dataFimRelatorio}
+                        onChange={(e) => setDataFimRelatorio(e.target.value)}
+                    />
+                    <button
+                        className="btn-action-primary"
+                        style={{ marginLeft: '1rem' }}
+                        onClick={() => carregarRelatorioProdutos(dataInicioRelatorio, dataFimRelatorio)}
+                        disabled={loadingRelatorio || !dataInicioRelatorio || !dataFimRelatorio}
+                    >
+                        {loadingRelatorio ? '🔄 Carregando...' : '📊 Gerar Relatório'}
+                    </button>
+                </div>
+
+                {erroRelatorio && (
+                    <div className="error-message">
+                        {erroRelatorio}
+                        <button 
+                            onClick={recarregarRelatorio}
+                            style={{ marginLeft: '1rem', padding: '0.25rem 0.5rem', fontSize: '0.8rem' }}
+                        >
+                            Tentar Novamente
+                        </button>
+                    </div>
+                )}
+
+                {relatorioProdutos.length > 0 && (
+                    <>
+                        <div className="export-buttons">
+                            <button
+                                className="btn-export"
+                                onClick={() => handleExportacao('csv')}
+                                disabled={loadingRelatorio}
+                            >
+                                📥 Exportar CSV
+                            </button>
+                            <button
+                                className="btn-export"
+                                onClick={() => handleExportacao('pdf')}
+                                disabled={loadingRelatorio}
+                            >
+                                📥 Exportar PDF
+                            </button>
+                        </div>
+
+                        <div style={{ overflowX: 'auto' }}>
+                            <table className="agendamentos-table gestor-table">
+                                <thead>
+                                    <tr>
+                                        <th>Produto</th>
+                                        <th>Categoria</th>
+                                        <th>Quantidade Vendida</th>
+                                        <th>Receita Gerada</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {relatorioProdutos.map((item, index) => (
+                                        <tr key={index}>
+                                            <td>{item.nome_produto}</td>
+                                            <td>{item.categoria}</td>
+                                            <td style={{ textAlign: 'center', fontWeight: 'bold' }}>
+                                                {item.quantidade_vendida}
+                                            </td>
+                                            <td className="agendamento-valor">
+                                                {formatarValor(item.receita_gerada)}
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                        
+                        <div style={{ marginTop: '1rem', fontSize: '0.9rem', color: '#666' }}>
+                            Total de produtos no relatório: <strong>{relatorioProdutos.length}</strong>
+                        </div>
+                    </>
+                )}
+                
+                {relatorioProdutos.length === 0 && !loadingRelatorio && !erroRelatorio && (
+                    <div className="no-agendamentos">
+                        <p>Nenhum produto vendido encontrado no período selecionado.</p>
+                        <button 
+                            className="btn-action-primary"
+                            onClick={() => carregarRelatorioProdutos(dataInicioRelatorio, dataFimRelatorio)}
+                        >
+                            Tentar Novamente
+                        </button>
+                    </div>
+                )}
+            </section>
         </div>
     );
 }

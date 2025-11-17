@@ -4,7 +4,7 @@ from models.checkout_model import CheckoutRequest, CheckoutResponse
 
 router = APIRouter(prefix="/api/checkout", tags=["Checkout"])
 
-@router.post("/", response_model=CheckoutResponse)
+@router.post("", response_model=CheckoutResponse)
 async def finalizar_checkout(dados: CheckoutRequest, service: CheckoutService = Depends()):
     try:
         resposta = service.finalizar_compra(dados)

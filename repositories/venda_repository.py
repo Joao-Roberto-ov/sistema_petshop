@@ -5,7 +5,6 @@ import json
 
 
 class RepositorioVenda:
-    # Removemos o __init__ com self.conn global para evitar desconexões
 
     def registrar_venda(self, funcionario_id, dados_venda, total):
         conn = conectar()
@@ -172,6 +171,94 @@ class RepositorioVenda:
             raise e
         finally:
             if conn: encerra_conexao(conn)
+    def verificar_status_vendas_por_data(self, data_inicio: date, data_fim: date):
+        """
+        Função de debug para verificar o status das vendas em um período
+        """
+        conn = conectar()
+        try:
+            cursor = conn.cursor()
+            
+            query = """
+                SELECT 
+                    id,
+                    criado_em,
+                    status_pagamento,
+                    total,
+                    cliente_id,
+                    funcionario_id
+                FROM Vendas 
+                WHERE DATE(criado_em) BETWEEN %s AND %s
+                ORDER BY criado_em DESC
+            """
+            cursor.execute(query, (data_inicio, data_fim))
+            vendas = cursor.fetchall()
+            
+            print(f"🔍 [DEBUG STATUS] Vendas no período {data_inicio} a {data_fim}:")
+            print(f"🔍 [DEBUG STATUS] Total de vendas: {len(vendas)}")
+            
+            for venda in vendas:
+                status_color = "🟢" if venda[2] == 'Pago' else "🟡" if venda[2] == 'Pendente' else "🔴"
+                print(f"   {status_color} Venda {venda[0]}: {venda[1]} - Status: {venda[2]} - Total: R$ {venda[3]:.2f}")
+                
+            return [
+                {
+                    "id": v[0],
+                    "criado_em": v[1],
+                    "status_pagamento": v[2],
+                    "total": v[3],
+                    "cliente_id": v[4],
+                    "funcionario_id": v[5]
+                } for v in vendas
+            ]
+        except Exception as e:
+            print(f"❌ [DEBUG STATUS] Erro: {e}")
+            raise e
+        finally:
+            if conn: encerra_conexao(conn)
+
+    def get_relatorio_produtos_mais_vendidos(self, data_inicio: date, data_fim: date):
+        conn = conectar()
+        try:
+            cursor = conn.cursor()
+            
+            cursor.execute("SELECT NOW() as agora, CURRENT_DATE as hoje")
+            data_atual = cursor.fetchone()
+            
+            query = """
+                SELECT 
+                    p.nome AS nome_produto,
+                    p.categoria AS categoria,
+                    SUM(iv.quantidade) AS quantidade_vendida,
+                    SUM(iv.quantidade * iv.preco_unitario) AS receita_gerada
+                FROM ItensVenda iv
+                JOIN Vendas v ON iv.venda_id = v.id
+                JOIN produtos_cadastrados p ON iv.id_item = p.id
+                WHERE iv.tipo = 'produto'
+                AND v.status_pagamento = 'Pago'
+                AND v.criado_em::date BETWEEN %s AND %s
+                GROUP BY p.nome, p.categoria
+                ORDER BY quantidade_vendida DESC;
+            """
+            cursor.execute(query, (data_inicio, data_fim))
+            resultado = cursor.fetchall()
+            
+            print(f"📊 [REPOSITORY] Relatório SQL - Período: {data_inicio} a {data_fim}")
+            print(f"📊 [REPOSITORY] Total de produtos no relatório: {len(resultado)}")
+            
+            return [
+                {
+                    "nome_produto": r[0],
+                    "categoria": r[1],
+                    "quantidade_vendida": r[2],
+                    "receita_gerada": float(r[3]) if r[3] else 0.0
+                } for r in resultado
+            ]
+        except Exception as e:
+            print(f"❌ [REPOSITORY] Erro ao gerar relatório: {e}")
+            raise e
+        finally:
+            if conn: encerra_conexao(conn)
 
     def get_all_vendas(self, filtro_status=None, filtro_funcionario=None, filtro_data_inicio=None,
                        filtro_data_fim=None):
@@ -179,7 +266,6 @@ class RepositorioVenda:
         try:
             cursor = conn.cursor()
 
-            # Adicionado LEFT JOIN com ItensVenda e STRING_AGG
             query = """
                     SELECT v.id, \
                            v.total, \
@@ -199,7 +285,6 @@ class RepositorioVenda:
                     """
             params = []
 
-            # ILIKE para ignorar maiúsculas/minúsculas no status
             if filtro_status:
                 query += " AND v.status_pagamento ILIKE %s"
                 params.append(filtro_status)
@@ -213,7 +298,6 @@ class RepositorioVenda:
                 params.append(filtro_data_inicio)
                 params.append(filtro_data_fim)
 
-            # CORREÇÃO: Adicionado GROUP BY para todas as colunas não agregadas
             query += """
                      GROUP BY v.id, v.total, v.forma_pagamento, v.status_pagamento, v.criado_em, 
                               c.id, c.nome, f.id, f.nome
@@ -228,7 +312,7 @@ class RepositorioVenda:
                     "id": v[0], "total": v[1], "forma_pagamento": v[2], "status_pagamento": v[3],
                     "criado_em": v[4], "cliente_id": v[5], "cliente_nome": v[6],
                     "funcionario_id": v[7], "funcionario_nome": v[8],
-                    "itens": v[9]  # Novo campo itens
+                    "itens": v[9]  
                 } for v in vendas
             ]
         finally:

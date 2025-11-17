@@ -1,6 +1,13 @@
 from fastapi import HTTPException
 from repositories.venda_repository import RepositorioVenda
 from repositories.produto_repository import RepositorioProduto
+from bancoDeDados import conectar, encerra_conexao
+import io
+import csv
+from reportlab.lib.pagesizes import letter
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
+from reportlab.lib.styles import getSampleStyleSheet
+from reportlab.lib import colors
 from datetime import date
 
 
@@ -90,3 +97,114 @@ class ServicosVenda:
         if not venda:
             raise HTTPException(status_code=404, detail="Venda não encontrada.")
         return venda
+
+    def obter_relatorio_produtos_mais_vendidos(self, data_inicio: date, data_fim: date):
+        """
+        Obtém o relatório de produtos mais vendidos no período.
+        """
+        if data_inicio > data_fim:
+            raise HTTPException(status_code=400, detail="A data de início não pode ser posterior à data de fim.")
+        
+        print(f"🔍 [SERVICE] Gerando relatório de produtos - Período: {data_inicio} a {data_fim}")
+        
+        try:
+            # Gera o relatório diretamente
+            relatorio = self.repo.get_relatorio_produtos_mais_vendidos(data_inicio, data_fim)
+            print(f"✅ [SERVICE] Relatório gerado com {len(relatorio)} produtos")
+            
+            for i, item in enumerate(relatorio[:5], 1):
+                print(f"   {i}. 📦 {item['nome_produto']}: {item['quantidade_vendida']} unidades - R$ {item['receita_gerada']:.2f}")
+                
+            return relatorio
+            
+        except Exception as e:
+            print(f"❌ [SERVICE] Erro ao gerar relatório: {str(e)}")
+            raise HTTPException(status_code=500, detail=f"Erro ao gerar relatório: {str(e)}")
+
+    def gerar_csv_relatorio_produtos(self, data_inicio: date, data_fim: date):
+        """
+        Gera o relatório de produtos mais vendidos em formato CSV.
+        """
+        relatorio = self.obter_relatorio_produtos_mais_vendidos(data_inicio, data_fim)
+        
+        output = io.StringIO()
+        writer = csv.writer(output)
+        
+        # Cabeçalho
+        writer.writerow(['Produto', 'Categoria', 'Quantidade Vendida', 'Receita Gerada (R$)'])
+        
+        # Dados
+        for item in relatorio:
+            writer.writerow([
+                item['nome_produto'],
+                item['categoria'],
+                item['quantidade_vendida'],
+                f"{item['receita_gerada']:.2f}"
+            ])
+            
+        return output.getvalue()
+
+    def gerar_pdf_relatorio_produtos(self, data_inicio: date, data_fim: date):
+        """
+        Gera o relatório de produtos mais vendidos em formato PDF.
+        """
+        relatorio = self.obter_relatorio_produtos_mais_vendidos(data_inicio, data_fim)
+        
+        buffer = io.BytesIO()
+        doc = SimpleDocTemplate(buffer, pagesize=letter)
+        styles = getSampleStyleSheet()
+        story = []
+        
+        # Título
+        story.append(Paragraph("Relatório de Produtos Mais Vendidos", styles['Title']))
+        story.append(Spacer(1, 12))
+        
+        # Período
+        periodo = f"Período: {data_inicio.strftime('%d/%m/%Y')} a {data_fim.strftime('%d/%m/%Y')}"
+        story.append(Paragraph(periodo, styles['Normal']))
+        story.append(Spacer(1, 24))
+        
+        # Dados da Tabela
+        data = [['Produto', 'Categoria', 'Qtd. Vendida', 'Receita (R$)']]
+        
+        total_receita = 0
+        
+        for item in relatorio:
+            receita_formatada = f"R$ {item['receita_gerada']:.2f}".replace('.', ',')
+            data.append([
+                item['nome_produto'],
+                item['categoria'],
+                item['quantidade_vendida'],
+                receita_formatada
+            ])
+            total_receita += item['receita_gerada']
+            
+        # Linha de Total
+        total_formatado = f"R$ {total_receita:.2f}".replace('.', ',')
+        data.append(['', '', 'Total:', total_formatado])
+        
+        # Criação da Tabela
+        table = Table(data)
+        
+        # Estilo da Tabela
+        style = TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+            ('BACKGROUND', (0, 1), (-1, -2), colors.beige),
+            ('GRID', (0, 0), (-1, -1), 1, colors.black),
+            ('ALIGN', (2, 1), (3, -1), 'RIGHT'), # Alinha números à direita
+            ('FONTNAME', (2, -1), (2, -1), 'Helvetica-Bold'), # Total:
+            ('FONTNAME', (3, -1), (3, -1), 'Helvetica-Bold'), # Valor Total
+            ('BACKGROUND', (0, -1), (-1, -1), colors.lightgrey),
+        ])
+        
+        table.setStyle(style)
+        story.append(table)
+        
+        doc.build(story)
+        
+        buffer.seek(0)
+        return buffer.getvalue()

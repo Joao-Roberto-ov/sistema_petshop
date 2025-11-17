@@ -1,6 +1,7 @@
 from pydantic import BaseModel, EmailStr, validator, Field
 from typing import Optional, Literal, List
 from datetime import datetime, date
+import json
 
 
 class UsuarioLogin(BaseModel):
@@ -302,8 +303,6 @@ class ServicoModel(BaseModel):
     preco: float = Field(..., gt=0, description="Preço do serviço em reais")
     criador_id: Optional[int] = None
 
-# --- NOVAS CLASSES E ATUALIZAÇÕES DE VENDA ---
-
 class VendaModel(BaseModel):
     id: int
     funcionario_id: Optional[int] = None
@@ -317,8 +316,16 @@ class VendaModel(BaseModel):
 
 class InfoAgendamento(BaseModel):
     pet_id: int
-    data_hora: str # String ISO (ex: "2024-12-25T14:30:00.000Z")
+    data_hora: str  
     observacoes: Optional[str] = None
+
+    def model_dump_json(self) -> str:
+        """Serializa para JSON string"""
+        return json.dumps({
+            "pet_id": self.pet_id,
+            "data_hora": self.data_hora,
+            "observacoes": self.observacoes
+        })
 
 class CriarItemVenda(BaseModel):
     tipo: str
@@ -326,7 +333,7 @@ class CriarItemVenda(BaseModel):
     nome: str
     quantidade: int
     preco_unitario: float
-    info_agendamento: Optional[InfoAgendamento] = None # Novo campo opcional
+    info_agendamento: Optional[InfoAgendamento] = None
 
 class CriarVenda(BaseModel):
     cliente_id: Optional[int] = None
@@ -334,9 +341,8 @@ class CriarVenda(BaseModel):
     itens: List[CriarItemVenda]
 
 class AtualizarStatusVenda(BaseModel):
-    status: str #"Pago" ou "Cancelado"
+    status: str  # "Pago" ou "Cancelado"
 
-# ---------------------------------------------
 
 class AgendamentoBase(BaseModel):
     cliente_id: int
