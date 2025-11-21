@@ -160,7 +160,31 @@
     background: linear-gradient(135deg, #6d28d9 0%, #5b21b6 100%);
 }
 
-/* Botões de Exportação */
+/* Botão de Relatório de Serviços */
+.btn-relatorio-servicos {
+    background: linear-gradient(135deg, #d97706 0%, #b45309 100%);
+    color: white;
+    font-weight: 600;
+    font-size: 1rem;
+    padding: 0.75rem 1.5rem;
+    border-radius: 8px;
+    border: none;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 8px rgba(217, 119, 6, 0.3);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    min-height: 44px;
+}
+
+.btn-relatorio-servicos:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(217, 119, 6, 0.4);
+    background: linear-gradient(135deg, #b45309 0%, #92400e 100%);
+}
+
+/* Botão de Exportação */
 .btn-export {
     background: linear-gradient(135deg, #059669 0%, #047857 100%);
     color: white;

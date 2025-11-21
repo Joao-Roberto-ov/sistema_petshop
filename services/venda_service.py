@@ -98,7 +98,124 @@ class ServicosVenda:
             raise HTTPException(status_code=404, detail="Venda não encontrada.")
         return venda
 
-    def obter_relatorio_produtos_mais_vendidos(self, data_inicio: date, data_fim: date):
+    def obter_relatorio_servicos_mais_solicitados(self, data_inicio: date, data_fim: date, filtro_status: str = None):
+        """
+        Obtém o relatório de serviços mais solicitados no período.
+        """
+        if data_inicio > data_fim:
+            raise HTTPException(status_code=400, detail="A data de início não pode ser posterior à data de fim.")
+
+        print(f"🔍 [SERVICE] Gerando relatório de serviços - Período: {data_inicio} a {data_fim} - Status: {filtro_status or 'Todos'}")
+
+        try:
+            # Gera o relatório com filtro de status
+            relatorio = self.repo.get_relatorio_servicos_mais_solicitados(data_inicio, data_fim, filtro_status)
+            print(f"✅ [SERVICE] Relatório de serviços gerado com {len(relatorio)} itens (filtro: {filtro_status or 'Todos'})")
+
+            for i, item in enumerate(relatorio[:5], 1):
+                print(f"   {i}. 🛁 {item['nome_servico']}: {item['quantidade_execucoes']} execuções - R$ {item['receita_gerada']:.2f} - Status: {item.get('status', 'N/A')}")
+
+            return relatorio
+
+        except Exception as e:
+            print(f"❌ [SERVICE] Erro ao gerar relatório de serviços: {str(e)}")
+            raise HTTPException(status_code=500, detail=f"Erro ao gerar relatório de serviços: {str(e)}")
+
+    def gerar_csv_relatorio_servicos(self, data_inicio: date, data_fim: date, filtro_status: str = None):
+        """
+        Gera o relatório de serviços mais solicitados em formato CSV.
+        """
+        relatorio = self.obter_relatorio_servicos_mais_solicitados(data_inicio, data_fim, filtro_status)
+
+        output = io.StringIO()
+        writer = csv.writer(output)
+
+        # Cabeçalho com status
+        writer.writerow(['Serviço', 'Quantidade de Execuções', 'Receita Gerada (R$)', 'Status'])
+
+        # Dados
+        for item in relatorio:
+            writer.writerow([
+                item['nome_servico'],
+                item['quantidade_execucoes'],
+                f"{item['receita_gerada']:.2f}",
+                item.get('status', 'N/A')
+            ])
+
+        return output.getvalue()
+
+    def gerar_pdf_relatorio_servicos(self, data_inicio: date, data_fim: date, filtro_status: str = None):
+        """
+        Gera o relatório de serviços mais solicitados em formato PDF.
+        """
+        relatorio = self.obter_relatorio_servicos_mais_solicitados(data_inicio, data_fim, filtro_status)
+
+        buffer = io.BytesIO()
+        doc = SimpleDocTemplate(buffer, pagesize=letter)
+        styles = getSampleStyleSheet()
+        story = []
+
+        # Título
+        story.append(Paragraph("Relatório de Serviços Mais Solicitados", styles['Title']))
+        story.append(Spacer(1, 12))
+
+        # Período e Filtro
+        periodo = f"Período: {data_inicio.strftime('%d/%m/%Y')} a {data_fim.strftime('%d/%m/%Y')}"
+        story.append(Paragraph(periodo, styles['Normal']))
+        
+        if filtro_status and filtro_status.lower() != 'todos':
+            filtro_info = f"Filtro: {filtro_status}"
+            story.append(Paragraph(filtro_info, styles['Normal']))
+        
+        story.append(Spacer(1, 24))
+
+        # Dados da Tabela
+        data = [['Serviço', 'Qtd. Execuções', 'Receita (R$)', 'Status']]
+
+        total_receita = 0
+
+        for item in relatorio:
+            receita_formatada = f"R$ {item['receita_gerada']:.2f}".replace('.', ',')
+            data.append([
+                item['nome_servico'],
+                item['quantidade_execucoes'],
+                receita_formatada,
+                item.get('status', 'N/A')
+            ])
+            total_receita += item['receita_gerada']
+
+        # Linha de Total
+        total_formatado = f"R$ {total_receita:.2f}".replace('.', ',')
+        data.append(['', 'Total:', total_formatado, ''])
+
+        # Criação da Tabela
+        table = Table(data)
+
+        # Estilo da Tabela (atualizado para 4 colunas)
+        style = TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+            ('BACKGROUND', (0, 1), (-1, -2), colors.beige),
+            ('GRID', (0, 0), (-1, -1), 1, colors.black),
+            ('ALIGN', (1, 1), (2, -1), 'RIGHT'), # Alinha números à direita
+            ('FONTNAME', (1, -1), (1, -1), 'Helvetica-Bold'), # Total:
+            ('FONTNAME', (2, -1), (2, -1), 'Helvetica-Bold'), # Valor Total
+            ('BACKGROUND', (0, -1), (-1, -1), colors.lightgrey),
+        ])
+
+        table.setStyle(style)
+        story.append(table)
+
+        doc.build(story)
+
+        buffer.seek(0)
+        return buffer.getvalue()
+
+    
+    def obter_relatorio_produtos_mais_vendidos(self, data_inicio: date, data_fim: date, filtro_status: str = None):
         """
         Obtém o relatório de produtos mais vendidos no período.
         """
@@ -108,15 +225,22 @@ class ServicosVenda:
         print(f"🔍 [SERVICE] Gerando relatório de produtos - Período: {data_inicio} a {data_fim}")
         
         try:
-            # Gera o relatório diretamente
-            relatorio = self.repo.get_relatorio_produtos_mais_vendidos(data_inicio, data_fim)
-            print(f"✅ [SERVICE] Relatório gerado com {len(relatorio)} produtos")
+            # Gera o relatório (com filtro)
+            if hasattr(self.repo, 'get_relatorio_produtos_mais_vendidos') and callable(getattr(self.repo, 'get_relatorio_produtos_mais_vendidos')):
+                # Se a função aceita filtro de status
+                relatorio = self.repo.get_relatorio_produtos_mais_vendidos(data_inicio, data_fim, filtro_status)
+            else:
+                # Versão sem filtro
+                relatorio = self.repo.get_relatorio_produtos_mais_vendidos(data_inicio, data_fim)
+            
+            total_pedidos = sum([item.get('total_pedidos', 0) for item in relatorio])
+            print(f"✅ [SERVICE] Relatório gerado com {len(relatorio)} produtos - Total pedidos: {total_pedidos}")
             
             for i, item in enumerate(relatorio[:5], 1):
-                print(f"   {i}. 📦 {item['nome_produto']}: {item['quantidade_vendida']} unidades - R$ {item['receita_gerada']:.2f}")
+                print(f"   {i}. 📦 {item['nome_produto']}: {item['quantidade_vendida']} unidades - {item['total_pedidos']} pedidos - R$ {item['receita_gerada']:.2f}")
                 
             return relatorio
-            
+                
         except Exception as e:
             print(f"❌ [SERVICE] Erro ao gerar relatório: {str(e)}")
             raise HTTPException(status_code=500, detail=f"Erro ao gerar relatório: {str(e)}")

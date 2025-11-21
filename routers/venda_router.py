@@ -87,6 +87,74 @@ def listar_vendas(
     )
 
 
+@router.get("/relatorio/servicos-mais-solicitados", response_model=list, summary="Relatório de Serviços Mais Solicitados (Gestor)")
+def relatorio_servicos_mais_solicitados(
+    data_inicio: date,
+    data_fim: date,
+    filtro_status: Optional[str] = None, 
+    # Apenas gestores/admins podem acessar este relatório
+    usuario_id: int = Depends(pegar_id_do_usuario_logado)
+):
+    """
+    Gera um relatório dos serviços mais solicitados em um período.
+    AC1: O relatório deve listar os serviços realizados em um período selecionado.
+    AC3: O relatório deve exibir informações essenciais de cada serviço: nome do serviço, quantidade de execuções e receita gerada.
+    """
+    return servico.obter_relatorio_servicos_mais_solicitados(data_inicio, data_fim, filtro_status)
+
+@router.get("/relatorio/servicos-mais-solicitados/csv", summary="Exportar Relatório de Serviços Mais Solicitados para CSV")
+def exportar_relatorio_servicos_csv(
+    data_inicio: date,
+    data_fim: date,
+    filtro_status: Optional[str] = None,  
+    usuario_id: int = Depends(pegar_id_do_usuario_logado)
+):
+    """
+    AC4: Exporta o relatório de serviços mais solicitados para o formato CSV.
+    """
+    try:
+        csv_content = servico.gerar_csv_relatorio_servicos(data_inicio, data_fim, filtro_status)
+
+        # Configuração da resposta para download de arquivo CSV
+        response = StreamingResponse(
+            iter([csv_content]),
+            media_type="text/csv",
+            headers={
+                "Content-Disposition": f"attachment; filename=relatorio_servicos_{data_inicio}_{data_fim}_{filtro_status or 'todos'}.csv"
+            }
+        )
+        return response
+    except HTTPException as e:
+        raise e
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erro ao gerar CSV: {str(e)}")
+
+@router.get("/relatorio/servicos-mais-solicitados/pdf", summary="Exportar Relatório de Serviços Mais Solicitados para PDF")
+def exportar_relatorio_servicos_pdf(
+    data_inicio: date,
+    data_fim: date,
+    filtro_status: Optional[str] = None, 
+    usuario_id: int = Depends(pegar_id_do_usuario_logado)
+):
+    """
+    AC4: Exporta o relatório de serviços mais solicitados para o formato PDF.
+    """
+    try:
+        pdf_data = servico.gerar_pdf_relatorio_servicos(data_inicio, data_fim, filtro_status)
+
+        # Configuração da resposta para download de arquivo PDF
+        response = StreamingResponse(
+            iter([pdf_data]),
+            media_type="application/pdf"
+        )
+        response.headers["Content-Disposition"] = f"attachment; filename=relatorio_servicos_{data_inicio}_{data_fim}_{filtro_status or 'todos'}.pdf"
+        return response
+    except HTTPException as e:
+        raise e
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erro ao gerar PDF: {str(e)}")
+
+
 @router.get("/relatorio/produtos-mais-vendidos", response_model=list, summary="Relatório de Produtos Mais Vendidos (Gestor)")
 def relatorio_produtos_mais_vendidos(
     data_inicio: date,

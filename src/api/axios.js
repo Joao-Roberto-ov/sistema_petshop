@@ -52,6 +52,59 @@ instance.interceptors.response.use(
 );
 
 export { publicInstance };
+export const obterRelatorioServicosMaisSolicitados = async (dataInicio, dataFim) => {
+    try {
+        const token = localStorage.getItem('token');
+        const response = await instance.get('/vendas/relatorio/servicos-mais-solicitados', {
+            params: {
+                data_inicio: dataInicio,
+                data_fim: dataFim
+            },
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        return response.data;
+    } catch (error) {
+        console.error("Erro ao obter relatório de serviços mais solicitados:", error);
+        throw error;
+    }
+};
+
+export const exportarRelatorioServicosCSV = async (dataInicio, dataFim) => {
+    try {
+        const token = localStorage.getItem('token');
+        const response = await instance.get('/vendas/relatorio/servicos-mais-solicitados/csv', {
+            params: {
+                data_inicio: dataInicio,
+                data_fim: dataFim
+            },
+            headers: { 'Authorization': `Bearer ${token}` },
+            responseType: 'blob'
+        });
+        return response.data;
+    } catch (error) {
+        console.error("Erro ao exportar CSV do relatório de serviços:", error);
+        throw error;
+    }
+};
+
+export const exportarRelatorioServicosPDF = async (dataInicio, dataFim) => {
+    try {
+        const token = localStorage.getItem('token');
+        const response = await instance.get('/vendas/relatorio/servicos-mais-solicitados/pdf', {
+            params: {
+                data_inicio: dataInicio,
+                data_fim: dataFim
+            },
+            headers: { 'Authorization': `Bearer ${token}` },
+            responseType: 'blob'
+        });
+        return response.data;
+    } catch (error) {
+        console.error("Erro ao exportar PDF do relatório de serviços:", error);
+        throw error;
+    }
+};
+
 export const obterRelatorioProdutosMaisVendidos = async (dataInicio, dataFim) => {
     try {
         const token = localStorage.getItem('token');
