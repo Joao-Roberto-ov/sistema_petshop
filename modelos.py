@@ -1,7 +1,8 @@
-from pydantic import BaseModel, EmailStr, validator, Field
+from pydantic import BaseModel, EmailStr, Field, validator
 from typing import Optional, Literal, List
 from datetime import datetime, date
 import json
+import re
 
 
 class UsuarioLogin(BaseModel):
@@ -20,7 +21,8 @@ class ClienteCadastro(BaseModel):
 
     @validator('cpf', pre=True, always=True)
     def validar_e_limpar_cpf(cls, validador: str) -> Optional[str]:
-        if not validador: return None
+        if not validador: 
+            return None
         cpf_numeros = "".join(filter(str.isdigit, validador))
         if len(cpf_numeros) != 11:
             raise ValueError('O CPF deve conter 11 dígitos numéricos.')
@@ -37,7 +39,8 @@ class ClienteCadastroPorFuncionario(BaseModel):
 
     @validator('cpf', pre=True, always=True)
     def validar_e_limpar_cpf(cls, validador: str) -> Optional[str]:
-        if not validador: return None
+        if not validador: 
+            return None
         cpf_numeros = "".join(filter(str.isdigit, validador))
         if len(cpf_numeros) != 11:
             raise ValueError('O CPF deve conter 11 dígitos numéricos.')
@@ -53,7 +56,8 @@ class ClienteUpdate(BaseModel):
 
     @validator('cpf', pre=True, always=True)
     def validar_e_limpar_cpf(cls, validador: str) -> Optional[str]:
-        if not validador: return None
+        if not validador: 
+            return None
         cpf_numeros = "".join(filter(str.isdigit, validador))
         if len(cpf_numeros) != 11:
             raise ValueError('O CPF deve conter 11 dígitos numéricos.')
@@ -71,7 +75,8 @@ class FuncionarioModel(BaseModel):
 
     @validator('cpf', pre=True, always=True)
     def validar_e_limpar_cpf(cls, validador: str) -> Optional[str]:
-        if not validador: return None
+        if not validador: 
+            return None
         cpf_numeros = "".join(filter(str.isdigit, validador))
         if len(cpf_numeros) != 11:
             raise ValueError('O CPF deve conter 11 dígitos numéricos.')
@@ -167,7 +172,8 @@ class FuncionarioCadastroPorAdmin(BaseModel):
 
     @validator("cpf", pre=True, always=True)
     def validar_e_limpar_cpf(cls, validador: str) -> Optional[str]:
-        if not validador: return None
+        if not validador: 
+            return None
         cpf_numeros = "".join(filter(str.isdigit, validador))
         if len(cpf_numeros) != 11:
             raise ValueError("O CPF deve conter 11 dígitos numéricos.")
@@ -212,7 +218,6 @@ class FuncionarioCadastro(BaseModel):
 
     @validator('horario_inicio', 'horario_fim')
     def validar_horario(cls, v):
-        import re
         if not v or not v.strip():
             raise ValueError('Horário é obrigatório')
         # Aceita formato HH:MM ou HH:MM:SS
@@ -259,7 +264,6 @@ class FuncionarioUpdate(BaseModel):
     def validar_horario(cls, v):
         if v is None:
             return v
-        import re
         # Aceita formato HH:MM ou HH:MM:SS
         if re.match(r'^([01]?[0-9]|2[0-3]):[0-5][0-9](:[0-5][0-9])?$', v):
             # Normaliza para HH:MM removendo segundos se existirem
@@ -278,6 +282,27 @@ class FuncionarioUpdate(BaseModel):
         return v
 
 
+class PetTransferencia(BaseModel):
+    """Modelo para a transferência de um pet para um novo cliente."""
+    pet_id: int = Field(..., description="ID do pet a ser transferido.")
+    novo_cliente_id: int = Field(..., description="ID do cliente que receberá a posse do pet.")
+
+
+class ClienteBusca(BaseModel):
+    """Modelo para a busca de clientes por nome ou CPF."""
+    termo_busca: str = Field(..., description="Nome ou CPF do cliente a ser buscado.")
+
+
+class ClienteBuscaResponse(BaseModel):
+    """Modelo para a resposta da busca de clientes."""
+    id: int
+    nome: str
+    email: EmailStr
+    telefone: str
+    cpf: Optional[str] = None
+    is_ativo: bool
+
+
 class ProdutoCadastro(BaseModel):
     barcode: str
     nome: str
@@ -289,12 +314,15 @@ class ProdutoCadastro(BaseModel):
     descricao: Optional[str] = None
     url_imagem: Optional[str] = None
 
+
 class ItemEstoqueUpdate(BaseModel):
     produto_id: int
     quantidade_adicionar: int = Field(..., gt=0, description="A quantidade a ser adicionada deve ser maior que zero")
 
+
 class LoteEstoqueUpdate(BaseModel):
     itens: List[ItemEstoqueUpdate]
+
 
 class ServicoModel(BaseModel):
     nome: str
@@ -302,6 +330,7 @@ class ServicoModel(BaseModel):
     duracao: int = Field(..., gt=0, description="Duração padrão em minutos")
     preco: float = Field(..., gt=0, description="Preço do serviço em reais")
     criador_id: Optional[int] = None
+
 
 class VendaModel(BaseModel):
     id: int
@@ -313,6 +342,7 @@ class VendaModel(BaseModel):
     criado_em: datetime
     funcionario_nome: Optional[str] = None
     cliente_nome: Optional[str] = None
+
 
 class InfoAgendamento(BaseModel):
     pet_id: int
@@ -327,6 +357,7 @@ class InfoAgendamento(BaseModel):
             "observacoes": self.observacoes
         })
 
+
 class CriarItemVenda(BaseModel):
     tipo: str
     id_item: int
@@ -335,10 +366,12 @@ class CriarItemVenda(BaseModel):
     preco_unitario: float
     info_agendamento: Optional[InfoAgendamento] = None
 
+
 class CriarVenda(BaseModel):
     cliente_id: Optional[int] = None
     forma_pagamento: str
     itens: List[CriarItemVenda]
+
 
 class AtualizarStatusVenda(BaseModel):
     status: str  # "Pago" ou "Cancelado"
@@ -377,6 +410,7 @@ class DisponibilidadeResponse(BaseModel):
     data: date
     horarios: list[HorarioDisponivel]
 
+
 class VacinaBase(BaseModel):
     nome_vacina: str
     data_aplicacao: date
@@ -384,8 +418,10 @@ class VacinaBase(BaseModel):
     pet_id: int
     funcionario_id: Optional[int] = None
 
+
 class VacinaCreate(VacinaBase):
     pass
+
 
 class VacinaResponse(VacinaBase):
     id: int
@@ -393,6 +429,7 @@ class VacinaResponse(VacinaBase):
 
     class Config:
         from_attributes = True
+
 
 class HistoricoMedico(BaseModel):
     pet_id: int

@@ -229,6 +229,7 @@ async def historico_completo(pet_id: int):
         if conn:
             encerra_conexao(conn)
 
+# TODOS os routers ANTES da rota catch-all
 app.include_router(cliente_router.router)
 app.include_router(funcionario_router.router)
 app.include_router(login_router.router)
@@ -243,8 +244,11 @@ app.include_router(agendamento_router.router)
 app.include_router(despesa_router.router)
 app.include_router(config_router.router, prefix="/api")
 app.include_router(user_router.router)
-# app.mount("/static", StaticFiles(directory=os.path.join(frontend_dir, "static")), name="static")
+app.include_router(historico_medico_router.router, prefix="/api")
+app.include_router(vacina_router.router, prefix="/api")  
+app.mount("/static", StaticFiles(directory=os.path.join(frontend_dir, "static")), name="static")
 
+# Rota catch-all para React - DEVE SER A ÚLTIMA
 @app.get("/{full_path:path}")
 async def serve_react_app(full_path: str):
     index_path = os.path.join(frontend_dir, "index.html")
@@ -252,5 +256,3 @@ async def serve_react_app(full_path: str):
         return FileResponse(index_path)
     else:
         raise HTTPException(status_code=404, detail="Interface não encontrada.")
-app.include_router(historico_medico_router.router, prefix="/api")
-app.include_router(vacina_router.router, prefix="/api")

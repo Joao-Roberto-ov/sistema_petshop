@@ -2,11 +2,13 @@ from fastapi import HTTPException
 from psycopg2 import Error
 from modelos import PetCadastro, PetUpdate, PetCadastroFuncionario
 from repositories.pet_repository import RepositorioPet
+from repositories.cliente_repository import RepositorioCliente
 from util.cargos import Cargo
 
 class ServicosPet:
     def __init__(self):
         self.repo = RepositorioPet()
+        self.repo_cliente = RepositorioCliente()
 
     def _verificar_dono_do_pet(self, pet_id: int, cliente_id: int):
         """
@@ -63,6 +65,47 @@ class ServicosPet:
         except Error as e:
             print(f"Erro no banco de dados ao buscar pets do cliente: {e}")
             raise HTTPException(status_code=500, detail="Ocorreu um erro ao buscar os pets.")
+
+    def transferir_pet(self, pet_id: int, novo_cliente_id: int):
+        # 1. Verificar se o pet existe
+        pet_atual = self.repo.buscar_pet_por_id(pet_id)
+        if not pet_atual:
+            raise HTTPException(status_code=404, detail=f"Pet com ID {pet_id} não encontrado.")
+        
+        # 2. Verificar se o novo cliente existe e está ativo
+        novo_cliente = self.repo_cliente.procurar_pelo_id(novo_cliente_id)
+        if not novo_cliente:
+            raise HTTPException(status_code=404, detail=f"Cliente com ID {novo_cliente_id} não encontrado.")
+        
+        # Verificar se o cliente está ativo (índice correto para is_ativo)
+        # Assumindo que procurar_pelo_id retorna: (id, nome, email, telefone, endereco, cpf, is_ativo)
+        if len(novo_cliente) > 6 and novo_cliente[6] is False:
+            raise HTTPException(status_code=400, detail=f"O Cliente {novo_cliente[1]} (ID: {novo_cliente_id}) está inativo e não pode receber pets.")
+
+        # 3. Verificar se o novo cliente é o mesmo que o atual
+        # Assumindo que buscar_pet_por_id retorna: (id, nome, tipo, raca, idade, peso, sexo_biologico, observacoes, cliente_id)
+        cliente_atual_id = pet_atual[8] 
+        if cliente_atual_id == novo_cliente_id:
+            raise HTTPException(status_code=400, detail="O pet já pertence a este cliente.")
+
+        try:
+            # 4. Realizar a transferência (mantém todo o histórico)
+            self.repo.transferir_pet(pet_id, novo_cliente_id)
+            return {"message": f"Pet transferido com sucesso para o cliente ID {novo_cliente_id}"}
+        except Exception as e:
+            print(f"Erro ao transferir pet: {e}")
+            raise HTTPException(status_code=500, detail="Ocorreu um erro ao realizar a transferência do pet.")
+
+    def buscar_pet_por_id(self, pet_id: int):
+        """
+        Busca um pet pelo ID. Retorna a tupla completa do banco.
+        """
+        try:
+            pet_data = self.repo.buscar_pet_por_id(pet_id)
+            return pet_data
+        except Exception as e:
+            print(f"Erro ao buscar pet por ID: {e}")
+            raise HTTPException(status_code=500, detail="Ocorreu um erro ao buscar o pet.")
 
     def buscar_historico_do_pet(self, pet_id: int, usuario_id: int, user_type: str = None):
         """
@@ -251,8 +294,10 @@ class ServicosPet:
         """
         try:
             pets_data = self.repo.buscar_todos_pets_com_cliente()
-            pets = [
-                {
+            pets = []
+            
+            for p in pets_data:
+                pet = {
                     "id": p[0], 
                     "nome": p[1], 
                     "tipo": p[2], 
@@ -261,14 +306,92 @@ class ServicosPet:
                     "peso": p[5],
                     "sexo_biologico": p[6],
                     "observacoes": p[7],
-                    "dono": { "id": p[8], "nome": p[9] }
+                    "cliente_id": p[8]
                 }
-                for p in pets_data
-            ]
+                
+                # Verifica se há informações do cliente
+                if len(p) > 9 and p[9]:  # cliente_nome existe e não é None
+                    pet["dono"] = {
+                        "id": p[8],
+                        "nome": p[9],
+                        "email": p[10] if len(p) > 10 else "Não informado"
+                    }
+                else:
+                    pet["dono"] = {
+                        "id": p[8],
+                        "nome": "Não informado",
+                        "email": "Não informado"
+                    }
+                
+                pets.append(pet)
+            
             return pets
         except Error as e:
             print(f"Erro no banco de dados ao buscar todos os pets: {e}")
             raise HTTPException(status_code=500, detail="Ocorreu um erro ao buscar os pets.")
+
+    def transferir_pet(self, pet_id: int, novo_cliente_id: int):
+        print(f"=== Serviço: Transferindo pet {pet_id} para cliente {novo_cliente_id} ===")
+        
+        # 1. Verificar se o pet existe
+        pet_atual = self.repo.buscar_pet_por_id(pet_id)
+        if not pet_atual:
+            raise HTTPException(status_code=404, detail=f"Pet com ID {pet_id} não encontrado.")
+        
+        print(f"Pet encontrado: {pet_atual}")
+        
+        # 2. Verificar se o novo cliente existe e está ativo
+        novo_cliente = self.repo_cliente.procurar_pelo_id(novo_cliente_id)
+        if not novo_cliente:
+            raise HTTPException(status_code=404, detail=f"Cliente com ID {novo_cliente_id} não encontrado.")
+        
+        print(f"Novo cliente encontrado: {novo_cliente}")
+        
+        # O resultado de procurar_pelo_id é uma tupla, o is_ativo é o último elemento
+        is_ativo_index = len(novo_cliente) - 1
+        if novo_cliente[is_ativo_index] is False:
+            raise HTTPException(status_code=400, detail=f"O Cliente {novo_cliente[1]} (ID: {novo_cliente_id}) está inativo e não pode receber pets.")
+
+        # 3. Verificar se o novo cliente é o mesmo que o atual
+        # Assumindo que buscar_pet_por_id retorna (id, nome, tipo, raca, idade, peso, sexo_biologico, observacoes, cliente_id)
+        cliente_atual_id = pet_atual[8] 
+        if cliente_atual_id == novo_cliente_id:
+            raise HTTPException(status_code=400, detail="O pet já pertence a este cliente.")
+
+        try:
+            # 4. Realizar a transferência
+            print(f"Chamando repositório para transferir pet {pet_id} para cliente {novo_cliente_id}")
+            self.repo.transferir_pet(pet_id, novo_cliente_id)
+            
+            # 5. Verificar se a transferência foi bem-sucedida
+            pet_apos_transferencia = self.repo.buscar_pet_por_id(pet_id)
+            if not pet_apos_transferencia:
+                raise HTTPException(status_code=500, detail="Erro ao verificar transferência - pet não encontrado após transferência")
+            
+            novo_cliente_id_verificado = pet_apos_transferencia[8]
+            print(f"Verificação: Pet {pet_id} agora pertence ao cliente {novo_cliente_id_verificado}")
+            
+            if novo_cliente_id_verificado != novo_cliente_id:
+                raise HTTPException(status_code=500, detail="Transferência não foi aplicada corretamente")
+                
+            return {"message": f"Pet transferido com sucesso para o cliente ID {novo_cliente_id}"}
+            
+        except HTTPException:
+            raise
+        except Exception as e:
+            print(f"Erro ao transferir pet: {e}")
+            raise HTTPException(status_code=500, detail="Ocorreu um erro ao realizar a transferência do pet.")
+
+    def buscar_pet_por_id(self, pet_id: int):
+        """
+        Busca um pet pelo ID. Retorna a tupla completa do banco.
+        """
+        try:
+            pet_data = self.repo.buscar_pet_por_id(pet_id)
+            return pet_data
+        except Exception as e:
+            print(f"Erro ao buscar pet por ID: {e}")
+            raise HTTPException(status_code=500, detail="Ocorreu um erro ao buscar o pet.")
 
     def listar_todos_pets_para_funcionario(self, funcionario_id: int):
         """

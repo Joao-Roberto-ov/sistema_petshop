@@ -111,6 +111,55 @@ class RepositorioCliente:
             if cursor: cursor.close()
             if conn: self.encerra_conexao(conn)
 
+    def buscar_clientes_por_termo(self, termo: str):
+        conn = None
+        cursor = None
+        try:
+            conn = self.conectar()
+            cursor = conn.cursor()
+            
+            # A busca será feita por nome (case-insensitive) ou CPF
+            # O termo é usado com ILIKE para busca parcial no nome
+            # E com = para busca exata no CPF (após limpeza)
+            
+            # Tenta limpar o termo para ver se é um CPF
+            cpf_limpo = "".join(filter(str.isdigit, termo))
+            
+            sql = """
+                SELECT id, nome, email, telefone, cpf, is_ativo 
+                FROM Clientes 
+                WHERE nome ILIKE %s OR cpf = %s
+                ORDER BY nome
+            """
+            
+            # Adiciona % para busca parcial no nome
+            termo_like = f"%{termo}%"
+            
+            cursor.execute(sql, (termo_like, cpf_limpo))
+            
+            clientes = cursor.fetchall()
+            
+            # Mapear os resultados para um formato de dicionário
+            clientes_formatados = []
+            for c in clientes:
+                clientes_formatados.append({
+                    "id": c[0],
+                    "nome": c[1],
+                    "email": c[2],
+                    "telefone": c[3],
+                    "cpf": c[4],
+                    "is_ativo": c[5] if c[5] is not None else True
+                })
+            
+            return clientes_formatados
+            
+        except Exception as e:
+            print(f"Erro ao buscar clientes por termo: {e}")
+            raise
+        finally:
+            if cursor: cursor.close()
+            if conn: self.encerra_conexao(conn)
+
     def procurar_pelo_id(self, user_id: int):
         conn = None
         cursor = None
