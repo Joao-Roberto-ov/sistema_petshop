@@ -246,7 +246,7 @@ app.include_router(config_router.router, prefix="/api")
 app.include_router(user_router.router)
 app.include_router(historico_medico_router.router, prefix="/api")
 app.include_router(vacina_router.router, prefix="/api")  
-app.mount("/static", StaticFiles(directory=os.path.join(frontend_dir, "static")), name="static")
+# app.mount("/static", StaticFiles(directory=os.path.join(frontend_dir, "static")), name="static")
 
 # Rota catch-all para React - DEVE SER A ÚLTIMA
 @app.get("/{full_path:path}")

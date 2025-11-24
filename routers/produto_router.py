@@ -120,3 +120,7 @@ async def get_estoque_produto(
         # Captura genérica caso o produto não seja encontrado no 'next'
         print(f"Erro ao buscar estoque para ID {produto_id}: {e}")
         raise HTTPException(status_code=500, detail=f"Erro ao buscar estoque: {e}")
+    
+@router.get("/estoque-baixo")
+def listar_estoque_baixo():
+    return ServicosProduto.verificar_estoque_baixo()

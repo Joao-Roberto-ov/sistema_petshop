@@ -1,6 +1,7 @@
 from fastapi import HTTPException
 from repositories.produto_repository import RepositorioProduto
 from modelos import ProdutoCadastro, LoteEstoqueUpdate
+from services.estoque_config_service import EstoqueConfigService
 
 
 class ServicosProduto:
@@ -102,3 +103,30 @@ class ServicosProduto:
         except Exception as e:
             print(f"Erro no serviço de atualização de estoque: {e}")
             raise HTTPException(status_code=500, detail=f"Erro ao processar atualização de estoque: {e}")
+        
+    @staticmethod
+    def verificar_estoque_baixo():
+        repo = RepositorioProduto()
+        produtos = repo.buscar_todos_produtos_cadastrados()
+
+        produtos_baixos = []
+
+        for p in produtos:
+            produto_id = p['id']
+            quantidade = p['estoque']
+            nome = p['nome']
+
+            estoque_minimo = EstoqueConfigService.obter_estoque_minimo(produto_id)
+
+            if estoque_minimo is None:
+                continue
+
+            if quantidade <= estoque_minimo:
+                produtos_baixos.append({
+                    "id": produto_id,
+                    "nome": nome,
+                    "quantidade": quantidade,
+                    "estoque_minimo": estoque_minimo
+                })
+
+        return produtos_baixos
