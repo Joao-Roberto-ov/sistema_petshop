@@ -24,7 +24,8 @@ from routers import (
     historico_medico_router,  
     vacina_router,
     despesa_router,
-    user_router
+    user_router,
+    estoque_config_router
 )
 
 from fastapi.responses import FileResponse   # presente na feat/us-40-configurar-info
@@ -245,7 +246,8 @@ app.include_router(despesa_router.router)
 app.include_router(config_router.router, prefix="/api")
 app.include_router(user_router.router)
 app.include_router(historico_medico_router.router, prefix="/api")
-app.include_router(vacina_router.router, prefix="/api")  
+app.include_router(vacina_router.router, prefix="/api")
+app.include_router(estoque_config_router.router)
 # app.mount("/static", StaticFiles(directory=os.path.join(frontend_dir, "static")), name="static")
 
 # Rota catch-all para React - DEVE SER A ÚLTIMA

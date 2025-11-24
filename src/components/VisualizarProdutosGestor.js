@@ -25,16 +25,33 @@ function VisualizarProdutosGestor({ onBack, onNavigateToAtualizarEstoque }) {
         try {
             setLoading(true);
             const token = localStorage.getItem('token');
+
             const response = await axios.get('/produtos/listar', {
                 headers: { Authorization: `Bearer ${token}` }
             });
-            setProdutos(response.data);
+
+            const produtosComEstoqueMinimo = await Promise.all(
+                response.data.map(async (p) => {
+                    try {
+                        const r = await axios.get(`/admin/config/estoque-minimo/${p.id}`, {
+                            headers: { Authorization: `Bearer ${token}` }
+                        });
+                        return { ...p, estoque_minimo: r.data.estoque_minimo };
+                    } catch {
+                        return { ...p, estoque_minimo: null };
+                    }
+                })
+            );
+
+            setProdutos(produtosComEstoqueMinimo);
+
         } catch (err) {
             setError(err.response?.data?.detail || 'Erro ao buscar produtos.');
         } finally {
             setLoading(false);
         }
     };
+
 
     const formatarReal = (value) => {
         let numero = value.replace(/\D/g, '');
@@ -59,6 +76,10 @@ function VisualizarProdutosGestor({ onBack, onNavigateToAtualizarEstoque }) {
             });
 
             setIsExterno(response.data.eh_externo);
+            const estoqueMinimoResp = await axios.get(`/admin/config/estoque-minimo/${produto.id}`, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+
             setFormData({
                 barcode: produto.barcode,
                 nome: produto.nome,
@@ -68,6 +89,7 @@ function VisualizarProdutosGestor({ onBack, onNavigateToAtualizarEstoque }) {
                 url_imagem: produto.url_imagem || '',
                 preco_venda: produto.preco_venda.toFixed(2).replace('.', ','),
                 estoque: produto.estoque,
+                estoque_minimo: estoqueMinimoResp.data.estoque_minimo ?? 0,
                 animais_alvo: produto.animais_alvo || 'Todos'
             });
             setEditingId(produto.id);
@@ -107,21 +129,44 @@ function VisualizarProdutosGestor({ onBack, onNavigateToAtualizarEstoque }) {
 
         try {
             const token = localStorage.getItem('token');
+
             const precoLimpo = formData.preco_venda.replace(/\./g, '').replace(',', '.');
 
+            // remover estoque_minimo
+            const { estoque_minimo, ...dadosSemEstoqueMinimo } = formData;
+
             const dadosParaEnviar = {
-                ...formData,
+                ...dadosSemEstoqueMinimo,
                 preco_venda: parseFloat(precoLimpo),
                 estoque: parseInt(formData.estoque)
             };
 
+            // atualizar produto
             await axios.put(`/produtos/editar/${editingId}`, dadosParaEnviar, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+
+            // atualizar estoque mínimo separadamente
+            await axios.put(`/admin/config/estoque-minimo/${editingId}`, {
+                produto_id: editingId,
+                estoque_minimo: parseInt(estoque_minimo)
+            }, {
                 headers: { Authorization: `Bearer ${token}` }
             });
 
             setFormSuccess(`Produto '${formData.nome}' atualizado com sucesso!`);
             setTimeout(() => {
-                setFormData({ barcode: '', nome: '', marca: '', categoria: '', descricao: '', url_imagem: '', preco_venda: '', estoque: 0 });
+                setFormData({
+                    barcode: '',
+                    nome: '',
+                    marca: '',
+                    categoria: '',
+                    descricao: '',
+                    url_imagem: '',
+                    preco_venda: '',
+                    estoque: 0,
+                    estoque_minimo: 0
+                });
                 setEditingId(null);
                 setShowForm(false);
                 fetchProdutos();
@@ -132,6 +177,7 @@ function VisualizarProdutosGestor({ onBack, onNavigateToAtualizarEstoque }) {
             setFormLoading(false);
         }
     };
+
 
     if (loading) {
         return (
@@ -207,6 +253,11 @@ function VisualizarProdutosGestor({ onBack, onNavigateToAtualizarEstoque }) {
                                     <input type="number" name="estoque" className="form-input" value={formData.estoque} onChange={handleInputChange} min="0" required />
                                 </div>
 
+                                <div className="form-group">
+                                    <label className="form-label">Estoque Mínimo</label>
+                                    <input type="number" name="estoque_minimo" className="form-input" value={formData.estoque_minimo} onChange={handleInputChange} min="0"/>
+                                </div>
+
                                 <button type="submit" className="btn-submit" disabled={formLoading}>
                                     {formLoading ? 'Salvando...' : 'Salvar Alteracoes'}
                                 </button>
@@ -236,6 +287,7 @@ function VisualizarProdutosGestor({ onBack, onNavigateToAtualizarEstoque }) {
                                     <th style={{ padding: '1rem', textAlign: 'left' }}>Marca</th>
                                     <th style={{ padding: '1rem', textAlign: 'left' }}>Preco</th>
                                     <th style={{ padding: '1rem', textAlign: 'center' }}>Estoque</th>
+                                    <th style={{ padding: '1rem', textAlign: 'center' }}>Estoque Mínimo</th>
                                     <th style={{ padding: '1rem', textAlign: 'center' }}>Acoes</th>
                                 </tr>
                             </thead>
@@ -246,6 +298,7 @@ function VisualizarProdutosGestor({ onBack, onNavigateToAtualizarEstoque }) {
                                         <td style={{ padding: '1rem' }}>{produto.marca || '-'}</td>
                                         <td style={{ padding: '1rem' }}>R$ {produto.preco_venda.toFixed(2).replace('.', ',')}</td>
                                         <td style={{ padding: '1rem', textAlign: 'center' }}>{produto.estoque}</td>
+                                        <td style={{ padding: '1rem', textAlign: 'center' }}>{produto.estoque_minimo ?? '—'}</td>
                                         <td style={{ padding: '1rem', textAlign: 'center' }}>
                                             <button
                                                 onClick={() => handleEditClick(produto)}
