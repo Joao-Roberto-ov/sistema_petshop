@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import axios from '../api/axios';
+import NotificacoesEstoque from "../components/NotificacoesEstoque";
+import "./AppHeader.css"
 
 function getFirstName(fullName) {
     if (!fullName) return 'Usuário';
@@ -206,105 +208,77 @@ function AppHeader({
                 <div className="nav-buttons">
                     {isLoggedIn ? (
                         <div className="user-menu" ref={dropdownRef} style={{ position: 'relative' }}>
-    <button className="user-menu-button" onClick={() => setIsDropdownOpen(!isDropdownOpen)}>
-        {`Olá, ${getFirstName(userData?.nome)}`}
-        {isFuncionarioOuAdmin && (
-            <span style={{
-                marginLeft: '0.5rem',
-                fontSize: '0.75rem',
-                padding: '0.2rem 0.5rem',
-                backgroundColor: '#4a9b8e',
-                borderRadius: '12px',
-                color: 'white'
-            }}>
-                {userData.cargo}
-            </span>
-        )}
-    </button>
-
-                            <div className="nav-buttons">
-
-                            {isAdmin && estoqueBaixo && (
-                                <div
-                                    onClick={() => alert(
-                                        itensCriticos.map(i =>
-                                            `${i.nome} — atual: ${i.estoque}, mínimo: ${i.minimo}`
-                                        ).join("\n")
-                                    )}
-                                    style={{
-                                        position: 'absolute',  // faz o badge flutuar
-                                        top: '-5px',           // ajuste vertical
-                                        right: '-5px',         // ajuste horizontal
-                                        width: '20px',
-                                        height: '20px',
-                                        borderRadius: '50%',
-                                        backgroundColor: '#e74c3c',
-                                        color: 'white',
+                            <button className="user-menu-button" onClick={() => setIsDropdownOpen(!isDropdownOpen)}>
+                                {`Olá, ${getFirstName(userData?.nome)}`}
+                                {isFuncionarioOuAdmin && (
+                                    <span style={{
+                                        marginLeft: '0.5rem',
                                         fontSize: '0.75rem',
-                                        fontWeight: 'bold',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                        cursor: 'pointer',
-                                        zIndex: 10
-                                    }}
-                                    title="Produtos com estoque baixo"
-                                >
-                                    {itensCriticos.length}
-                                </div>
-                            )}
+                                        padding: '0.2rem 0.5rem',
+                                        backgroundColor: '#4a9b8e',
+                                        borderRadius: '12px',
+                                        color: 'white'
+                                    }}>
+                                        {userData.cargo}
+                                    </span>
+                                )}
+                            </button>
 
+                            <div className="notification-wrapper">
+                                {isAdmin && estoqueBaixo && (
+                                    <NotificacoesEstoque itens={itensCriticos} />
+                                )}
+                            </div>
 
-                                {isDropdownOpen && (
-                                    <ul className="dropdown-menu">
-                                        {!isFuncionarioOuAdmin && (
-                                            <>
-                                                <li>
-                                                    <a href="#" onClick={(e) => { e.preventDefault(); onNavigateToMeuPerfil(); setIsDropdownOpen(false); }}>
-                                                        <span className="icon">👤</span> Meu Perfil
-                                                    </a>
-                                                </li>
+                            {isDropdownOpen && (
+                                <ul className="dropdown-menu">
+                                    {!isFuncionarioOuAdmin && (
+                                        <>
+                                            <li>
+                                                <a href="#" onClick={(e) => { e.preventDefault(); onNavigateToMeuPerfil(); setIsDropdownOpen(false); }}>
+                                                    <span className="icon">👤</span> Meu Perfil
+                                                </a>
+                                            </li>
 
-                                                <li className="dropdown-divider"></li>
-                                            </>
-                                        )}
+                                            <li className="dropdown-divider"></li>
+                                        </>
+                                    )}
 
-                                        {isFuncionarioOuAdmin && (
-                                            <>
+                                    {isFuncionarioOuAdmin && (
+                                        <>
+                                            <li>
+                                                <a href="#" onClick={(e) => {
+                                                    e.preventDefault();
+                                                    window.dispatchEvent(new CustomEvent('navigate', { detail: 'visualizarClientes' }));
+                                                    setIsDropdownOpen(false);
+                                                }}>
+                                                    <span className="icon">👤</span> Gerenciar Clientes
+                                                </a>
+                                            </li>
+
+                                            {isAdmin && (
                                                 <li>
                                                     <a href="#" onClick={(e) => {
                                                         e.preventDefault();
-                                                        window.dispatchEvent(new CustomEvent('navigate', { detail: 'visualizarClientes' }));
+                                                        window.dispatchEvent(new CustomEvent('navigate', { detail: 'funcionario-cadastro-admin' }));
                                                         setIsDropdownOpen(false);
                                                     }}>
-                                                        <span className="icon">👤</span> Gerenciar Clientes
+                                                        <span className="icon">➕</span> Cadastrar Funcionário
                                                     </a>
                                                 </li>
+                                            )}
 
-                                                {isAdmin && (
-                                                    <li>
-                                                        <a href="#" onClick={(e) => {
-                                                            e.preventDefault();
-                                                            window.dispatchEvent(new CustomEvent('navigate', { detail: 'funcionario-cadastro-admin' }));
-                                                            setIsDropdownOpen(false);
-                                                        }}>
-                                                            <span className="icon">➕</span> Cadastrar Funcionário
-                                                        </a>
-                                                    </li>
-                                                )}
+                                            <li className="dropdown-divider"></li>
+                                        </>
+                                    )}
 
-                                                <li className="dropdown-divider"></li>
-                                            </>
-                                        )}
-
-                                        <li>
-                                            <a href="#" onClick={(e) => { e.preventDefault(); onLogout(); setIsDropdownOpen(false); }}>
-                                                <span className="icon">↪</span> Sair
-                                            </a>
-                                        </li>
-                                    </ul>
-                                )}
-                            </div>
+                                    <li>
+                                        <a href="#" onClick={(e) => { e.preventDefault(); onLogout(); setIsDropdownOpen(false); }}>
+                                            <span className="icon">↪</span> Sair
+                                        </a>
+                                    </li>
+                                </ul>
+                            )}
                         </div>
                     ) : (
                         <>
