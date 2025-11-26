@@ -29,6 +29,8 @@ function Dashboard({
     const [filtroAgendamento, setFiltroAgendamento] = useState('7dias');
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
+    const [historicoCompras, setHistoricoCompras] = useState([]);
+
 
     useEffect(() => {
         const fetchData = async () => {
@@ -41,14 +43,18 @@ function Dashboard({
                     return;
                 }
 
-                const [petsRes, agendamentosRes] = await Promise.all([
+                const [petsRes, agendamentosRes, comprasRes] = await Promise.all([
                     axios.get('/pets', {
                         headers: { 'Authorization': `Bearer ${token}` }
                     }),
                     axios.get('/agendamentos/meus', {
                         headers: { 'Authorization': `Bearer ${token}` }
+                    }),
+                    axios.get(`/vendas/?cliente_id=${userData.id}`, {
+                        headers: { 'Authorization': `Bearer ${token}` }
                     })
                 ]);
+                setHistoricoCompras(comprasRes.data);
 
                 const petsOrdenados = petsRes.data.sort((a, b) => a.nome.localeCompare(b.nome));
                 setPets(petsOrdenados);
@@ -57,6 +63,7 @@ function Dashboard({
                     new Date(a.data_hora_inicio) - new Date(b.data_hora_inicio)
                 );
                 setAgendamentos(agendamentosOrdenados);
+
 
             } catch (err) {
                 console.error("Erro ao buscar dados do dashboard:", err);
@@ -312,6 +319,28 @@ function Dashboard({
                             </table>
                         </div>
                     )}
+                            <h2>Histórico de Compras</h2>
+                        <div className="historico-card">
+
+                            {historicoCompras.length === 0 ? (
+                                <p>Nenhuma compra encontrada.</p>
+                            ) : (
+                                <ul className="historico-list">
+                                    {historicoCompras.map((venda) => (
+                                        <li key={venda.id} className="historico-item">
+                                            <div className="historico-info">
+                                                <p><strong>Data:</strong> {formatarDataHora(venda.criado_em)}</p>
+                                                <p><strong>Total:</strong> R$ {Number(venda.total).toFixed(2)}</p>
+                                                <p><strong>Forma:</strong> {venda.forma_pagamento}</p>
+                                                <p><strong>Status:</strong> {venda.status_pagamento}</p>
+                                                <p><strong>Itens:</strong> {venda.itens}</p>
+                                            </div>
+                                        </li>
+                                    ))}
+                                </ul>
+                            )}
+                        </div>
+
                 </main>
             </div>
         </div>
