@@ -83,13 +83,14 @@ class ServicosVenda:
             raise HTTPException(status_code=500, detail=f"Erro ao processar venda: {str(e)}")
 
     def listar_vendas_filtradas(self, filtro_status=None, filtro_funcionario=None, filtro_data_inicio=None,
-                                filtro_data_fim=None):
+                                filtro_data_fim=None, filtro_cliente_id=None):
         """ (Req 5) Passa os filtros para o repositório """
         return self.repo.get_all_vendas(
             filtro_status=filtro_status,
             filtro_funcionario=filtro_funcionario,
             filtro_data_inicio=filtro_data_inicio,
-            filtro_data_fim=filtro_data_fim
+            filtro_data_fim=filtro_data_fim,
+            filtro_cliente_id=filtro_cliente_id
         )
 
     def buscar_venda_por_id(self, venda_id: int):

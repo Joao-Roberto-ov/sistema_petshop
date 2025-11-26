@@ -74,6 +74,7 @@ def listar_vendas(
     funcionario_id: Optional[int] = None,
     data_inicio: Optional[date] = None,
     data_fim: Optional[date] = None,
+    cliente_id: Optional[int] = None,
 ):
     """
     (Req 5) Retorna uma lista com todas as vendas,
@@ -83,7 +84,8 @@ def listar_vendas(
         filtro_status=status,
         filtro_funcionario=funcionario_id,
         filtro_data_inicio=data_inicio,
-        filtro_data_fim=data_fim
+        filtro_data_fim=data_fim,
+        filtro_cliente_id=cliente_id
     )
 
 

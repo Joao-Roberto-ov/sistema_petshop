@@ -341,7 +341,7 @@ class RepositorioVenda:
                 encerra_conexao(conn)
 
     def get_all_vendas(self, filtro_status=None, filtro_funcionario=None,
-                       filtro_data_inicio=None, filtro_data_fim=None):
+                    filtro_data_inicio=None, filtro_data_fim=None, filtro_cliente_id=None):
 
         conn = conectar()
         try:
@@ -378,6 +378,10 @@ class RepositorioVenda:
             if filtro_funcionario:
                 query += " AND v.funcionario_id = %s"
                 params.append(filtro_funcionario)
+
+            if filtro_cliente_id:
+                query += " AND v.cliente_id = %s"
+                params.append(filtro_cliente_id)
 
             if filtro_data_inicio and filtro_data_fim:
                 query += " AND v.criado_em BETWEEN %s::date AND (%s::date + '1 day'::interval)"
