@@ -6,6 +6,13 @@ from seguranca import pegar_id_do_usuario_logado
 from typing import Optional
 from datetime import date
 import io
+from fastapi.responses import StreamingResponse
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph
+from reportlab.lib import colors
+from reportlab.lib.pagesizes import letter
+from reportlab.lib.styles import getSampleStyleSheet
+from datetime import datetime
+
 
 router = APIRouter(prefix="/api/vendas", tags=["Vendas"])
 servico = ServicosVenda()
@@ -409,3 +416,98 @@ def debug_vendas_hoje():
         raise HTTPException(status_code=500, detail=f"Erro no debug: {e}")
     finally:
         if conn: encerra_conexao(conn)
+
+
+@router.get("/{venda_id}/recibo", summary="Gerar recibo em PDF de uma venda")
+def gerar_recibo_pdf(venda_id: int):
+    """
+    Gera um recibo simplificado contendo:
+    - Cliente
+    - Itens da venda
+    - Quantidades e valores
+    - Forma de pagamento
+    - Data
+    """
+
+    venda = servico.buscar_venda_por_id(venda_id)
+    if not venda:
+        raise HTTPException(status_code=404, detail="Venda não encontrada.")
+
+    buffer = io.BytesIO()
+    doc = SimpleDocTemplate(buffer, pagesize=letter)
+    styles = getSampleStyleSheet()
+    elementos = []
+
+    # -------------------------
+    #  CABEÇALHO
+    # -------------------------
+    titulo = Paragraph("<b>RECIBO DE PAGAMENTO</b>", styles["Title"])
+    elementos.append(titulo)
+
+    info_cliente = f"""
+    <b>Cliente:</b> {venda['cliente_nome']}<br/>
+    <b>Venda ID:</b> {venda['id']}<br/>
+    <b>Data:</b> {venda['criado_em']}<br/>
+    <b>Status:</b> {venda['status_pagamento']}<br/>
+    """
+    elementos.append(Paragraph(info_cliente, styles["Normal"]))
+
+    elementos.append(Paragraph("<br/><b>Itens da Venda:</b>", styles["Heading3"]))
+
+    # -------------------------
+    #  TABELA DE ITENS
+    # -------------------------
+    tabela_data = [["Item", "Qtd", "Preço Unit.", "Subtotal"]]
+
+    total = 0
+    for item in venda["itens"]:
+        nome = item["nome"]
+        qtd = item["quantidade"]
+        preco = float(item["preco_unitario"])  # corrigido
+        subtotal = qtd * preco
+        total += subtotal
+
+        tabela_data.append([
+            nome,
+            qtd,
+            f"R$ {preco:.2f}",
+            f"R$ {subtotal:.2f}"
+        ])
+
+    tabela = Table(tabela_data, colWidths=[220, 50, 100, 100])
+    tabela.setStyle(TableStyle([
+        ("BACKGROUND", (0,0), (-1,0), colors.lightgrey),
+        ("GRID", (0,0), (-1,-1), 1, colors.black),
+        ("FONT", (0,0), (-1,-1), "Helvetica", 10),
+        ("ALIGN", (1,1), (-1,-1), "CENTER"),
+    ]))
+
+    elementos.append(tabela)
+    elementos.append(Paragraph("<br/>", styles["Normal"]))
+
+    # -------------------------
+    #  TOTAL DA COMPRA
+    # -------------------------
+    elementos.append(
+        Paragraph(f"<b>Total Pago: R$ {total:.2f}</b>", styles["Heading2"])
+    )
+
+    # -------------------------
+    #  FORMA DE PAGAMENTO
+    # -------------------------
+    elementos.append(
+        Paragraph(f"<b>Forma de Pagamento:</b> {venda.get('forma_pagamento', 'Não informado')}",
+                  styles["Normal"])
+    )
+
+    doc.build(elementos)
+
+    buffer.seek(0)
+
+    return StreamingResponse(
+        buffer,
+        media_type="application/pdf",
+        headers={
+            "Content-Disposition": f"attachment; filename=recibo_venda_{venda_id}.pdf"
+        }
+    )
