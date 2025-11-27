@@ -511,3 +511,29 @@ def gerar_recibo_pdf(venda_id: int):
             "Content-Disposition": f"attachment; filename=recibo_venda_{venda_id}.pdf"
         }
     )
+
+@router.post("/{venda_id}/recibo/enviar-email", summary="Enviar recibo da venda por e-mail")
+def enviar_recibo_por_email(venda_id: int):
+    """
+    (AC1) Envia o recibo da venda por e-mail para o cliente associado.
+    Requer que a venda tenha um cliente com e-mail válido.
+    """
+    try:
+        # 1. O serviço precisa buscar a venda e o cliente.
+        # 2. O serviço precisa gerar o PDF (reutilizando a lógica do PDF).
+        # 3. O serviço precisa enviar o e-mail com o PDF anexado.
+        
+        resultado = servico.enviar_recibo_por_email(venda_id)
+        
+        if resultado.get("sucesso"):
+            return {"mensagem": f"Recibo da venda {venda_id} enviado com sucesso para o cliente.", 
+                    "email_enviado": resultado.get("email_cliente")}
+        
+        # Se falhar no service por um erro esperado (ex: sem email)
+        raise HTTPException(status_code=400, detail=resultado.get("erro", "Não foi possível enviar o e-mail."))
+        
+    except HTTPException as e:
+        raise e
+    except Exception as e:
+        # Captura de erro genérico (ex: falha na conexão SMTP)
+        raise HTTPException(status_code=500, detail=f"Erro interno ao tentar enviar o e-mail: {str(e)}")

@@ -9,12 +9,15 @@ from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, 
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.lib import colors
 from datetime import date
-
+from services.email_service import EmailService
+from services.cliente_service import ServicosCliente
 
 class ServicosVenda:
     def __init__(self):
         self.repo = RepositorioVenda()
         self.prod_repo = RepositorioProduto()
+        self.email_service = EmailService()
+        self.cliente_service = ServicosCliente()
 
     def registrar_venda(self, dados_venda, funcionario_id: int):
         # (Req 1) Status é removido, backend define como 'Pendente'
@@ -333,3 +336,104 @@ class ServicosVenda:
         
         buffer.seek(0)
         return buffer.getvalue()
+    
+    def _gerar_recibo_pdf_bytes(self, venda_id: int) -> bytes:
+        """ 
+        Gera o PDF do recibo da venda como um array de bytes (buffer).
+        """
+        venda = self.buscar_venda_por_id(venda_id)
+        if not venda:
+            raise HTTPException(status_code=404, detail="Venda não encontrada para gerar o PDF.")
+            
+        # O CÓDIGO INTEIRO DE REPORTLAB DA SUA ROTA /recibo VEM AQUI
+        buffer = io.BytesIO()
+        # ----------------------------------------------------
+        # COMEÇA A LÓGICA DE REPORTLAB (copiada de sua rota /recibo)
+        # ----------------------------------------------------
+        from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph
+        from reportlab.lib import colors
+        from reportlab.lib.pagesizes import letter
+        from reportlab.lib.styles import getSampleStyleSheet
+        
+        doc = SimpleDocTemplate(buffer, pagesize=letter)
+        styles = getSampleStyleSheet()
+        elementos = []
+
+        titulo = Paragraph("<b>RECIBO DE PAGAMENTO</b>", styles["Title"])
+        elementos.append(titulo)
+
+        info_cliente = f"""
+        <b>Cliente:</b> {venda.get('cliente_nome', 'N/A')}<br/>
+        <b>Venda ID:</b> {venda['id']}<br/>
+        <b>Data:</b> {venda['criado_em']}<br/>
+        <b>Status:</b> {venda['status_pagamento']}<br/>
+        """
+        elementos.append(Paragraph(info_cliente, styles["Normal"]))
+        elementos.append(Paragraph("<br/><b>Itens da Venda:</b>", styles["Heading3"]))
+
+        tabela_data = [["Item", "Qtd", "Preço Unit.", "Subtotal"]]
+        total = 0
+        for item in venda["itens"]:
+            nome = item["nome"]
+            qtd = item["quantidade"]
+            preco = float(item["preco_unitario"])
+            subtotal = qtd * preco
+            total += subtotal
+
+            tabela_data.append([
+                nome,
+                qtd,
+                f"R$ {preco:.2f}",
+                f"R$ {subtotal:.2f}"
+            ])
+
+        tabela = Table(tabela_data, colWidths=[220, 50, 100, 100])
+        tabela.setStyle(TableStyle([
+            ("BACKGROUND", (0,0), (-1,0), colors.lightgrey),
+            ("GRID", (0,0), (-1,-1), 1, colors.black),
+            ("FONT", (0,0), (-1,-1), "Helvetica", 10),
+            ("ALIGN", (1,1), (-1,-1), "CENTER"),
+        ]))
+        elementos.append(tabela)
+        elementos.append(Paragraph("<br/>", styles["Normal"]))
+        elementos.append(Paragraph(f"<b>Total Pago: R$ {total:.2f}</b>", styles["Heading2"]))
+        elementos.append(Paragraph(f"<b>Forma de Pagamento:</b> {venda.get('forma_pagamento', 'Não informado')}", styles["Normal"]))
+
+        doc.build(elementos)
+        # ----------------------------------------------------
+        # FIM DA LÓGICA DE REPORTLAB
+        # ----------------------------------------------------
+        
+        return buffer.getvalue() # Retorna os bytes
+
+    def enviar_recibo_por_email(self, venda_id: int) -> dict:
+        """ 
+        Busca a venda, gera o PDF em bytes e envia o e-mail usando EmailService.
+        """
+        venda = self.buscar_venda_por_id(venda_id)
+        
+        if not venda:
+            return {"sucesso": False, "erro": "Venda não encontrada."}
+            
+        cliente_email = self.cliente_service.buscar_pelo_id(venda.get('cliente_id')).get('email')
+        
+        if not cliente_email or "@" not in cliente_email:
+            return {"sucesso": False, "erro": f"Cliente da venda {venda_id} não possui e-mail válido."}
+
+        try:
+            # 1. Gera o arquivo PDF in-memory (bytes)
+            pdf_bytes = self._gerar_recibo_pdf_bytes(venda_id)
+            
+            # 2. Envia o e-mail usando o serviço implementado
+            self.email_service.enviar_recibo_com_anexo(
+                destinatario_email=cliente_email,
+                venda_id=venda_id,
+                pdf_bytes=pdf_bytes
+            )
+            
+            return {"sucesso": True, "email_cliente": cliente_email}
+            
+        except Exception as e:
+            # Log do erro de envio de e-mail
+            print(f"❌ Erro ao enviar e-mail da venda {venda_id}: {e}")
+            return {"sucesso": False, "erro": f"Falha no envio do recibo: {str(e)}"}

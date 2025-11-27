@@ -244,3 +244,17 @@ async def rota_esqueci_senha(
 
 # Incluir ambos os routers
 router.include_router(cliente_router)
+
+
+@router.get("/cliente/{id}", response_model=ClienteBuscaResponse)
+async def buscar_cliente_por_id(
+    id: int,
+    service: ServicosCliente = Depends(pegar_servicos_cliente),
+    funcionario_id: int = Depends(verificar_permissao_funcionario)
+):
+    cliente = service.buscar_pelo_id(id)
+
+    if not cliente:
+        raise HTTPException(status_code=404, detail="Cliente não encontrado")
+
+    return cliente

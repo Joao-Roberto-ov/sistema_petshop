@@ -113,11 +113,39 @@ const handleVisualizarPDF = () => {
     window.open(url, '_blank');
 };
 
-    const handleEnviarEmail = () => {
-        // AC1: Placeholder para envio de e-mail
-        alert(`Solicitação enviada! O recibo da venda #${vendaId} será enviado para o e-mail do cliente.`);
-        // Ex: axios.post(`/vendas/${vendaId}/enviar-recibo`);
-    };
+const handleEnviarEmail = async () => {
+    // Adicione um estado de carregamento se desejar, para evitar cliques múltiplos
+    // (ex: setIsSending(true))
+
+    try {
+        // Usamos a rota completa do backend que criamos: /api/vendas/{id}/recibo/enviar-email
+        const res = await axios.post(`/vendas/${vendaId}/recibo/enviar-email`);
+        
+        const email = res.data.email_enviado || 'do cliente';
+        
+        alert(`✅ Sucesso! O recibo da venda #${vendaId} foi enviado para ${email}.`);
+        
+    } catch (error) {
+        console.error("Erro ao enviar e-mail:", error);
+        
+        let errorMessage = "Erro desconhecido ao tentar enviar o recibo.";
+        
+        if (error.response) {
+            // Se houver resposta HTTP (400, 404, 500 etc.)
+            const detail = error.response.data.detail;
+            if (detail) {
+                errorMessage = `Falha no envio: ${detail}`;
+            } else if (error.response.status === 400) {
+                 errorMessage = "Falha no envio: O cliente não tem um e-mail válido registrado ou o envio falhou."
+            }
+        }
+        
+        alert(`❌ Erro no envio de e-mail: ${errorMessage}`);
+        
+    } finally {
+        // (ex: setIsSending(false))
+    }
+};
 
     return (
         <div className="modal-overlay-venda">
