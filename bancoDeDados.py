@@ -338,7 +338,7 @@ def criar_tabelas():
                      );
                      """)
 
-        # Inserir os 7 dias da semana automaticamente se não existirem
+        # insere os 7 dias da semana automaticamente se não existirem
         dias = [
             'Segunda-feira', 'Terça-feira', 'Quarta-feira',
             'Quinta-feira', 'Sexta-feira', 'Sábado', 'Domingo'
