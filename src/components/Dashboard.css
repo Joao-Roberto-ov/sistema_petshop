@@ -192,9 +192,14 @@
     min-width: 80px;
 }
 
+.agendamento-status.confirmado {
+    background-color: #d1fae5; /* Verde claro */
+    color: #065f46; /* Verde escuro */
+    border: 1px solid #6ee7b7;
+}
 .agendamento-status.agendado {
-    background-color: #d1fae5;
-    color: #065f46;
+    background-color: #e0f2fe;
+    color: #0369a1;
 }
 
 .agendamento-status.cancelado {
@@ -203,19 +208,19 @@
     text-decoration: line-through;
 }
 
-/* --- INÍCIO DA MODIFICAÇÃO (CSS) --- */
+
 .agendamento-status.c-ausencia {
     background-color: #fff3cd; /* Laranja claro */
     color: #856404; /* Laranja/Marrom escuro */
 }
-/* --- FIM DA MODIFICAÇÃO (CSS) --- */
+
 
 .agendamento-status.realizado {
     background-color: #e5e7eb;
     color: #4b5563;
 }
 
-/* --- ESTILOS CORRIGIDOS PARA OS BOTÕES DE ÍCONE --- */
+/*botoes de icones*/
 
 .action-buttons {
     display: flex;

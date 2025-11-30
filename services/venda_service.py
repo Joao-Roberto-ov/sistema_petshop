@@ -414,8 +414,19 @@ class ServicosVenda:
         
         if not venda:
             return {"sucesso": False, "erro": "Venda não encontrada."}
-            
-        cliente_email = self.cliente_service.buscar_pelo_id(venda.get('cliente_id')).get('email')
+
+        cliente_id = venda.get('cliente_id')
+
+        if not cliente_id:
+            return {"sucesso": False, "erro": "Venda não possui cliente vinculado (Venda anônima)."}
+
+        cliente = self.cliente_service.buscar_pelo_id(cliente_id)
+
+        if not cliente:
+            return {"sucesso": False, "erro": "Cadastro do cliente não encontrado."}
+
+        cliente_email = cliente.get('email')
+        # --- FIM DA CORREÇÃO ---
         
         if not cliente_email or "@" not in cliente_email:
             return {"sucesso": False, "erro": f"Cliente da venda {venda_id} não possui e-mail válido."}

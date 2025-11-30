@@ -10,7 +10,7 @@ const formatTime = (dateTimeString) => {
     } catch { return 'Inválido'; }
 };
 
-// --- (Req 2) Modal Agendamento (MANTIDO IGUAL) ---
+// --- Modal Agendamento (Mantido igual) ---
 const ModalAgendamentoVenda = ({ isOpen, onClose, onConfirm, servico, clienteId }) => {
     const [pets, setPets] = useState([]);
     const [petId, setPetId] = useState("");
@@ -101,51 +101,9 @@ const ModalAgendamentoVenda = ({ isOpen, onClose, onConfirm, servico, clienteId 
     );
 };
 
-// --- (NOVO) Modal de Sucesso / Recibo ---
-const ModalReciboVenda = ({ isOpen, vendaId, onNovaVenda }) => {
+// --- MODAL DE CONFIRMAÇÃO SIMPLIFICADO (SEM RECIBO/EMAIL) ---
+const ModalConfirmacaoVenda = ({ isOpen, vendaId, onNovaVenda }) => {
     if (!isOpen) return null;
-
-const handleVisualizarPDF = () => {
-    const backendBaseURL = 'http://localhost:8000/api'; 
-    
-    const url = `${backendBaseURL}/vendas/${vendaId}/recibo`; 
-    
-    window.open(url, '_blank');
-};
-
-const handleEnviarEmail = async () => {
-    // Adicione um estado de carregamento se desejar, para evitar cliques múltiplos
-    // (ex: setIsSending(true))
-
-    try {
-        // Usamos a rota completa do backend que criamos: /api/vendas/{id}/recibo/enviar-email
-        const res = await axios.post(`/vendas/${vendaId}/recibo/enviar-email`);
-        
-        const email = res.data.email_enviado || 'do cliente';
-        
-        alert(`✅ Sucesso! O recibo da venda #${vendaId} foi enviado para ${email}.`);
-        
-    } catch (error) {
-        console.error("Erro ao enviar e-mail:", error);
-        
-        let errorMessage = "Erro desconhecido ao tentar enviar o recibo.";
-        
-        if (error.response) {
-            // Se houver resposta HTTP (400, 404, 500 etc.)
-            const detail = error.response.data.detail;
-            if (detail) {
-                errorMessage = `Falha no envio: ${detail}`;
-            } else if (error.response.status === 400) {
-                 errorMessage = "Falha no envio: O cliente não tem um e-mail válido registrado ou o envio falhou."
-            }
-        }
-        
-        alert(`❌ Erro no envio de e-mail: ${errorMessage}`);
-        
-    } finally {
-        // (ex: setIsSending(false))
-    }
-};
 
     return (
         <div className="modal-overlay-venda">
@@ -156,22 +114,15 @@ const handleEnviarEmail = async () => {
                         <polyline points="22 4 12 14.01 9 11.01"></polyline>
                     </svg>
                 </div>
-                <h3 style={{marginBottom: '10px'}}>Venda #{vendaId} Realizada!</h3>
-                <p style={{color: '#666', marginBottom: '25px'}}>O que deseja fazer agora?</p>
+                <h3 style={{ marginBottom: '10px' }}>Venda #{vendaId} Registrada!</h3>
+                <p style={{ color: '#666', marginBottom: '25px' }}>
+                    A venda foi salva como "Pendente".<br/>
+                    Por favor, direcione o cliente ao <strong>Caixa</strong> para realizar o pagamento e emitir o recibo.
+                </p>
 
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                    <button className="btn-confirmar-venda" onClick={handleVisualizarPDF} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', fontSize: '1rem' }}>
-                        <span>📄</span> Visualizar / Imprimir Recibo
-                    </button>
-
-                    <button className="btn-cancelar-venda" onClick={handleEnviarEmail} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', fontSize: '1rem', background: 'white', border: '1px solid #ccc' }}>
-                        <span>✉️</span> Enviar por E-mail
-                    </button>
-                </div>
-
-                <div style={{ marginTop: '25px', paddingTop: '15px', borderTop: '1px solid #eee' }}>
-                    <button onClick={onNovaVenda} style={{ background: 'transparent', border: 'none', color: '#007bff', cursor: 'pointer', textDecoration: 'underline', fontSize: '0.9rem' }}>
-                        Fechar e iniciar nova venda
+                <div style={{ marginTop: '15px' }}>
+                    <button className="btn-confirmar-venda" onClick={onNovaVenda} style={{ width: '100%', padding: '12px' }}>
+                        Iniciar Nova Venda
                     </button>
                 </div>
             </div>
@@ -193,8 +144,8 @@ function RegistrarVenda({ onBack }) {
     const [modalAgendamentoOpen, setModalAgendamentoOpen] = useState(false);
     const [servicoPendente, setServicoPendente] = useState(null);
     const [toast, setToast] = useState({ show: false, message: '', type: 'error' });
-    
-    // Novo Estado para Recibo
+
+    // Estado para Modal de Confirmação
     const [vendaConcluidaId, setVendaConcluidaId] = useState(null);
 
     const showToast = (message, type = 'error') => {
@@ -212,7 +163,7 @@ function RegistrarVenda({ onBack }) {
         try {
             const res = await axios.get("/users/");
             let lista = Array.isArray(res.data) ? res.data : (res.data.data || []);
-            setClientes(lista);
+            setClientes(lista.filter(c => c.is_ativo !== false));
         } catch (error) { console.error(error); setClientes([]); }
     };
 
@@ -284,7 +235,6 @@ function RegistrarVenda({ onBack }) {
 
     const total = itens.reduce((acc, i) => acc + i.quantidade * i.preco_unitario, 0);
 
-    // --- LÓGICA DE REGISTRO DA VENDA ATUALIZADA ---
     const registrarVenda = async () => {
         const temServico = itens.some(i => i.tipo === 'servico');
         if (temServico && !clienteSelecionado) {
@@ -304,16 +254,12 @@ function RegistrarVenda({ onBack }) {
 
         try {
             const res = await axios.post("/vendas/", venda);
-            
-            // CORREÇÃO AQUI: Prioriza 'id_venda' (retorno do backend) ou 'id'
-            const idVenda = res.data.venda?.id_venda || res.data.id || res.data.venda_id; 
+            const idVenda = res.data.venda?.id_venda || res.data.id || res.data.venda_id;
 
             if (idVenda) {
-                setVendaConcluidaId(idVenda); // Abre o Modal de Recibo
-                showToast("Venda registrada com sucesso!", 'success');
+                setVendaConcluidaId(idVenda); // Abre o Modal Simplificado
             } else {
-                // Mensagem de fallback atualizada caso o ID não venha em nenhum formato
-                showToast("Venda salva, mas ID não encontrado no formato esperado.", 'warning');
+                showToast("Venda salva, mas ID não encontrado.", 'warning');
                 handleNovaVenda();
             }
 
@@ -323,14 +269,13 @@ function RegistrarVenda({ onBack }) {
         }
     };
 
-    // --- RESETAR TELA PARA NOVA VENDA ---
     const handleNovaVenda = () => {
         setVendaConcluidaId(null);
         setItens([]);
         setClienteSelecionado(null);
         setBuscaCliente("");
         setFormaPagamento("Dinheiro");
-        buscarProdutos(); // Atualiza estoque na visualização
+        buscarProdutos();
     };
 
     const styles = {
@@ -365,7 +310,7 @@ function RegistrarVenda({ onBack }) {
                 </div>
             )}
 
-            {/* Modal de Agendamento */}
+            {/* Modal Agendamento */}
             <ModalAgendamentoVenda
                 isOpen={modalAgendamentoOpen}
                 onClose={() => setModalAgendamentoOpen(false)}
@@ -374,8 +319,8 @@ function RegistrarVenda({ onBack }) {
                 clienteId={clienteSelecionado?.id}
             />
 
-            {/* (NOVO) Modal de Recibo - Aparece após concluir a venda */}
-            <ModalReciboVenda 
+            {/* Modal Confirmação (Simplificado) */}
+            <ModalConfirmacaoVenda
                 isOpen={!!vendaConcluidaId}
                 vendaId={vendaConcluidaId}
                 onNovaVenda={handleNovaVenda}
@@ -383,8 +328,7 @@ function RegistrarVenda({ onBack }) {
 
             <div style={styles.painelEsquerdo}>
                 <h2 style={styles.title}>Registrar Venda (Balcão)</h2>
-                
-                {/* Busca Cliente */}
+
                 <label style={{ fontWeight: 'bold', display: 'block', marginBottom: '5px' }}>Buscar Cliente (Opcional para produtos)</label>
                 <input type="text" placeholder="Digite o nome..." style={styles.inputBusca}
                     value={buscaCliente} onChange={(e) => setBuscaCliente(e.target.value)} />
@@ -399,7 +343,6 @@ function RegistrarVenda({ onBack }) {
                     ))}
                 </div>
 
-                {/* Serviços */}
                 <h3 style={{ marginTop: '20px', color: '#444' }}>Serviços (Requer Cliente)</h3>
                 <div style={styles.horizontalScroll}>
                     {servicos.map((s) => (
@@ -411,7 +354,6 @@ function RegistrarVenda({ onBack }) {
                     ))}
                 </div>
 
-                {/* Produtos */}
                 <h3 style={{ color: '#444' }}>Produtos</h3>
                 <div style={styles.horizontalScroll}>
                     {produtos.map((p) => (

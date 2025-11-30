@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
 import axios from '../api/axios';
-import NotificacoesEstoque from "../components/NotificacoesEstoque";
 import "./AppHeader.css"
 
 function getFirstName(fullName) {
@@ -23,10 +22,8 @@ function AppHeader({
     onNavigateToServicosCliente
 }) {
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-    const [estoqueBaixo, setEstoqueBaixo] = useState(false);
-    const [itensCriticos, setItensCriticos] = useState([]);
+    const [totalNotificacoes, setTotalNotificacoes] = useState(0);
 
-    // ----------- CORREÇÃO IMPORTANTE: mover para cima -----------
     const cargoLower = userData?.cargo?.toLowerCase();
     const isAdmin = userData?.cargo === 'GESTOR' ||
                     userData?.cargo === 'ADMINISTRADOR' ||
@@ -35,7 +32,6 @@ function AppHeader({
 
     const isFuncionarioOuAdmin = userData?.cargo &&
         (userData.cargo === 'FUNCIONARIO' || userData.cargo === 'GESTOR');
-    // ------------------------------------------------------------
 
     const nomeEmpresa = 'PetLife';
     const dropdownRef = useRef(null);
@@ -62,51 +58,30 @@ function AppHeader({
         };
     }, [dropdownRef]);
 
-    // ----------- ESTOQUE MÍNIMO (com isAdmin agora correto) -----------
+    // Verifica quantidade total de notificações (Sistema + Estoque)
     useEffect(() => {
         if (!isLoggedIn || !isAdmin) return;
 
-        async function verificarEstoque() {
+        const checkNotificacoes = async () => {
             try {
                 const token = localStorage.getItem('token');
+                // Busca notificações gerais (agendamentos, cancelamentos)
+                const resNotif = await axios.get('/notificacoes/', { headers: { Authorization: `Bearer ${token}` } });
+                // Busca estoque baixo
+                const resEstoque = await axios.get('/produtos/estoque-baixo', { headers: { Authorization: `Bearer ${token}` } });
 
-                const produtos = await axios.get('/produtos/listar', {
-                    headers: { Authorization: `Bearer ${token}` }
-                });
-
-                const criticos = [];
-
-                for (const p of produtos.data) {
-                    try {
-                        const resMin = await axios.get(`/admin/config/estoque-minimo/${p.id}`, {
-                            headers: { Authorization: `Bearer ${token}` }
-                        });
-
-                        const minimo = resMin.data.estoque_minimo;
-
-                        if (p.estoque !== undefined && p.estoque <= minimo) {
-                            criticos.push({
-                                nome: p.nome,
-                                estoque: p.estoque,
-                                minimo
-                            });
-                        }
-                    } catch (err) {
-                        // Sem configuração → ignora
-                    }
-                }
-
-                setItensCriticos(criticos);
-                setEstoqueBaixo(criticos.length > 0);
-
-            } catch (err) {
-                console.error("Erro ao verificar estoque mínimo:", err);
+                const total = (resNotif.data?.length || 0) + (resEstoque.data?.length || 0);
+                setTotalNotificacoes(total);
+            } catch (e) {
+                console.error("Erro ao verificar notificações:", e);
             }
-        }
+        };
 
-        verificarEstoque();
+        checkNotificacoes();
+        // Verifica a cada 60s
+        const interval = setInterval(checkNotificacoes, 60000);
+        return () => clearInterval(interval);
     }, [isLoggedIn, isAdmin]);
-    // ---------------------------------------------------------------
 
     const handleProdutosClick = (e) => {
         e.preventDefault();
@@ -207,78 +182,99 @@ function AppHeader({
 
                 <div className="nav-buttons">
                     {isLoggedIn ? (
-                        <div className="user-menu" ref={dropdownRef} style={{ position: 'relative' }}>
-                            <button className="user-menu-button" onClick={() => setIsDropdownOpen(!isDropdownOpen)}>
-                                {`Olá, ${getFirstName(userData?.nome)}`}
-                                {isFuncionarioOuAdmin && (
-                                    <span style={{
-                                        marginLeft: '0.5rem',
-                                        fontSize: '0.75rem',
-                                        padding: '0.2rem 0.5rem',
-                                        backgroundColor: '#4a9b8e',
-                                        borderRadius: '12px',
-                                        color: 'white'
-                                    }}>
-                                        {userData.cargo}
-                                    </span>
-                                )}
-                            </button>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
 
-                            <div className="notification-wrapper">
-                                {isAdmin && estoqueBaixo && (
-                                    <NotificacoesEstoque itens={itensCriticos} />
-                                )}
-                            </div>
-
-                            {isDropdownOpen && (
-                                <ul className="dropdown-menu">
-                                    {!isFuncionarioOuAdmin && (
-                                        <>
-                                            <li>
-                                                <a href="#" onClick={(e) => { e.preventDefault(); onNavigateToMeuPerfil(); setIsDropdownOpen(false); }}>
-                                                    <span className="icon">👤</span> Meu Perfil
-                                                </a>
-                                            </li>
-
-                                            <li className="dropdown-divider"></li>
-                                        </>
+                            {/* Botão de Notificações (Nova Tela) */}
+                            {isAdmin && (
+                                <button
+                                    onClick={() => window.dispatchEvent(new CustomEvent('navigate', { detail: 'notificacoes' }))}
+                                    style={{
+                                        background: 'none', border: 'none', cursor: 'pointer', position: 'relative',
+                                        fontSize: '1.2rem', color: '#555', marginRight: '10px', display: 'flex', alignItems: 'center'
+                                    }}
+                                    title="Central de Notificações"
+                                >
+                                    🔔
+                                    {totalNotificacoes > 0 && (
+                                        <span style={{
+                                            position: 'absolute', top: '-5px', right: '-5px',
+                                            background: '#e74c3c', color: 'white', borderRadius: '50%',
+                                            padding: '2px 5px', fontSize: '0.7rem', fontWeight: 'bold',
+                                            minWidth: '18px', textAlign: 'center'
+                                        }}>
+                                            {totalNotificacoes}
+                                        </span>
                                     )}
+                                </button>
+                            )}
 
+                            <div className="user-menu" ref={dropdownRef} style={{ position: 'relative' }}>
+                                <button className="user-menu-button" onClick={() => setIsDropdownOpen(!isDropdownOpen)}>
+                                    {`Olá, ${getFirstName(userData?.nome)}`}
                                     {isFuncionarioOuAdmin && (
-                                        <>
-                                            <li>
-                                                <a href="#" onClick={(e) => {
-                                                    e.preventDefault();
-                                                    window.dispatchEvent(new CustomEvent('navigate', { detail: 'visualizarClientes' }));
-                                                    setIsDropdownOpen(false);
-                                                }}>
-                                                    <span className="icon">👤</span> Gerenciar Clientes
-                                                </a>
-                                            </li>
+                                        <span style={{
+                                            marginLeft: '0.5rem',
+                                            fontSize: '0.75rem',
+                                            padding: '0.2rem 0.5rem',
+                                            backgroundColor: '#4a9b8e',
+                                            borderRadius: '12px',
+                                            color: 'white'
+                                        }}>
+                                            {userData.cargo}
+                                        </span>
+                                    )}
+                                </button>
 
-                                            {isAdmin && (
+                                {isDropdownOpen && (
+                                    <ul className="dropdown-menu">
+                                        {!isFuncionarioOuAdmin && (
+                                            <>
+                                                <li>
+                                                    <a href="#" onClick={(e) => { e.preventDefault(); onNavigateToMeuPerfil(); setIsDropdownOpen(false); }}>
+                                                        <span className="icon">👤</span> Meu Perfil
+                                                    </a>
+                                                </li>
+
+                                                <li className="dropdown-divider"></li>
+                                            </>
+                                        )}
+
+                                        {isFuncionarioOuAdmin && (
+                                            <>
                                                 <li>
                                                     <a href="#" onClick={(e) => {
                                                         e.preventDefault();
-                                                        window.dispatchEvent(new CustomEvent('navigate', { detail: 'funcionario-cadastro-admin' }));
+                                                        window.dispatchEvent(new CustomEvent('navigate', { detail: 'visualizarClientes' }));
                                                         setIsDropdownOpen(false);
                                                     }}>
-                                                        <span className="icon">➕</span> Cadastrar Funcionário
+                                                        <span className="icon">👤</span> Gerenciar Clientes
                                                     </a>
                                                 </li>
-                                            )}
 
-                                            <li className="dropdown-divider"></li>
-                                        </>
-                                    )}
+                                                {isAdmin && (
+                                                    <li>
+                                                        <a href="#" onClick={(e) => {
+                                                            e.preventDefault();
+                                                            window.dispatchEvent(new CustomEvent('navigate', { detail: 'funcionario-cadastro-admin' }));
+                                                            setIsDropdownOpen(false);
+                                                        }}>
+                                                            <span className="icon">➕</span> Cadastrar Funcionário
+                                                        </a>
+                                                    </li>
+                                                )}
 
-                                    <li>
-                                        <a href="#" onClick={(e) => { e.preventDefault(); onLogout(); setIsDropdownOpen(false); }}>
-                                            <span className="icon">↪</span> Sair
-                                        </a>
-                                    </li>
-                                </ul>
-                            )}
+                                                <li className="dropdown-divider"></li>
+                                            </>
+                                        )}
+
+                                        <li>
+                                            <a href="#" onClick={(e) => { e.preventDefault(); onLogout(); setIsDropdownOpen(false); }}>
+                                                <span className="icon">↪</span> Sair
+                                            </a>
+                                        </li>
+                                    </ul>
+                                )}
+                            </div>
                         </div>
                     ) : (
                         <>

@@ -342,3 +342,54 @@ class RepositorioAgendamento:
         finally:
             if cursor: cursor.close()
             if conn: encerra_conexao(conn)
+
+    def buscar_agendamentos_pendentes_lembrete(self, inicio: datetime, fim: datetime) -> List[Tuple]:
+        """
+        Busca agendamentos no intervalo que AINDA NÃO tiveram lembrete enviado.
+        """
+        conn = None
+        cursor = None
+        try:
+            conn = conectar()
+            cursor = conn.cursor()
+            sql_query = """
+                        SELECT id,
+                               cliente_id,
+                               pet_id,
+                               servico_id,
+                               funcionario_id,
+                               data_hora_inicio,
+                               data_hora_fim,
+                               status
+                        FROM Agendamentos
+                        WHERE status = 'Agendado'
+                          AND data_hora_inicio BETWEEN %s AND %s
+                          AND (lembrete_enviado IS FALSE OR lembrete_enviado IS NULL)
+                        """
+            cursor.execute(sql_query, (inicio, fim))
+            return cursor.fetchall()
+        except psycopg2.Error as e:
+            print(f"Erro ao buscar agendamentos para lembrete: {e}")
+            return []
+        finally:
+            if cursor: cursor.close()
+            if conn: encerra_conexao(conn)
+
+    def marcar_lembrete_como_enviado(self, agendamento_id: int):
+        """
+        Marca o agendamento como notificado para evitar envios duplicados.
+        """
+        conn = None
+        cursor = None
+        try:
+            conn = conectar()
+            cursor = conn.cursor()
+            sql_query = "UPDATE Agendamentos SET lembrete_enviado = TRUE WHERE id = %s"
+            cursor.execute(sql_query, (agendamento_id,))
+            conn.commit()
+        except psycopg2.Error as e:
+            if conn: conn.rollback()
+            print(f"Erro ao marcar lembrete como enviado para agendamento {agendamento_id}: {e}")
+        finally:
+            if cursor: cursor.close()
+            if conn: encerra_conexao(conn)

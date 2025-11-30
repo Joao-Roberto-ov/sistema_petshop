@@ -10,9 +10,9 @@ from repositories.funcionario_repository import RepositorioFuncionario
 from services import historico_medico_service
 from modelos import HistoricoMedico
 from modelos import AgendamentoCreate, HorarioDisponivel, DisponibilidadeResponse, AgendamentoReagendar
-
-# IMPORTAÇÃO ADICIONADA: Precisamos ler o repositório de configuração
 from repositories.config_repository import listar_horarios as repo_listar_horarios
+from services.email_service import EmailService
+from services.notificacao_service import NotificacaoService
 
 INTERVALO_MINUTOS = 15  # Define a granularidade dos slots
 
@@ -34,7 +34,8 @@ class ServicosAgendamento:
         self.repo_servico = RepositorioCatalogoServico()
         self.repo_pet = RepositorioPet()
         self.repo_funcionario = RepositorioFuncionario()
-        # Cache para armazenar os horários de funcionamento (evita N consultas ao DB)
+        self.notificacao_service = NotificacaoService()
+        self.email_service = EmailService()
         self._horarios_cache = None
 
     def _get_horarios_config(self):
@@ -402,9 +403,35 @@ class ServicosAgendamento:
             })
         return agendamentos
 
+    def confirmar_agendamento(self, agendamento_id: int):
+        """
+        Confirma a presença do cliente no agendamento.
+        """
+        agendamento = self.repo_agendamento.buscar_agendamento_por_id(agendamento_id)
+        if not agendamento:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Agendamento não encontrado.")
+
+        ag_status = agendamento[6]
+
+        if ag_status == 'Cancelado':
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                                detail="Não é possível confirmar um agendamento cancelado.")
+
+        # Atualiza status para 'Confirmado'
+        sucesso = self.repo_agendamento.atualizar_status_agendamento(
+            agendamento_id,
+            "Confirmado",
+            "Presença confirmada pelo cliente via e-mail"
+        )
+
+        if not sucesso:
+            raise HTTPException(status_code=500, detail="Erro ao confirmar agendamento.")
+
+        return {"message": "Sua presença foi confirmada com sucesso! Esperamos você."}
+
     def cancelar_agendamento(self, agendamento_id: int, cliente_id_token: int):
         """
-        Cancela um agendamento, aplicando as regras de negócio
+        Cancela um agendamento e notifica o gestor.
         """
         agendamento_raw = self.repo_agendamento.buscar_agendamento_por_id(agendamento_id)
 
@@ -412,8 +439,6 @@ class ServicosAgendamento:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Agendamento não encontrado.")
 
         ag_id, ag_cliente_id, ag_pet_id, ag_servico_id, ag_inicio, ag_fim, ag_status, *extra = agendamento_raw[:8]
-        ag_status_motivo = extra[0] if extra else None
-
         ag_inicio_tz = ag_inicio.replace(tzinfo=timezone.utc) if ag_inicio.tzinfo is None else ag_inicio
 
         agendamento = {
@@ -452,7 +477,69 @@ class ServicosAgendamento:
             raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                                 detail="Erro ao atualizar o status do agendamento no banco de dados.")
 
+        try:
+            # Busca dados para a mensagem (Nome do cliente/pet)
+            msg_notificacao = f"O agendamento #{agendamento_id} foi cancelado pelo cliente."
+            self.notificacao_service.criar_notificacao(msg_notificacao, "cancelamento")
+        except Exception as e:
+            print(f"Erro ao criar notificação para o gestor: {e}")
+
         return {"message": "Agendamento cancelado com sucesso.", "motivo": motivo_cancelamento}
+
+    def processar_lembretes_24h(self):
+        """
+        Verifica agendamentos próximos e envia e-mails.
+        Corrigido para incluir agendamentos de 'hoje' que ainda não foram notificados.
+        """
+        print("Iniciando processamento de lembretes...")
+        agora = datetime.now(timezone.utc)
+
+        inicio_janela = agora
+        fim_janela = agora + timedelta(hours=25)
+
+        # Busca agendamentos que ainda não receberam lembrete (flag = false)
+        agendamentos_pendentes = self.repo_agendamento.buscar_agendamentos_pendentes_lembrete(inicio_janela, fim_janela)
+
+        count = 0
+        for ag in agendamentos_pendentes:
+            ag_id = ag[0]
+            cliente_id = ag[1]
+
+            try:
+                # procura os detalhes completos para montar o e-mail
+                detalhes_lista = self.listar_agendamentos_cliente(cliente_id)
+                ag_detalhe = next((item for item in detalhes_lista if item["id"] == ag_id), None)
+
+                if ag_detalhe:
+                    # procura o email do cliente
+                    from repositories.cliente_repository import RepositorioCliente
+                    repo_cli = RepositorioCliente()
+                    cliente_dados = repo_cli.procurar_pelo_id(cliente_id)
+
+                    if cliente_dados:
+                        email_cliente = cliente_dados[2]  # Índice do email
+
+                        # prepara os dados
+                        dados_email = {
+                            "id": ag_id,
+                            "cliente_nome": cliente_dados[1],
+                            "pet_nome": ag_detalhe["pet_nome"],
+                            "servico_nome": ag_detalhe["servico_nome"],
+                            "data_hora_inicio": datetime.fromisoformat(ag_detalhe["data_hora_inicio"])
+                        }
+
+                        # envia o email
+                        self.email_service.enviar_lembrete_agendamento(email_cliente, dados_email)
+
+                        # marca no banco que foi enviado o lembrete
+                        self.repo_agendamento.marcar_lembrete_como_enviado(ag_id)
+
+                        print(f"✅ Lembrete enviado para agendamento #{ag_id}")
+                        count += 1
+            except Exception as e:
+                print(f"❌ Erro ao processar lembrete para agendamento {ag_id}: {e}")
+
+        print(f"Processamento concluído. {count} novos lembretes enviados.")
 
     def reagendar_agendamento(self, agendamento_id: int, nova_data_hora_inicio: datetime, cliente_id_token: int):
         """
@@ -816,3 +903,45 @@ class ServicosAgendamento:
             print(f"Erro ao assumir agendamento: {e}")
             raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                                 detail="Erro interno ao assumir o agendamento.")
+
+    def cancelar_agendamento_via_email(self, agendamento_id: int):
+        """
+        Cancela o agendamento vindo de um link de e-mail (sem validação de token de usuário).
+        """
+        # Busca o agendamento
+        agendamento_raw = self.repo_agendamento.buscar_agendamento_por_id(agendamento_id)
+        if not agendamento_raw:
+            # Retorna False para indicar erro
+            return False, "Agendamento não encontrado."
+
+        # Desempacota os dados (id, cliente, pet, servico, inicio, fim, status...)
+        ag_id, _, _, _, ag_inicio, _, ag_status, *extra = agendamento_raw[:8]
+
+        # Validações
+        ag_inicio_tz = ag_inicio.replace(tzinfo=timezone.utc) if ag_inicio.tzinfo is None else ag_inicio
+        agora = datetime.now(timezone.utc)
+
+        if ag_status == 'Cancelado':
+            return False, "Este agendamento já foi cancelado."
+
+        if ag_inicio_tz <= agora:
+            return False, "Não é possível cancelar um agendamento passado."
+
+        # Atualiza status
+        sucesso = self.repo_agendamento.atualizar_status_agendamento(
+            agendamento_id=agendamento_id,
+            novo_status="Cancelado",
+            motivo="Cancelado pelo cliente via E-mail"
+        )
+
+        if sucesso:
+            # Notifica o gestor (AC4)
+            try:
+                msg = f"O agendamento #{agendamento_id} foi cancelado pelo cliente via e-mail."
+                self.notificacao_service.criar_notificacao(msg, "cancelamento")
+            except Exception as e:
+                print(f"Erro ao notificar gestor: {e}")
+
+            return True, "Agendamento cancelado com sucesso."
+
+        return False, "Erro interno ao cancelar."

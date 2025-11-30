@@ -451,3 +451,10 @@ class HistoricoMedicoResponse(HistoricoMedico):
 
 class AgendamentoReagendar(BaseModel):
     nova_data_hora_inicio: datetime
+
+class NotificacaoModel(BaseModel):
+    id: int
+    mensagem: str
+    lida: bool
+    criado_em: datetime
+    tipo: str

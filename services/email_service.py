@@ -8,6 +8,7 @@ from email.mime.application import MIMEApplication
 
 load_dotenv()
 
+
 class EmailService:
     def __init__(self):
         self.smtp_server = "smtp.gmail.com"
@@ -17,7 +18,8 @@ class EmailService:
         self.sender_name = "Equipe PetLife"
 
         if not self.email_user or not self.email_password:
-            print("AVISO: Credenciais de e-mail (EMAIL_HOST_USER/PASSWORD) não encontradas no .env. O serviço de e-mail não funcionará.")
+            print(
+                "AVISO: Credenciais de e-mail (EMAIL_HOST_USER/PASSWORD) não encontradas no .env. O serviço de e-mail não funcionará.")
             self.is_configured = False
         else:
             self.is_configured = True
@@ -38,7 +40,7 @@ class EmailService:
                 server.starttls()
                 server.login(self.email_user, self.email_password)
                 server.sendmail(self.email_user, destinatario_email, msg.as_string())
-            
+
             print(f"E-mail real (via Gmail) enviado com sucesso para: {destinatario_email}")
 
         except Exception as e:
@@ -110,7 +112,7 @@ class EmailService:
             {detalhes_html}
             <p>Se você realizou esta alteração, nenhuma ação é necessária.</p>
             <p>Se você não reconhece esta atividade, por favor, altere sua senha imediatamente e entre em contato com nosso suporte.</p>
-              
+
 
             <p>Atenciosamente,</p>
             <p><strong>{self.sender_name}</strong></p>
@@ -119,13 +121,11 @@ class EmailService:
         """
         self._enviar_email(destinatario_email, assunto, corpo_html)
 
-# ------------------------------------------------------------------
-    # NOVO MÉTODO: Lida com anexo de PDF
-    # ------------------------------------------------------------------
-    def _enviar_email_com_anexo(self, destinatario_email: str, assunto: str, corpo_html: str, 
+    def _enviar_email_com_anexo(self, destinatario_email: str, assunto: str, corpo_html: str,
                                 anexo_bytes: bytes, nome_arquivo: str):
         if not self.is_configured:
-            print(f"SIMULAÇÃO (credenciais ausentes): E-mail com anexo para {destinatario_email} com assunto '{assunto}'")
+            print(
+                f"SIMULAÇÃO (credenciais ausentes): E-mail com anexo para {destinatario_email} com assunto '{assunto}'")
             return
 
         try:
@@ -133,7 +133,7 @@ class EmailService:
             msg['From'] = formataddr((self.sender_name, self.email_user))
             msg['To'] = destinatario_email
             msg['Subject'] = assunto
-            
+
             # 1. Adiciona o corpo HTML
             msg.attach(MIMEText(corpo_html, 'html'))
 
@@ -147,20 +147,16 @@ class EmailService:
                 server.starttls()
                 server.login(self.email_user, self.email_password)
                 server.sendmail(self.email_user, destinatario_email, msg.as_string())
-            
+
             print(f"E-mail com anexo (via Gmail) enviado com sucesso para: {destinatario_email}")
 
         except Exception as e:
             print(f"ERRO AO ENVIAR E-MAIL COM ANEXO (Gmail): {e}")
 
-
-    # ------------------------------------------------------------------
-    # NOVO MÉTODO PÚBLICO: Chamado pelo Venda Service
-    # ------------------------------------------------------------------
     def enviar_recibo_com_anexo(self, destinatario_email: str, venda_id: int, pdf_bytes: bytes):
         assunto = f"Recibo da Venda #{venda_id} PetLife"
         nome_arquivo = f"recibo_venda_{venda_id}.pdf"
-        
+
         corpo_html = f"""
         <!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"></head><body>
             <p>Olá,</p>
@@ -178,3 +174,42 @@ class EmailService:
             anexo_bytes=pdf_bytes,
             nome_arquivo=nome_arquivo
         )
+
+    def enviar_lembrete_agendamento(self, destinatario_email: str, agendamento):
+        assunto = f"Lembrete: Seu agendamento na PetLife é amanhã!"
+
+        # CONFIGURAÇÃO DA URL BASE (Aponta para o BACKEND - Porta 8000)
+        # Se subir para nuvem, troque "http://localhost:8000" pelo domínio real da API.
+        BASE_URL = "http://localhost:8000"
+
+        # Links apontando diretamente para as rotas que retornam HTML
+        link_confirmar = f"{BASE_URL}/api/agendamentos/{agendamento['id']}/confirmar-email"
+        link_cancelar = f"{BASE_URL}/api/agendamentos/{agendamento['id']}/cancelar-email"
+
+        corpo_html = f"""
+        <!DOCTYPE html>
+        <html>
+        <body style="font-family: Arial, sans-serif; color: #333;">
+            <div style="max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
+                <h2 style="color: #4a9b8e; text-align: center;">Olá, {agendamento['cliente_nome']}!</h2>
+                <p style="text-align: center; font-size: 16px;">Este é um lembrete especial para o agendamento de <strong>{agendamento['pet_nome']}</strong>.</p>
+
+                <div style="background: #f9f9f9; padding: 20px; border-radius: 8px; margin: 20px 0; text-align: center;">
+                    <p style="margin: 5px 0;"><strong>Serviço:</strong> {agendamento['servico_nome']}</p>
+                    <p style="margin: 5px 0; font-size: 18px;"><strong>Data:</strong> {agendamento['data_hora_inicio'].strftime('%d/%m/%Y às %H:%M')}</p>
+                </div>
+
+                <p style="text-align: center;">Por favor, confirme sua presença ou cancele se não puder comparecer:</p>
+
+                <div style="text-align: center; margin-top: 30px; margin-bottom: 30px;">
+                    <a href="{link_confirmar}" style="background-color: #27ae60; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; margin-right: 15px; font-weight: bold;">Confirmar Presença</a>
+                    <a href="{link_cancelar}" style="background-color: #e74c3c; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;">Cancelar</a>
+                </div>
+
+                <hr style="border: 0; border-top: 1px solid #eee; margin: 30px 0;">
+                <p style="font-size: 12px; color: #999; text-align: center;">Equipe PetLife - Cuidando com carinho.</p>
+            </div>
+        </body>
+        </html>
+        """
+        self._enviar_email(destinatario_email, assunto, corpo_html)

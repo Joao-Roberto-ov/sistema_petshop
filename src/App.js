@@ -34,10 +34,10 @@ import Checkout from './components/Checkout';
 import FluxoCaixaReport from './components/FluxoCaixaReport';
 import ConfigEmpresaScreen from './components/ConfigEmpresaScreen';
 import AtualizarEstoque from './components/AtualizarEstoque';
-
-// (Req 5 e 6) Novas telas importadas
 import DashboardAtendente from './components/DashboardAtendente';
 import GerenciarVendasPendentes from './components/GerenciarVendasPendentes';
+import ConfirmacaoAgendamento from "./components/ConfirmacaoAgendamento";
+import NotificacoesScreen from "./components/NotificacoesScreen";
 
 const CARGO = { GESTOR: 1, FUNCIONARIO: 2, VETERINARIO: 3, ATENDENTE: 4 };
 const navigateTo = (screenName) => {
@@ -89,6 +89,16 @@ function App() {
     useEffect(() => {
         const urlParams = new URLSearchParams(window.location.search);
         const token = urlParams.get('token');
+
+        // --- Lógica de Roteamento via URL ---
+        const path = window.location.pathname;
+
+        if (path.includes('/confirmacao-agendamento')) {
+            // Se a URL for de confirmação, navega direto pra lá
+            setCurrentScreen('confirmacao-agendamento');
+            return;
+        }
+
         if (token && currentScreen !== 'reset-password') {
             navigateTo('reset-password');
             return;
@@ -276,7 +286,7 @@ function App() {
             }
         }
 
-        const telasCliente = ['dashboard', 'meu-perfil', 'agendar-servico',
+        const telasCliente = ['dashboard', 'agendar-servico',
                             'checkout', 'visualizar-produtos-cliente',
                             'pet-cadastro', 'meus-pets'];
 
@@ -299,6 +309,10 @@ function App() {
                     onNavigateToLogin={() => navigateTo('login')}
                 />;
 
+            case 'notificacoes':
+                return <NotificacoesScreen
+                    onBack={() => navigateToHome(userData)} />;
+
             case 'forgot-password':
                 return <ForgotPasswordScreen
                     onNavigateToLogin={() => navigateTo('login')}
@@ -309,7 +323,7 @@ function App() {
                     onNavigateToLogin={() => navigateTo('login')}
                 />;
 
-            // --- DASHBOARDS ---
+            // dashboards
             case 'dashboard': // Cliente
                 return <Dashboard
                     userData={userData}
@@ -333,7 +347,6 @@ function App() {
                     onNavigateToHome={() => navigateToHome(userData, true)}
                 />;
 
-            // (Req 5) NOVO DASHBOARD ATENDENTE
             case 'dashboard-atendente':
                 return <DashboardAtendente
                     userData={userData}
@@ -341,11 +354,13 @@ function App() {
                     onNavigateToHome={() => navigateToHome(userData, true)}
                 />;
 
-            // (Req 6) NOVA TELA DE CAIXA
             case 'gerenciar-vendas-pendentes':
                 return <GerenciarVendasPendentes
                     onBack={navigateToDashboard}
                 />;
+
+            case 'confirmacao-agendamento':
+                return <ConfirmacaoAgendamento />;
 
             case 'pet-cadastro':
                 return <PetCadastroScreen

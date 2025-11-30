@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from '../api/axios';
-import VendaDetalhesModal from './VendaDetalhesModal'; // <--- IMPORTAR O MODAL
+import VendaDetalhesModal from './VendaDetalhesModal';
 import './Dashboard.css';
 import './DashboardGestor.css';
 
@@ -12,6 +12,68 @@ const IconEye = () => (
     </svg>
 );
 
+// --- MODAL DE RECIBO/SUCESSO (Transferido para o Caixa) ---
+const ModalReciboCaixa = ({ isOpen, vendaId, onClose }) => {
+    if (!isOpen) return null;
+
+    const handleVisualizarPDF = () => {
+        const backendBaseURL = 'http://localhost:8000/api';
+        const url = `${backendBaseURL}/vendas/${vendaId}/recibo`;
+        window.open(url, '_blank');
+    };
+
+    const handleEnviarEmail = async () => {
+        try {
+            const res = await axios.post(`/vendas/${vendaId}/recibo/enviar-email`);
+            const email = res.data.email_enviado || 'do cliente';
+            alert(`✅ Sucesso! O recibo da venda #${vendaId} foi enviado para ${email}.`);
+        } catch (error) {
+            console.error("Erro ao enviar e-mail:", error);
+            let errorMessage = "Erro desconhecido ao tentar enviar o recibo.";
+            if (error.response) {
+                const detail = error.response.data.detail;
+                if (detail) {
+                    errorMessage = `Falha no envio: ${detail}`;
+                } else if (error.response.status === 400) {
+                    errorMessage = "Falha no envio: O cliente não tem um e-mail válido registrado ou o envio falhou."
+                }
+            }
+            alert(`❌ Erro no envio de e-mail: ${errorMessage}`);
+        }
+    };
+
+    return (
+        <div className="modal-overlay-venda" style={{zIndex: 1200}}> {/* Z-index alto para sobrepor tudo */}
+            <div className="modal-container-venda" style={{ textAlign: 'center', maxWidth: '400px', border: '2px solid #27ae60' }}>
+                <div style={{ color: '#27ae60', marginBottom: '15px' }}>
+                    <svg width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                        <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                    </svg>
+                </div>
+                <h3 style={{marginBottom: '10px'}}>Pagamento Confirmado!</h3>
+                <p style={{color: '#666', marginBottom: '25px'}}>A venda #{vendaId} foi finalizada. <br/>O que deseja fazer?</p>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                    <button className="btn-confirmar-venda" onClick={handleVisualizarPDF} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', fontSize: '1rem' }}>
+                        <span>📄</span> Visualizar / Imprimir Recibo
+                    </button>
+
+                    <button className="btn-cancelar-venda" onClick={handleEnviarEmail} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', fontSize: '1rem', background: 'white', border: '1px solid #ccc' }}>
+                        <span>✉️</span> Enviar Recibo por E-mail
+                    </button>
+                </div>
+
+                <div style={{ marginTop: '25px', paddingTop: '15px', borderTop: '1px solid #eee' }}>
+                    <button onClick={onClose} style={{ background: 'transparent', border: 'none', color: '#555', cursor: 'pointer', textDecoration: 'underline', fontSize: '0.9rem' }}>
+                        Fechar e voltar para a lista
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+};
+
 function GerenciarVendasPendentes({ onBack }) {
     const [vendas, setVendas] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -20,6 +82,9 @@ function GerenciarVendasPendentes({ onBack }) {
 
     // Estado para o Modal de Detalhes
     const [vendaSelecionada, setVendaSelecionada] = useState(null);
+
+    // Estado para o Modal de Recibo (Novo)
+    const [vendaPagaId, setVendaPagaId] = useState(null);
 
     const formatarValor = (valor) => {
         return (valor || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -61,15 +126,24 @@ function GerenciarVendasPendentes({ onBack }) {
 
     const atualizarStatus = async (vendaId, novoStatus) => {
         const acao = novoStatus === 'Pago' ? 'Confirmar Pagamento' : 'Cancelar Venda';
-        if (!window.confirm(`Tem certeza que deseja "${acao}" para a Venda #${vendaId}? Esta ação não pode ser desfeita.`)) return;
+        if (!window.confirm(`Tem certeza que deseja "${acao}" para a Venda #${vendaId}?`)) return;
 
         setLoadingAction(vendaId);
         setError('');
 
         try {
             await axios.put(`/vendas/${vendaId}/status`, { status: novoStatus });
-            alert(`Venda #${vendaId} atualizada para ${novoStatus} com sucesso!`);
+
+            // Remove da lista visualmente
             setVendas(prev => prev.filter(v => v.id !== vendaId));
+
+            if (novoStatus === 'Pago') {
+                // Abre o modal de recibo
+                setVendaPagaId(vendaId);
+            } else {
+                alert(`Venda #${vendaId} cancelada com sucesso.`);
+            }
+
         } catch (err) {
             setError(err.response?.data?.detail || "Erro ao atualizar status da venda.");
         } finally {
@@ -79,10 +153,17 @@ function GerenciarVendasPendentes({ onBack }) {
 
     return (
         <div className="dashboard-container">
-            {/* Renderiza o Modal se houver venda selecionada */}
+            {/* Modal de Detalhes */}
             <VendaDetalhesModal
                 venda={vendaSelecionada}
                 onClose={() => setVendaSelecionada(null)}
+            />
+
+            {/* Modal de Recibo (Pós-pagamento) */}
+            <ModalReciboCaixa
+                isOpen={!!vendaPagaId}
+                vendaId={vendaPagaId}
+                onClose={() => setVendaPagaId(null)}
             />
 
             <div className="dashboard-gestor-header">
@@ -107,7 +188,7 @@ function GerenciarVendasPendentes({ onBack }) {
                                     <th>Data</th>
                                     <th>Cliente</th>
                                     <th>Atendente</th>
-                                    <th style={{textAlign: 'center'}}>Itens</th> {/* Centralizado */}
+                                    <th style={{textAlign: 'center'}}>Itens</th>
                                     <th>Total</th>
                                     <th>Pgto</th>
                                     <th style={{width: '240px'}}>Ações</th>
@@ -124,7 +205,6 @@ function GerenciarVendasPendentes({ onBack }) {
                                             <td>{v.cliente_nome || 'N/A'}</td>
                                             <td>{v.funcionario_nome || 'N/A'}</td>
 
-                                            {/* Coluna de Itens agora é um botão */}
                                             <td style={{textAlign: 'center'}}>
                                                 <button
                                                     className="action-btn"

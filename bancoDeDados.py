@@ -207,6 +207,7 @@ def criar_tabelas():
                             observacoes      TEXT,
                             criado_em        TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
                             status_motivo    TEXT,
+                            lembrete_enviado BOOLEAN                  DEFAULT FALSE,
                             UNIQUE (funcionario_id, data_hora_inicio),
                             UNIQUE (pet_id, data_hora_inicio)
                         );""")
@@ -337,6 +338,15 @@ def criar_tabelas():
                          tarde_ativa  BOOLEAN DEFAULT TRUE
                      );
                      """)
+
+        curs.execute("""CREATE TABLE IF NOT EXISTS notificacoes
+                        (
+                            id        SERIAL PRIMARY KEY,
+                            mensagem  TEXT NOT NULL,
+                            lida      BOOLEAN                  DEFAULT FALSE,
+                            criado_em TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+                            tipo      VARCHAR(50)              DEFAULT 'info' -- 'info', 'cancelamento', etc.
+                        );""")
 
         dias = [
             'Segunda-feira', 'Terça-feira', 'Quarta-feira',

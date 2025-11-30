@@ -130,7 +130,7 @@ function VisualizarPetsGestor({ onBack }) {
     const handleSearchClient = async () => {
         if (searchClientTerm.length < 3) {
             setTransferError('O termo de busca deve ter pelo menos 3 caracteres.');
-            setSearchResults([]);
+            setSearchResults(response.data.filter(c => c.is_ativo !== false));
             return;
         }
         
