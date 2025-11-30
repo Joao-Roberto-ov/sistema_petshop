@@ -433,7 +433,7 @@ class VacinaResponse(VacinaBase):
 
 class HistoricoMedico(BaseModel):
     pet_id: int
-    tipo_servico: Literal["Consulta", "Cirurgia", "Exame", "Banho e Tosa", "Outro"]
+    tipo_servico: Literal["Consulta", "Cirurgia", "Exame", "Banho e Tosa", "Vacinação", "Observação", "Outro"]
     data_hora: datetime
     resumo: str
     detalhes: Optional[str] = None

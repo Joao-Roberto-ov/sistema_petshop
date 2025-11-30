@@ -13,13 +13,13 @@ function HomePageFuncionario({
     onLogout,
     onNavigateToDashboard,
     onNavigateToGerenciarAgendamentos,
-    onNavigateToGerenciarVendasPendentes // (Req 6) Nova prop
+    onNavigateToGerenciarVendasPendentes
 }) {
 
     const cargoLower = userData?.cargo?.toLowerCase();
     const cargoId = userData?.cargo_id;
 
-    // Lógica para funcionar com cargo_id numérico E cargo string
+    //
     const isGestorOuAdmin = cargoId === 1 ||
                            cargoLower === 'gestor' ||
                            cargoLower === 'administrador' ||
@@ -35,8 +35,7 @@ function HomePageFuncionario({
     const isAtendente = cargoId === 4 || cargoLower === 'atendente';
     const podeVerCaixa = isGestorOuAdmin || isAtendente;
 
-
-    //variável para verificar permissão de visualizar pets
+    // Variável para verificar permissão de visualizar pets
     const podeVisualizarPets = isGestorOuAdmin || isVeterinario;
 
     const services = [
@@ -52,13 +51,14 @@ function HomePageFuncionario({
             description: "Gerencie e visualize todos os clientes cadastrados no sistema.",
             onClick: onNavigateToVisualizarClientes
         },
-        {
+
+        ...(!isVeterinario ? [{
             icon: '🛒',
             title: "Registrar Venda",
             description: "Registre uma nova venda de produtos ou serviços.",
             onClick: onNavigateToRegistrarVenda
-        },
-        // (Req 6) Novo Card para Gerenciar Vendas Pendentes (Caixa)
+        }] : []),
+
         ...(podeVerCaixa ? [
             {
                 icon: '💰',
@@ -94,16 +94,25 @@ function HomePageFuncionario({
                 description: "Visualize, cancele ou reagende os próximos serviços.",
                 onClick: onNavigateToGerenciarAgendamentos
             }
-        ] : []), // Fim do bloco condicional para Gestor/Admin
+        ] : []),
 
         // Item que aparece para Veterinário E Gestor
         ...(podeVisualizarPets ? [
+
+            {
+                icon: '🩺',
+                title: "Prontuário Eletrônico",
+                description: "Gerencie consultas, vacinas e histórico médico dos pets.",
+                onClick: () => window.dispatchEvent(new CustomEvent('navigate', { detail: 'prontuario-selecao' }))},
+
             {
                 icon: '🐾',
                 title: "Visualizar Pets",
                 description: "Visualize as informações de todos os pets cadastrados.",
                 onClick: onNavigateToVisualizarPets
             }
+
+
         ] : []),
 
         // Item que aparece para todos os funcionários

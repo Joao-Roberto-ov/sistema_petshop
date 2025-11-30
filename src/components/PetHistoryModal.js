@@ -210,7 +210,7 @@ function PetHistoryModal({ pet, onClose }) {
                 const token = localStorage.getItem('token');
                 
                 // Tentar a rota consolidada primeiro
-                const response = await axios.get(`/historico-completo/${pet.id}`, {
+                const response = await axios.get(`/historico/completo/${pet.id}`, {
                     headers: { 'Authorization': `Bearer ${token}` },
                 });
                 

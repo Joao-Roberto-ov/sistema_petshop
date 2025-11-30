@@ -39,6 +39,10 @@ import GerenciarVendasPendentes from './components/GerenciarVendasPendentes';
 import ConfirmacaoAgendamento from "./components/ConfirmacaoAgendamento";
 import NotificacoesScreen from "./components/NotificacoesScreen";
 
+// --- Importação das Novas Telas do Prontuário (AC1) ---
+import SelecaoPetProntuario from './components/Prontuario/SelecaoPetProntuario';
+import ProntuarioPet from './components/Prontuario/ProntuarioPet';
+
 const CARGO = { GESTOR: 1, FUNCIONARIO: 2, VETERINARIO: 3, ATENDENTE: 4 };
 const navigateTo = (screenName) => {
     window.dispatchEvent(new CustomEvent('navigate', { detail: screenName }));
@@ -63,8 +67,11 @@ function App() {
     const [servicoParaAgendar, setServicoParaAgendar] = useState(null);
     const [agendamentoParaReagendar, setAgendamentoParaReagendar] = useState(null);
 
+    // Novo Estado para a seleção de pet no prontuário
+    const [petProntuarioSelecionado, setPetProntuarioSelecionado] = useState(null);
+
     //estado do carrinho
-    const [carrinho, _setCarrinho] = useState([]); // Renomeado para _setCarrinho
+    const [carrinho, _setCarrinho] = useState([]);
 
     //wrapper para atualizar o estado e o localstorage
     const setCarrinho = (novoCarrinho) => {
@@ -90,11 +97,9 @@ function App() {
         const urlParams = new URLSearchParams(window.location.search);
         const token = urlParams.get('token');
 
-        // --- Lógica de Roteamento via URL ---
         const path = window.location.pathname;
 
         if (path.includes('/confirmacao-agendamento')) {
-            // Se a URL for de confirmação, navega direto pra lá
             setCurrentScreen('confirmacao-agendamento');
             return;
         }
@@ -112,7 +117,6 @@ function App() {
                 setIsLoggedIn(true);
                 setUserData(parsedUser);
 
-                //carrega o carrinho salvo no login
                 if (parsedUser.id) {
                     _setCarrinho(getCartFromStorage(parsedUser.id));
                 }
@@ -128,14 +132,13 @@ function App() {
                 localStorage.removeItem('userData');
                 setIsLoggedIn(false);
                 setUserData(null);
-                _setCarrinho([]); // Limpa o carrinho
+                _setCarrinho([]);
             }
         }
 
         const handleNavigate = (event) => {
             setCurrentScreen(prevScreen => {
                 if (event.detail !== prevScreen) {
-                    console.log(`Navegando de ${prevScreen} para ${event.detail}`);
                     return event.detail;
                 }
                 return prevScreen;
@@ -146,7 +149,7 @@ function App() {
         return () => {
             window.removeEventListener('navigate', handleNavigate);
         };
-    }, []); // Removido currentScreen das dependências
+    }, []);
 
     const navigateToHome = (user = userData, forced = false) => {
         const targetScreen = (user?.cargo_id || user?.cargo) ? 'homeFuncionario' : 'home';
@@ -159,17 +162,15 @@ function App() {
         } else {
             const cargoId = userData?.cargo_id;
             const cargoString = userData?.cargo?.toLowerCase();
-            let targetScreen = 'dashboard'; // Padrão Cliente
+            let targetScreen = 'dashboard';
 
-            // (Req 5) Lógica de Roteamento de Dashboard
             if (cargoId === CARGO.GESTOR || cargoString === 'gestor' || cargoString === 'administrador') {
                 targetScreen = 'dashboard-gestor';
             } else if (cargoId === CARGO.ATENDENTE || cargoString === 'atendente') {
-                targetScreen = 'dashboard-atendente'; // Novo Dashboard
+                targetScreen = 'dashboard-atendente';
             } else if (cargoId === CARGO.VETERINARIO || cargoString === 'veterinário' || cargoString === 'veterinario') {
-                targetScreen = 'dashboard-funcionario'; // Dashboard Veterinário
+                targetScreen = 'dashboard-funcionario';
             } else if (cargoId || cargoString) {
-                // Outros funcionários (se houver)
                 targetScreen = 'dashboard-funcionario';
             }
             navigateTo(targetScreen);
@@ -179,7 +180,6 @@ function App() {
     const handleLogin = (data) => {
         setIsLoggedIn(true);
         setUserData(data);
-        //carrega o carrinho do usuario que fez login
         if (data.id) {
             _setCarrinho(getCartFromStorage(data.id));
         }
@@ -187,14 +187,14 @@ function App() {
     };
 
     const handleLogout = () => {
-        //naoo limpa o carrinho do localStorage, apenas do estado
         localStorage.removeItem('token');
         localStorage.removeItem('userData');
         setIsLoggedIn(false);
         setUserData(null);
         setServicoParaAgendar(null);
         setAgendamentoParaReagendar(null);
-        _setCarrinho([]); //limpa o carrinho do estado
+        setPetProntuarioSelecionado(null); // Limpa seleção
+        _setCarrinho([]);
         navigateToHome(null, true);
     };
 
@@ -223,7 +223,7 @@ function App() {
             'cadastrarProduto', 'visualizar-produtos-gestor', 'visualizar-produtos-funcionario',
             'registrar-venda', 'agendar-servico', 'selecionar-horario', 'checkout',
             'gerenciar-agendamentos', 'fluxo-caixa-report', 'config-empresa', 'atualizar-estoque',
-            'gerenciar-vendas-pendentes'
+            'gerenciar-vendas-pendentes', 'notificacoes', 'prontuario-selecao', 'prontuario-detalhe'
         ];
 
         if (protectedScreens.includes(currentScreen) && !isLoggedIn) {
@@ -242,8 +242,6 @@ function App() {
         const isAtendente = cargoId === CARGO.ATENDENTE || cargoString === 'atendente';
 
         const isGestorOuVeterinario = isGestor || isVeterinario;
-
-        // (Req 5 e 6) Atendentes e Gestores podem ver o caixa
         const podeVerCaixa = isGestor || isAtendente;
 
         // Telas que só gestores podem acessar
@@ -255,44 +253,37 @@ function App() {
         // Telas que gestores E veterinários podem acessar
         const telasGestorVeterinario = ['visualizar-pets', 'dashboard-gestor'];
 
+        // Telas que gestores E veterinários E atendentes podem acessar (dependendo da lógica)
+        // Prontuário normalmente é Gestor e Veterinário
+        if ((currentScreen === 'prontuario-selecao' || currentScreen === 'prontuario-detalhe') && !isGestorOuVeterinario) {
+             navigateToHome(userData, true);
+             return null;
+        }
+
         // Telas de funcionário (todos os funcionários)
         const telasFuncionario = ['homeFuncionario', 'dashboard-funcionario', 'dashboard-gestor',
                                 'visualizarClientes', 'registrar-venda',
-                                'visualizar-produtos-funcionario', 'dashboard-atendente', 'gerenciar-vendas-pendentes'];
+                                'visualizar-produtos-funcionario', 'dashboard-atendente',
+                                'gerenciar-vendas-pendentes', 'notificacoes', 'prontuario-selecao', 'prontuario-detalhe'];
 
-        // Verificações de permissão
         if (isClienteLogado && telasFuncionario.includes(currentScreen)) {
             navigateToHome(null, true);
             return null;
         }
 
         if (isFuncionarioLogado) {
-            // Telas exclusivas para gestores
             if (!isGestor && telasGestor.includes(currentScreen)) {
                 navigateToHome(userData, true);
                 return null;
             }
-
-            // Telas para gestores e veterinários
             if (!isGestorOuVeterinario && telasGestorVeterinario.includes(currentScreen)) {
                 navigateToHome(userData, true);
                 return null;
             }
-
-            // (Req 6) Tela do Caixa (Atendente e Gestor)
             if (!podeVerCaixa && currentScreen === 'gerenciar-vendas-pendentes') {
                 navigateToHome(userData, true);
                 return null;
             }
-        }
-
-        const telasCliente = ['dashboard', 'agendar-servico',
-                            'checkout', 'visualizar-produtos-cliente',
-                            'pet-cadastro', 'meus-pets'];
-
-        if (isFuncionarioLogado && telasCliente.includes(currentScreen)) {
-            navigateToHome(userData, true);
-            return null;
         }
 
         switch (currentScreen) {
@@ -323,8 +314,7 @@ function App() {
                     onNavigateToLogin={() => navigateTo('login')}
                 />;
 
-            // dashboards
-            case 'dashboard': // Cliente
+            case 'dashboard':
                 return <Dashboard
                     userData={userData}
                     onLogout={handleLogout}
@@ -333,14 +323,14 @@ function App() {
                     onNavigateToAgendarServico={iniciarNovoAgendamento}
                 />;
 
-            case 'dashboard-funcionario': // Veterinário / Outros
+            case 'dashboard-funcionario':
                 return <DashboardFuncionario
                     userData={userData}
                     onLogout={handleLogout}
                     onNavigateToHome={() => navigateToHome(userData, true)}
                 />;
 
-            case 'dashboard-gestor': // Gestor
+            case 'dashboard-gestor':
                 return <DashboardGestor
                     userData={userData}
                     onLogout={handleLogout}
@@ -361,6 +351,27 @@ function App() {
 
             case 'confirmacao-agendamento':
                 return <ConfirmacaoAgendamento />;
+
+            // --- NOVAS ROTAS DE PRONTUÁRIO ---
+            case 'prontuario-selecao':
+                return <SelecaoPetProntuario
+                    onBack={() => navigateToHome(userData)}
+                    onPetSelected={(pet) => {
+                        setPetProntuarioSelecionado(pet);
+                        navigateTo('prontuario-detalhe');
+                    }}
+                />;
+
+            case 'prontuario-detalhe':
+                if (!petProntuarioSelecionado) {
+                    navigateTo('prontuario-selecao');
+                    return null;
+                }
+                return <ProntuarioPet
+                    pet={petProntuarioSelecionado}
+                    onBack={() => navigateTo('prontuario-selecao')}
+                />;
+            // ----------------------------------
 
             case 'pet-cadastro':
                 return <PetCadastroScreen
@@ -396,7 +407,6 @@ function App() {
                     onNavigateToGerenciarFuncionarios={() => navigateTo('listar-funcionarios')}
                     onNavigateToVisualizarPets={() => navigateTo('visualizar-pets')}
                     onNavigateToRegistrarVenda={() => navigateTo('registrar-venda')}
-                    // (Req 6) Adiciona link para o Caixa se for Gestor ou Atendente
                     onNavigateToGerenciarVendasPendentes={podeVerCaixa ? () => navigateTo('gerenciar-vendas-pendentes') : null}
                     onNavigateToGerenciarAgendamentos={() => navigateTo('gerenciar-agendamentos')}
                     onNavigateToVisualizarProdutos={() => {
@@ -414,13 +424,12 @@ function App() {
 
             case 'checkout':
                 return <Checkout
-                    carrinho={carrinho} // Passa o carrinho do App.js
-                    setCarrinho={setCarrinho} // Passa o setter
+                    carrinho={carrinho}
+                    setCarrinho={setCarrinho}
                     onBack={() => navigateTo('visualizar-produtos-cliente')}
                 />;
 
             case 'registrar-venda':
-                // (Req 1, 2, 3) Tela de Venda Modificada
                 return <RegistrarVenda onBack={() => navigateToHome(userData)} />;
 
             case 'visualizar-produtos-gestor':
