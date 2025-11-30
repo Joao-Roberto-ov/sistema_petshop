@@ -18,6 +18,17 @@ class ServicosCliente:
         self.repo = RepositorioCliente()
         self.email_service = EmailService()
 
+    def buscar_clientes_por_termo(self, termo: str):
+        if not termo or len(termo.strip()) < 3:
+            raise HTTPException(status_code=400, detail="O termo de busca deve ter pelo menos 3 caracteres.")
+        
+        try:
+            clientes = self.repo.buscar_clientes_por_termo(termo)
+            return clientes
+        except Exception as e:
+            print(f"Erro ao buscar clientes por termo: {e}")
+            raise HTTPException(status_code=500, detail="Ocorreu um erro ao buscar clientes.")
+
     def gerar_senha_temporaria(self):
         chars = string.ascii_letters + string.digits + "!@#$%"
         return "".join(secrets.choice(chars) for _ in range(8))

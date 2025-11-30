@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from '../api/axios';
+import PetHistoryModal from './PetHistoryModal';
 
 // Ícones SVG
 const IconEdit = () => (
@@ -45,6 +46,20 @@ const IconCheckCircle = () => (
     </svg>
 );
 
+const IconTransfer = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M15 10l5 5-5 5"/>
+        <path d="M4 4v7a4 4 0 0 0 4 4h12"/>
+    </svg>
+);
+
+const IconHistory = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M12 2v10l4 4"/>
+        <path d="M22 12A10 10 0 1 1 12 2a10 10 0 0 1 10 10z"/>
+    </svg>
+);
+
 const IconAlertCircle = () => (
     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <circle cx="12" cy="12" r="10"></circle>
@@ -54,12 +69,21 @@ const IconAlertCircle = () => (
 );
 
 function VisualizarPetsGestor({ onBack }) {
+    const [isTransferModalOpen, setIsTransferModalOpen] = useState(false);
+    const [petToTransfer, setPetToTransfer] = useState(null);
+    const [searchClientTerm, setSearchClientTerm] = useState('');
+    const [searchResults, setSearchResults] = useState([]);
+    const [selectedNewOwner, setSelectedNewOwner] = useState(null);
+    const [isSearching, setIsSearching] = useState(false);
+    const [transferError, setTransferError] = useState('');
     const [pets, setPets] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [editingId, setEditingId] = useState(null);
     const [searchTerm, setSearchTerm] = useState('');
     const [filteredPets, setFilteredPets] = useState([]);
+    const [showHistoryModal, setShowHistoryModal] = useState(false);
+    const [selectedPetForHistory, setSelectedPetForHistory] = useState(null);
 
     // notificaçoes toasts
     const [toast, setToast] = useState({ show: false, message: '', type: '' });
@@ -75,6 +99,97 @@ function VisualizarPetsGestor({ onBack }) {
     const [formLoading, setFormLoading] = useState(false);
     const [formError, setFormError] = useState('');
 
+    const handleTransferClick = (pet) => {
+        setPetToTransfer(pet);
+        setSearchClientTerm('');
+        setSearchResults([]);
+        setSelectedNewOwner(null);
+        setTransferError('');
+        setIsTransferModalOpen(true);
+    };
+
+    const handleCloseTransferModal = () => {
+        setIsTransferModalOpen(false);
+        setPetToTransfer(null);
+        setSearchClientTerm('');
+        setSearchResults([]);
+        setSelectedNewOwner(null);
+        setTransferError('');
+    };
+
+    const handleShowHistory = (pet) => {
+        setSelectedPetForHistory(pet);
+        setShowHistoryModal(true);
+    };
+
+    const handleCloseHistoryModal = () => {
+        setShowHistoryModal(false);
+        setSelectedPetForHistory(null);
+    };
+
+    const handleSearchClient = async () => {
+        if (searchClientTerm.length < 3) {
+            setTransferError('O termo de busca deve ter pelo menos 3 caracteres.');
+            setSearchResults([]);
+            return;
+        }
+        
+        setIsSearching(true);
+        setTransferError('');
+        setSearchResults([]);
+        setSelectedNewOwner(null);
+
+        try {
+            const token = localStorage.getItem('token');
+            const response = await axios.get(`/cliente/buscar?termo=${searchClientTerm}`, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            setSearchResults(response.data);
+            if (response.data.length === 0) {
+                setTransferError('Nenhum cliente encontrado com o termo fornecido.');
+            }
+        } catch (err) {
+            console.error('Erro ao buscar clientes:', err);
+            setTransferError(err.response?.data?.detail || 'Erro ao buscar clientes. Tente novamente.');
+        } finally {
+            setIsSearching(false);
+        }
+    };
+
+    const handleConfirmTransfer = async () => {
+        if (!petToTransfer || !selectedNewOwner) {
+            setTransferError('Selecione um pet e um novo dono para continuar.');
+            return;
+        }
+
+        if (petToTransfer.cliente_id === selectedNewOwner.id) {
+            setTransferError('O novo dono não pode ser o dono atual do pet.');
+            return;
+        }
+
+        setFormLoading(true);
+        setTransferError('');
+
+        try {
+            const token = localStorage.getItem('token');
+            await axios.post('/admin/pets/transferir', {
+                pet_id: petToTransfer.id,
+                novo_cliente_id: selectedNewOwner.id
+            }, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+
+            showToast(`Pet "${petToTransfer.nome}" transferido com sucesso para ${selectedNewOwner.nome}!`, 'success');
+            handleCloseTransferModal();
+            fetchAllPets(); // Recarregar a lista de pets
+        } catch (err) {
+            console.error('Erro ao transferir pet:', err);
+            setTransferError(err.response?.data?.detail || 'Erro ao transferir pet. Tente novamente.');
+        } finally {
+            setFormLoading(false);
+        }
+    };
+
     useEffect(() => {
         fetchAllPets();
     }, []);
@@ -82,10 +197,11 @@ function VisualizarPetsGestor({ onBack }) {
     useEffect(() => {
         // Filtrar pets baseado no termo de busca
         const filtered = pets.filter(pet =>
-            pet.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            pet.tipo.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            pet.raca.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            pet.cliente_nome.toLowerCase().includes(searchTerm.toLowerCase())
+            pet.nome?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            pet.tipo?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            pet.raca?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            pet.dono?.nome?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            pet.dono?.email?.toLowerCase().includes(searchTerm.toLowerCase())
         );
         setFilteredPets(filtered);
     }, [pets, searchTerm]);
@@ -100,6 +216,7 @@ function VisualizarPetsGestor({ onBack }) {
                 headers: { Authorization: `Bearer ${token}` }
             });
             
+            console.log('Dados dos pets recebidos:', response.data); // DEBUG
             setPets(response.data);
         } catch (err) {
             console.error('Erro ao buscar pets:', err);
@@ -221,6 +338,177 @@ function VisualizarPetsGestor({ onBack }) {
 
     return (
         <>
+            {/* Modal de Transferência de Pet */}
+            {isTransferModalOpen && petToTransfer && (
+                <div style={{
+                    position: 'fixed',
+                    top: 0,
+                    left: 0,
+                    width: '100%',
+                    height: '100%',
+                    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+                    display: 'flex',
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    zIndex: 10000
+                }}>
+                    <div style={{
+                        backgroundColor: 'white',
+                        padding: '2rem',
+                        borderRadius: '12px',
+                        width: '90%',
+                        maxWidth: '600px',
+                        boxShadow: '0 4px 20px rgba(0, 0, 0, 0.2)',
+                        position: 'relative'
+                    }}>
+                        <h2 style={{ marginBottom: '1.5rem', color: '#2c3e50' }}>Transferir Pet: {petToTransfer.nome}</h2>
+                        <p style={{ marginBottom: '1rem', color: '#7f8c8d' }}>
+                            Dono Atual: <strong>{petToTransfer.dono?.nome || petToTransfer.cliente_nome || 'Não informado'}</strong>
+                        </p>
+
+                        {transferError && (
+                            <div style={{
+                                padding: '0.75rem',
+                                background: '#fdd',
+                                color: '#c33',
+                                borderRadius: '8px',
+                                fontSize: '0.875rem',
+                                marginBottom: '1rem'
+                            }}>
+                                {transferError}
+                            </div>
+                        )}
+
+                        <div style={{ marginBottom: '1.5rem' }}>
+                            <label style={{ display: 'block', fontWeight: '500', marginBottom: '0.5rem' }}>
+                                Buscar Novo Dono (Nome ou CPF)
+                            </label>
+                            <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                <input
+                                    type="text"
+                                    value={searchClientTerm}
+                                    onChange={(e) => setSearchClientTerm(e.target.value)}
+                                    placeholder="Digite nome ou CPF do novo cliente"
+                                    style={{
+                                        flex: 1,
+                                        padding: '0.75rem',
+                                        border: '1px solid #ccc',
+                                        borderRadius: '8px',
+                                        fontSize: '1rem'
+                                    }}
+                                    disabled={isSearching || formLoading}
+                                />
+                                <button
+                                    onClick={handleSearchClient}
+                                    disabled={isSearching || formLoading || searchClientTerm.length < 3}
+                                    style={{
+                                        padding: '0.75rem 1.5rem',
+                                        backgroundColor: '#4a9b8e',
+                                        color: 'white',
+                                        border: 'none',
+                                        borderRadius: '8px',
+                                        cursor: 'pointer',
+                                        transition: 'background-color 0.2s',
+                                        opacity: (isSearching || formLoading || searchClientTerm.length < 3) ? 0.6 : 1
+                                    }}
+                                >
+                                    {isSearching ? 'Buscando...' : 'Buscar'}
+                                </button>
+                            </div>
+                        </div>
+
+                        {searchResults.length > 0 && (
+                            <div style={{ marginBottom: '1.5rem', maxHeight: '200px', overflowY: 'auto', border: '1px solid #eee', borderRadius: '8px', padding: '0.5rem' }}>
+                                <p style={{ fontWeight: '500', marginBottom: '0.5rem' }}>Resultados da Busca:</p>
+                                {searchResults.map(client => (
+                                    <div
+                                        key={client.id}
+                                        onClick={() => setSelectedNewOwner(client)}
+                                        style={{
+                                            padding: '0.75rem',
+                                            margin: '0.25rem 0',
+                                            backgroundColor: selectedNewOwner?.id === client.id ? '#e8f6f3' : 'white',
+                                            border: selectedNewOwner?.id === client.id ? '1px solid #4a9b8e' : '1px solid #f0f0f0',
+                                            borderRadius: '6px',
+                                            cursor: 'pointer',
+                                            transition: 'all 0.2s',
+                                            display: 'flex',
+                                            justifyContent: 'space-between',
+                                            alignItems: 'center'
+                                        }}
+                                    >
+                                        <div>
+                                            <strong>{client.nome}</strong> ({client.email})
+                                            <span style={{ marginLeft: '1rem', fontSize: '0.875rem', color: '#7f8c8d' }}>
+                                                CPF: {client.cpf || 'Não informado'}
+                                            </span>
+                                        </div>
+                                        {!client.is_ativo && (
+                                            <span style={{ color: '#e74c3c', fontWeight: 'bold' }}>INATIVO</span>
+                                        )}
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+
+                        {selectedNewOwner && (
+                            <div style={{ marginBottom: '1.5rem', padding: '1rem', border: '2px solid #4a9b8e', borderRadius: '8px', backgroundColor: '#f8f9fa' }}>
+                                <p style={{ margin: 0, fontWeight: 'bold', color: '#2c3e50' }}>Novo Dono Selecionado:</p>
+                                <p style={{ margin: '0.5rem 0 0 0' }}>
+                                    {selectedNewOwner.nome} ({selectedNewOwner.email})
+                                    {selectedNewOwner.is_ativo === false && (
+                                        <span style={{ color: '#e74c3c', fontWeight: 'bold', marginLeft: '1rem' }}> (INATIVO - Não pode receber o pet)</span>
+                                    )}
+                                </p>
+                            </div>
+                        )}
+
+                        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem' }}>
+                            <button
+                                onClick={handleCloseTransferModal}
+                                disabled={formLoading}
+                                style={{
+                                    padding: '0.75rem 1.5rem',
+                                    backgroundColor: '#ccc',
+                                    color: '#333',
+                                    border: 'none',
+                                    borderRadius: '8px',
+                                    cursor: 'pointer',
+                                    transition: 'background-color 0.2s',
+                                    opacity: formLoading ? 0.6 : 1
+                                }}
+                            >
+                                Cancelar
+                            </button>
+                            <button
+                                onClick={handleConfirmTransfer}
+                                disabled={formLoading || !selectedNewOwner || selectedNewOwner.is_ativo === false || petToTransfer.cliente_id === selectedNewOwner.id}
+                                style={{
+                                    padding: '0.75rem 1.5rem',
+                                    backgroundColor: '#e67e22',
+                                    color: 'white',
+                                    border: 'none',
+                                    borderRadius: '8px',
+                                    cursor: 'pointer',
+                                    transition: 'background-color 0.2s',
+                                    opacity: (formLoading || !selectedNewOwner || selectedNewOwner.is_ativo === false || petToTransfer.cliente_id === selectedNewOwner.id) ? 0.6 : 1
+                                }}
+                            >
+                                {formLoading ? 'Transferindo...' : 'Confirmar Transferência'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Modal de Histórico do Pet */}
+            {showHistoryModal && selectedPetForHistory && (
+                <PetHistoryModal 
+                    pet={selectedPetForHistory}
+                    onClose={handleCloseHistoryModal}
+                />
+            )}
+
             {/* notificaçoes toasts */}
             {toast.show && (
                 <div style={{
@@ -415,7 +703,7 @@ function VisualizarPetsGestor({ onBack }) {
                                                 textOverflow: 'ellipsis',
                                                 whiteSpace: 'nowrap'
                                             }}>
-                                                Cliente: {pet.cliente_nome || 'Não informado'}
+                                                Cliente: {pet.dono?.nome || pet.cliente_nome || 'Não informado'}
                                             </p>
                                         </div>
                                         
@@ -470,31 +758,88 @@ function VisualizarPetsGestor({ onBack }) {
                                                 </button>
                                             </div>
                                         ) : (
-                                            <button
-                                                onClick={() => handleEditClick(pet)}
-                                                style={{
-                                                    width: '40px',
-                                                    height: '40px',
-                                                    borderRadius: '8px',
-                                                    border: 'none',
-                                                    background: '#f8f9fa',
-                                                    color: '#495057',
-                                                    cursor: 'pointer',
-                                                    display: 'flex',
-                                                    alignItems: 'center',
-                                                    justifyContent: 'center',
-                                                    transition: 'all 0.2s ease'
-                                                }}
-                                                onMouseEnter={(e) => {
-                                                    e.target.style.background = '#e9ecef';
-                                                }}
-                                                onMouseLeave={(e) => {
-                                                    e.target.style.background = '#f8f9fa';
-                                                }}
-                                                title="Editar pet"
-                                            >
-                                                <IconEdit />
-                                            </button>
+                                            <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                                {/* Botão Histórico */}
+                                                <button
+                                                    onClick={() => handleShowHistory(pet)}
+                                                    style={{
+                                                        width: '40px',
+                                                        height: '40px',
+                                                        borderRadius: '8px',
+                                                        border: 'none',
+                                                        background: '#9b59b6',
+                                                        color: 'white',
+                                                        cursor: 'pointer',
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        justifyContent: 'center',
+                                                        transition: 'all 0.2s ease'
+                                                    }}
+                                                    onMouseEnter={(e) => {
+                                                        e.target.style.background = '#8e44ad';
+                                                    }}
+                                                    onMouseLeave={(e) => {
+                                                        e.target.style.background = '#9b59b6';
+                                                    }}
+                                                    title="Ver Histórico"
+                                                >
+                                                    <IconHistory />
+                                                </button>
+
+                                                {/* Botão Transferir */}
+                                                <button
+                                                    onClick={() => handleTransferClick(pet)}
+                                                    style={{
+                                                        width: '40px',
+                                                        height: '40px',
+                                                        borderRadius: '8px',
+                                                        border: 'none',
+                                                        background: '#3498db',
+                                                        color: 'white',
+                                                        cursor: 'pointer',
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        justifyContent: 'center',
+                                                        transition: 'all 0.2s ease'
+                                                    }}
+                                                    onMouseEnter={(e) => {
+                                                        e.target.style.background = '#2980b9';
+                                                    }}
+                                                    onMouseLeave={(e) => {
+                                                        e.target.style.background = '#3498db';
+                                                    }}
+                                                    title="Transferir Pet"
+                                                >
+                                                    <IconTransfer />
+                                                </button>
+
+                                                {/* Botão Editar */}
+                                                <button
+                                                    onClick={() => handleEditClick(pet)}
+                                                    style={{
+                                                        width: '40px',
+                                                        height: '40px',
+                                                        borderRadius: '8px',
+                                                        border: 'none',
+                                                        background: '#c66611ff',
+                                                        color: '#ffffffff',
+                                                        cursor: 'pointer',
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        justifyContent: 'center',
+                                                        transition: 'all 0.2s ease'
+                                                    }}
+                                                    onMouseEnter={(e) => {
+                                                        e.target.style.background = '#b0550eff';
+                                                    }}
+                                                    onMouseLeave={(e) => {
+                                                        e.target.style.background = '#c66611ff';
+                                                    }}
+                                                    title="Editar pet"
+                                                >
+                                                    <IconEdit />
+                                                </button>
+                                            </div>
                                         )}
                                     </div>
 
@@ -737,6 +1082,23 @@ function VisualizarPetsGestor({ onBack }) {
                                                         fontWeight: '400'
                                                     }}>{pet.peso ? `${pet.peso} kg` : 'Não informado'}</span>
                                                 </div>
+
+                                                <div style={{
+                                                    display: 'flex',
+                                                    justifyContent: 'space-between',
+                                                    alignItems: 'center'
+                                                }}>
+                                                    <span style={{
+                                                        color: '#7f8c8d',
+                                                        fontSize: '0.9375rem',
+                                                        fontWeight: '500'
+                                                    }}>Dono:</span>
+                                                    <span style={{
+                                                        color: '#2c3e50',
+                                                        fontSize: '0.9375rem',
+                                                        fontWeight: '400'
+                                                    }}>{pet.dono?.nome || pet.cliente_nome || 'Não informado'}</span>
+                                                </div>
                                             </div>
                                         )}
                                     </div>
@@ -751,4 +1113,3 @@ function VisualizarPetsGestor({ onBack }) {
 }
 
 export default VisualizarPetsGestor;
-

@@ -4,6 +4,7 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from email.utils import formataddr
 from dotenv import load_dotenv
+from email.mime.application import MIMEApplication
 
 load_dotenv()
 
@@ -118,3 +119,62 @@ class EmailService:
         """
         self._enviar_email(destinatario_email, assunto, corpo_html)
 
+# ------------------------------------------------------------------
+    # NOVO MÉTODO: Lida com anexo de PDF
+    # ------------------------------------------------------------------
+    def _enviar_email_com_anexo(self, destinatario_email: str, assunto: str, corpo_html: str, 
+                                anexo_bytes: bytes, nome_arquivo: str):
+        if not self.is_configured:
+            print(f"SIMULAÇÃO (credenciais ausentes): E-mail com anexo para {destinatario_email} com assunto '{assunto}'")
+            return
+
+        try:
+            msg = MIMEMultipart()
+            msg['From'] = formataddr((self.sender_name, self.email_user))
+            msg['To'] = destinatario_email
+            msg['Subject'] = assunto
+            
+            # 1. Adiciona o corpo HTML
+            msg.attach(MIMEText(corpo_html, 'html'))
+
+            # 2. Anexa o PDF
+            part_pdf = MIMEApplication(anexo_bytes, _subtype="pdf")
+            part_pdf.add_header('Content-Disposition', 'attachment', filename=nome_arquivo)
+            msg.attach(part_pdf)
+
+            # 3. Envia o e-mail
+            with smtplib.SMTP(self.smtp_server, self.smtp_port) as server:
+                server.starttls()
+                server.login(self.email_user, self.email_password)
+                server.sendmail(self.email_user, destinatario_email, msg.as_string())
+            
+            print(f"E-mail com anexo (via Gmail) enviado com sucesso para: {destinatario_email}")
+
+        except Exception as e:
+            print(f"ERRO AO ENVIAR E-MAIL COM ANEXO (Gmail): {e}")
+
+
+    # ------------------------------------------------------------------
+    # NOVO MÉTODO PÚBLICO: Chamado pelo Venda Service
+    # ------------------------------------------------------------------
+    def enviar_recibo_com_anexo(self, destinatario_email: str, venda_id: int, pdf_bytes: bytes):
+        assunto = f"Recibo da Venda #{venda_id} PetLife"
+        nome_arquivo = f"recibo_venda_{venda_id}.pdf"
+        
+        corpo_html = f"""
+        <!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"></head><body>
+            <p>Olá,</p>
+            <p>Segue em anexo o recibo de sua compra/agendamento na PetLife, referente à Venda **#{venda_id}**.</p>
+            <p>O arquivo PDF pode ser visualizado e impresso para seu controle.</p>
+            <p>Agradecemos a preferência!</p>  
+
+            <p>Atenciosamente,</p><p><strong>{self.sender_name}</strong></p>
+        </body></html>
+        """
+        self._enviar_email_com_anexo(
+            destinatario_email=destinatario_email,
+            assunto=assunto,
+            corpo_html=corpo_html,
+            anexo_bytes=pdf_bytes,
+            nome_arquivo=nome_arquivo
+        )

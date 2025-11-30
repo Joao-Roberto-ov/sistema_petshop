@@ -10,8 +10,6 @@ class VendaModel(BaseModel):
     forma_pagamento: str
     status_pagamento: str
     criado_em: datetime
-    funcionario_nome: Optional[str] = None
-    cliente_nome: Optional[str] = None
 
 class InfoAgendamento(BaseModel):
     pet_id: int

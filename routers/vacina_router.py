@@ -5,7 +5,7 @@ from seguranca import obter_usuario_logado
 from typing import List
 
 router = APIRouter(
-    prefix="/api/vacinas", 
+    prefix="/vacinas", 
     tags=["Vacinas"]
 )
 
