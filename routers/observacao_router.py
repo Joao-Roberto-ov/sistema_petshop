@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.security import OAuth2PasswordBearer # <--- Importação necessária
 from typing import List
 from modelos import ObservacaoCreate, ObservacaoResponse
 from services.observacao_service import ServicosObservacao
@@ -6,6 +7,8 @@ from seguranca import verifica_token, decodifica_token
 
 router = APIRouter(prefix="/api/observacoes", tags=["Observações"])
 
+# <--- Definição do esquema para extrair o token do Header 'Authorization: Bearer ...'
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/login")
 
 def pegar_servicos_observacao():
     return ServicosObservacao()
@@ -14,7 +17,7 @@ def pegar_servicos_observacao():
 @router.post("/", status_code=status.HTTP_201_CREATED)
 def criar_observacao(
         dados: ObservacaoCreate,
-        token: str = Depends(verifica_token),
+        token: str = Depends(oauth2_scheme), # <--- Alterado de verifica_token para oauth2_scheme
         service: ServicosObservacao = Depends(pegar_servicos_observacao)
 ):
     try:
@@ -32,7 +35,7 @@ def criar_observacao(
 @router.get("/pet/{pet_id}", response_model=List[ObservacaoResponse])
 def listar_observacoes_pet(
         pet_id: int,
-        token: str = Depends(verifica_token),
+        token: str = Depends(oauth2_scheme), # <--- Alterado de verifica_token para oauth2_scheme
         service: ServicosObservacao = Depends(pegar_servicos_observacao)
 ):
     try:
@@ -48,7 +51,7 @@ def listar_observacoes_pet(
 @router.delete("/{obs_id}", status_code=204)
 def deletar_observacao(
         obs_id: int,
-        token: str = Depends(verifica_token),
+        token: str = Depends(oauth2_scheme), # <--- Alterado de verifica_token para oauth2_scheme
         service: ServicosObservacao = Depends(pegar_servicos_observacao)
 ):
     service.deletar_observacao(obs_id)

@@ -30,8 +30,13 @@ function AppHeader({
                     cargoLower === 'gestor' ||
                     cargoLower === 'administrador';
 
+    // Lógica ORIGINAL mantida para o Dropdown e estrutura do Menu
     const isFuncionarioOuAdmin = userData?.cargo &&
         (userData.cargo === 'FUNCIONARIO' || userData.cargo === 'GESTOR');
+
+    // NOVA LÓGICA: Apenas para verificar se é membro da equipe (qualquer cargo)
+    // Usado EXCLUSIVAMENTE para esconder o botão "Meus Pets"
+    const isMembroEquipe = !!userData?.cargo || !!userData?.cargo_id;
 
     const nomeEmpresa = 'PetLife';
     const dropdownRef = useRef(null);
@@ -111,7 +116,12 @@ function AppHeader({
                     {isLoggedIn && !isFuncionarioOuAdmin && (
                         <>
                             <li><a href="#" className="nav-link" onClick={(e) => { e.preventDefault(); onNavigateToDashboard(); }}>Dashboard</a></li>
-                            <li><a href="#" className="nav-link" onClick={(e) => { e.preventDefault(); onNavigateToMeusPets(); }}>Meus Pets</a></li>
+
+                            {/* MODIFICAÇÃO AQUI: Oculta "Meus Pets" se for membro da equipe (Vet, Atendente, etc), mas mantém o resto */}
+                            {!isMembroEquipe && (
+                                <li><a href="#" className="nav-link" onClick={(e) => { e.preventDefault(); onNavigateToMeusPets(); }}>Meus Pets</a></li>
+                            )}
+
                             <li><a href="#" className="nav-link" onClick={handleServicosClick}>Serviços</a></li>
                         </>
                     )}

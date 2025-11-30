@@ -2,7 +2,8 @@ from fastapi import HTTPException, status
 from datetime import date, datetime, time, timedelta, timezone
 from typing import List, Optional
 import psycopg2
-
+from services import historico_medico_service
+from modelos import HistoricoMedico
 from repositories.agendamento_repository import RepositorioAgendamento
 from repositories.servico_repository import RepositorioCatalogoServico
 from repositories.pet_repository import RepositorioPet
@@ -945,3 +946,59 @@ class ServicosAgendamento:
             return True, "Agendamento cancelado com sucesso."
 
         return False, "Erro interno ao cancelar."
+
+    def atualizar_status_manual(self, agendamento_id: int, novo_status: str, funcionario_id: int):
+        """
+        Permite que funcionários alterem status para 'Realizado' ou 'C/ Ausência'.
+        Se 'Realizado', registra automaticamente no histórico médico.
+        """
+        status_permitidos = ["Realizado", "C/ Ausência"]
+        if novo_status not in status_permitidos:
+            raise HTTPException(status_code=400, detail="Status inválido.")
+
+        agendamento = self.repo_agendamento.buscar_agendamento_por_id(agendamento_id)
+        if not agendamento:
+            raise HTTPException(status_code=404, detail="Agendamento não encontrado.")
+
+        # Desempacota dados necessários do agendamento para criar o histórico
+        ag_id = agendamento[0]
+        ag_pet_id = agendamento[2]
+        ag_servico_id = agendamento[3]
+
+        sucesso = self.repo_agendamento.atualizar_status_agendamento(
+            agendamento_id,
+            novo_status,
+            f"Status alterado manualmente para {novo_status} pelo funcionário {funcionario_id}"
+        )
+
+        if not sucesso:
+            raise HTTPException(status_code=500, detail="Erro ao atualizar status.")
+
+        if novo_status == "Realizado":
+            try:
+                # Busca detalhes do serviço (nome e preço)
+                servico = self.repo_servico.buscar_por_id(ag_servico_id)
+                if servico:
+                    servico_nome = servico[1]
+                    servico_preco = servico[4]
+
+                    # Cria o objeto de histórico
+                    historico_data = HistoricoMedico(
+                        pet_id=ag_pet_id,
+                        tipo_servico=servico_nome,
+                        data_hora=datetime.now(timezone.utc),
+                        resumo=f"Serviço de {servico_nome} realizado (Agendamento)",
+                        detalhes=f"Serviço concluído via painel de agendamentos. Agendamento #{ag_id}.",
+                        funcionario_id=funcionario_id,
+                        valor=servico_preco
+                    )
+
+                    # Salva na tabela historico_medico
+                    historico_medico_service.registrar_historico(historico_data)
+                    print(f"✅ Histórico criado automaticamente para o agendamento {ag_id}")
+
+            except Exception as e:
+                print(f"⚠️ Erro ao gerar histórico automático: {e}")
+                # Não falha a requisição principal, apenas loga o erro
+
+        return {"message": f"Status atualizado para {novo_status}"}

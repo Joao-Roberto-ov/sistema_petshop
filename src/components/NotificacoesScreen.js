@@ -84,7 +84,7 @@ function NotificacoesScreen({ onBack }) {
                 <div className="notificacao-coluna">
                     <div className="coluna-header">
                         <IconBell />
-                        <h3>Agendamentos & Sistema</h3>
+                        <h3>Agendamentos e Sistema</h3>
                         <span className="badge-count">{notificacoesSistema.length}</span>
                     </div>
 

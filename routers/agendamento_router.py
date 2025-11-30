@@ -1,10 +1,9 @@
 from fastapi import APIRouter, Depends, HTTPException, status
-from fastapi.responses import HTMLResponse  # Importante!
-from datetime import date, datetime
+from fastapi.responses import HTMLResponse
+from datetime import date
 from typing import List, Optional, Annotated
 from fastapi.security import OAuth2PasswordBearer
 import traceback
-
 from services.agendamento_service import ServicosAgendamento
 from modelos import AgendamentoCreate, DisponibilidadeResponse, Agendamento, AgendamentoReagendar
 from seguranca import pegar_id_do_usuario_logado, verificar_permissao_admin, decodifica_token
@@ -201,8 +200,6 @@ async def cancelar_agendamento_email(
     except Exception as e:
         return f"<html><body><h1>Erro Interno</h1><p>{str(e)}</p></body></html>"
 
-
-# --- ROTA PARA API (Se ainda for usada pelo front) ---
 @router.post("/{agendamento_id}/confirmar", status_code=status.HTTP_200_OK)
 async def rota_confirmar_agendamento(
         agendamento_id: int,
@@ -258,6 +255,19 @@ async def rota_listar_todos_agendamentos_gestor(
             detail="Erro interno ao buscar todos os agendamentos."
         )
 
+
+@router.put("/{agendamento_id}/status-manual", status_code=status.HTTP_200_OK)
+async def rota_atualizar_status_manual(
+        agendamento_id: int,
+        payload: dict,
+        service: ServicosAgendamento = Depends(pegar_servicos_agendamento),
+        funcionario_id: int = Depends(verificar_funcionario_logado)
+):
+    novo_status = payload.get("status")
+    if not novo_status:
+        raise HTTPException(status_code=400, detail="Status não informado.")
+
+    return service.atualizar_status_manual(agendamento_id, novo_status, funcionario_id)
 
 @router.put("/admin/{agendamento_id}/cancelar", status_code=status.HTTP_200_OK)
 async def rota_cancelar_agendamento_gestor(

@@ -22,19 +22,29 @@ function ProntuarioPet({ pet, onBack }) {
         }
     }, [pet]);
 
+    // --- FUNÇÃO AUXILIAR DE MÁSCARA (Mesma do CadastrarProduto.js) ---
+    const formatarReal = (value) => {
+        // remove tudo que nao é digito
+        let numero = value.replace(/\D/g, '');
+
+        // converte para numero e divide por 100 para ter centavos
+        numero = (Number(numero) / 100).toFixed(2);
+
+        // formata com separadores brasileiros
+        return numero.replace('.', ',').replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+    };
+
     const carregarDadosCompletos = async () => {
         setLoading(true);
         try {
             const token = localStorage.getItem('token');
 
             // 1. Carrega Histórico (Consultas, Vacinas, Serviços)
-            // Rota antiga/existente
             const resHist = await axios.get(`/historico/completo/${pet.id}`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
 
-            // 2. Carrega Observações - NOVA ROTA (sem /api prefixado pois o axios já tem)
-            // Se der erro 404/500 na tabela nova, não quebra o resto
+            // 2. Carrega Observações
             let resObsData = [];
             try {
                 const resObs = await axios.get(`/observacoes/pet/${pet.id}`, {
@@ -67,13 +77,19 @@ function ProntuarioPet({ pet, onBack }) {
         e.preventDefault();
         try {
             const token = localStorage.getItem('token');
+
+            // --- LIMPEZA DO VALOR (R$ 1.000,00 -> 1000.00) ---
+            const valorLimpo = formConsulta.valor
+                ? formConsulta.valor.replace(/\./g, '').replace(',', '.')
+                : '0';
+
             await axios.post('/historico/', {
                 pet_id: pet.id,
                 tipo_servico: 'Consulta',
                 data_hora: new Date().toISOString(),
                 resumo: formConsulta.resumo,
                 detalhes: formConsulta.detalhes,
-                valor: parseFloat(formConsulta.valor) || 0
+                valor: parseFloat(valorLimpo) || 0 // Envia como float limpo
             }, { headers: { Authorization: `Bearer ${token}` } });
 
             setFormConsulta({ resumo: '', detalhes: '', valor: '' });
@@ -103,7 +119,7 @@ function ProntuarioPet({ pet, onBack }) {
         } catch(err) { alert("Erro ao salvar vacina."); }
     };
 
-    // --- NOVA LÓGICA CORRIGIDA ---
+    // --- NOVA LÓGICA DE OBSERVAÇÃO ---
     const handleSalvarObservacao = async (e) => {
         e.preventDefault();
 
@@ -114,16 +130,13 @@ function ProntuarioPet({ pet, onBack }) {
 
         try {
             const token = localStorage.getItem('token');
-
-            // Payload estritamente igual ao modelo ObservacaoCreate
             const payload = {
-                pet_id: parseInt(pet.id), // Garante inteiro
+                pet_id: parseInt(pet.id),
                 titulo: obsTitulo || 'Observação',
                 descricao: obsDetalhes
-                // funcionario_id é pego pelo token no backend
             };
 
-            // ATENÇÃO: URL corrigida para /observacoes/ (sem /api extra)
+            // Correção anterior: Usar o OAuth2 scheme no back e enviar header correto aqui
             await axios.post('/observacoes/', payload, {
                 headers: { Authorization: `Bearer ${token}` }
             });
@@ -155,7 +168,6 @@ function ProntuarioPet({ pet, onBack }) {
         }
     };
 
-    // Helper Tabs
     const TabButton = ({ name, label }) => (
         <button
             className={`tab-btn ${activeTab === name ? 'active' : ''}`}
@@ -165,7 +177,6 @@ function ProntuarioPet({ pet, onBack }) {
         </button>
     );
 
-    // Helper Classes
     const getServiceClass = (tipo) => {
         if (!tipo) return 'servico';
         const t = tipo.toLowerCase();
@@ -207,7 +218,14 @@ function ProntuarioPet({ pet, onBack }) {
                                 </div>
                                 <div className="form-group">
                                     <label>Valor (R$):</label>
-                                    <input type="number" className="form-input" value={formConsulta.valor} onChange={e => setFormConsulta({...formConsulta, valor: e.target.value})} />
+                                    {/* INPUT ATUALIZADO PARA USAR A MÁSCARA */}
+                                    <input
+                                        type="text"
+                                        className="form-input"
+                                        value={formConsulta.valor}
+                                        onChange={e => setFormConsulta({...formConsulta, valor: formatarReal(e.target.value)})}
+                                        placeholder="0,00"
+                                    />
                                 </div>
                                 <button type="submit" className="btn-submit">Salvar Consulta</button>
                             </form>
@@ -221,7 +239,7 @@ function ProntuarioPet({ pet, onBack }) {
                                     <span className="history-meta">{c.funcionario_nome}</span>
                                 </div>
                                 <div className="history-body">{c.detalhes}</div>
-                                {/* Botão deletar removido ou adaptado se necessário */}
+                                {c.valor && <div className="history-price">Valor: R$ {c.valor.toFixed(2)}</div>}
                             </div>
                         ))}
                         {historico.consultas.length === 0 && <p className="empty-msg">Nenhuma consulta registrada.</p>}
@@ -291,7 +309,7 @@ function ProntuarioPet({ pet, onBack }) {
                     </div>
                 )}
 
-                {/* ABA OBSERVAÇÕES - NOVA LÓGICA */}
+                {/* ABA OBSERVAÇÕES */}
                 {activeTab === 'observacoes' && (
                     <div className="fade-in">
                         <div className="form-section">
