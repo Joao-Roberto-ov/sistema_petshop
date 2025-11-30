@@ -1,33 +1,20 @@
+import os
+import threading
+import time
+import sync_data
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 from fastapi.staticfiles import StaticFiles
-import os
-import threading
-import time  # Adicionado para o agendador
 from bancoDeDados import criar_tabelas
-import sync_data
+from bancoDeDados import conectar, encerra_conexao
+from services import vacina_service
 from fastapi.responses import FileResponse
 from fastapi import HTTPException
-from routers import (
-    cliente_router,
-    pet_router,
-    login_router,
-    funcionario_router,
-    admin_router,
-    produto_router,
-    servico_router,
-    admin_pet_router,
-    agendamento_router,
-    venda_router,
-    checkout_router,
-    config_router,
-    historico_medico_router,
-    vacina_router,
-    despesa_router,
-    user_router,
-    estoque_config_router,
-    notificacao_router
+from routers import (cliente_router,pet_router,login_router,funcionario_router,admin_router,
+produto_router,servico_router,admin_pet_router,agendamento_router,venda_router,
+checkout_router,config_router,historico_medico_router,vacina_router,despesa_router,
+user_router,estoque_config_router,notificacao_router
 )
 
 basedir = os.path.abspath(os.path.dirname(__file__))
@@ -97,7 +84,7 @@ app.add_middleware(
 @app.get("/teste-historico-direto/{pet_id}")
 async def teste_historico_direto(pet_id: int):
     """
-    Rota direta para teste do histórico (REMOVER EM PRODUÇÃO)
+    Rota direta para teste do histórico
     """
     from bancoDeDados import conectar, encerra_conexao
     from services import vacina_service
@@ -197,8 +184,6 @@ async def historico_completo(pet_id: int):
     """
     Rota consolidada para obter o histórico completo do pet (histórico médico + vacinas)
     """
-    from bancoDeDados import conectar, encerra_conexao
-    from services import vacina_service
 
     conn = None
     cursor = None

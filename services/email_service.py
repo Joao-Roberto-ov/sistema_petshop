@@ -179,8 +179,8 @@ class EmailService:
         assunto = f"Lembrete: Seu agendamento na PetLife é amanhã!"
 
         # CONFIGURAÇÃO DA URL BASE (Aponta para o BACKEND - Porta 8000)
-        # Se subir para nuvem, troque "http://localhost:8000" pelo domínio real da API.
-        BASE_URL = "http://localhost:8000"
+
+        BASE_URL ="Petlifes-env.us-east-2.elasticbeanstalk.com" #"http://localhost:8000"
 
         # Links apontando diretamente para as rotas que retornam HTML
         link_confirmar = f"{BASE_URL}/api/agendamentos/{agendamento['id']}/confirmar-email"
