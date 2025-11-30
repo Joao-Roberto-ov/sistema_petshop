@@ -89,7 +89,7 @@ class ServicosPet:
             raise HTTPException(status_code=400, detail="O pet já pertence a este cliente.")
 
         try:
-            # 4. Realizar a transferência (mantém todo o histórico)
+            # 4. Realizar a transferência (mantém o histórico)
             self.repo.transferir_pet(pet_id, novo_cliente_id)
             return {"message": f"Pet transferido com sucesso para o cliente ID {novo_cliente_id}"}
         except Exception as e:
@@ -190,7 +190,7 @@ class ServicosPet:
                     detail="Acesso negado: tipo de usuário não reconhecido."
                 )
 
-        # Resto do método (verificação de duplicatas e atualização)
+        # Resto do metodo (verificação de duplicatas e atualização)
         dados_para_atualizar = pet_dados.model_dump(exclude_unset=True)
         print(f"📦 Dados para atualizar: {dados_para_atualizar}")
 

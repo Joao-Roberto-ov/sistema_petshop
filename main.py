@@ -195,7 +195,7 @@ async def list_routes():
 @app.get("/api/historico-completo/{pet_id}")
 async def historico_completo(pet_id: int):
     """
-    Rota consolidada para obter todo o histórico do pet (histórico médico + vacinas)
+    Rota consolidada para obter o histórico completo do pet (histórico médico + vacinas)
     """
     from bancoDeDados import conectar, encerra_conexao
     from services import vacina_service
