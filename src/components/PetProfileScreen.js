@@ -5,6 +5,40 @@ import ptBR from 'date-fns/locale/pt-BR';
 import HistoricoDetalhesModal from './HistoricoDetalhesModal';
 
 // Ícones SVG utilizados
+const IconStethoscope = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4.8 2.3A.3.3 0 1 0 5 2H4a2 2 0 0 0-2 2v5a6 6 0 0 0 6 6v0a6 6 0 0 0 6-6V4a2 2 0 0 0-2-2h-1a.3.3 0 1 0 .2.3V4a6 6 0 0 0-6 6v0a6 6 0 0 0 6-6V4a2 2 0 0 0-2-2h-1"></path><path d="M8 15v1a6 6 0 0 0 6 6v0a6 6 0 0 0 6-6v-4"></path><circle cx="12" cy="9" r="1"></circle></svg>
+);
+const IconScissors = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="6" cy="6" r="3"></circle><circle cx="6" cy="18" r="3"></circle><line x1="20" y1="4" x2="8.12" y2="15.88"></line><line x1="14.47" y1="14.48" x2="20" y2="20"></line><line x1="8.12" y1="8.12" x2="12" y2="12"></line></svg>
+);
+const IconSyringe = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m18 2 4 4"></path><path d="m17 7 3-3"></path><path d="M19 9 8.7 19.3c-1 1-2.5 1-3.4 0l-.6-.6c-1-1-1-2.5 0-3.4L15 5"></path><path d="m9 11 4 4"></path><path d="m5 19-3 3"></path><path d="m14 4 6 6"></path></svg>
+);
+const IconShoppingCart = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path></svg>
+);
+const IconInfo = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+);
+const IconRuler = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21.3 15.3a2.4 2.4 0 0 1 0 3.4l-2.6 2.6a2.4 2.4 0 0 1-3.4 0L2.7 8.7a2.41 2.41 0 0 1 0-3.4l2.6-2.6a2.41 2.41 0 0 1 3.4 0l12.6 12.6z"></path><line x1="14.5" y1="5.5" x2="18.5" y2="9.5"></line><line x1="11.5" y1="8.5" x2="15.5" y2="12.5"></line><line x1="8.5" y1="11.5" x2="12.5" y2="15.5"></line></svg>
+);
+const IconGender = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M12 16v-4"></path><path d="M12 8v0"></path></svg>
+);
+const IconCalendar = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+);
+const IconWeight = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M16 12h-4"></path><path d="M12 16v-4"></path></svg>
+);
+const IconUser = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+);
+const IconStickyNote = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+);
+
 
 function PetProfileScreen({ petId, onBack }) {
     const [petData, setPetData] = useState(null);
@@ -18,16 +52,12 @@ function PetProfileScreen({ petId, onBack }) {
         }
     }, [petId]);
 
+    // Polling para atualizar em tempo real
     useEffect(() => {
         if (!petId) return;
-
-        // Atualizar a cada 30 segundos para pegar novos registros
         const interval = setInterval(() => {
-            console.log('🔄 Atualização automática do histórico...');
             fetchPetProfile();
-        }, 30000); // 30 segundos
-
-        // Limpar intervalo quando o componente desmontar
+        }, 30000);
         return () => clearInterval(interval);
     }, [petId]);
 
@@ -35,28 +65,50 @@ function PetProfileScreen({ petId, onBack }) {
     try {
         setLoading(true);
         setError('');
-        
-        console.log('🐕 Buscando perfil do pet ID:', petId);
 
-        const url = `/historico/pet/${petId}`;
-        console.log('🌐 URL do histórico:', url);
-        
-        const response = await axios.get(url);
-        
-        console.log('✅ Histórico recebido:', response.data);
-        
-        // Buscar dados básicos do pet separadamente
-        const petResponse = await axios.get(`/pets/${petId}`);
-        console.log('✅ Dados do pet recebidos:', petResponse.data);
-        
+        const token = localStorage.getItem('token');
+
+        // Realiza requisições paralelas: Pet, Histórico Médico (Antigo) e Observações (Novo)
+        const [petResponse, histResponse, obsResponse] = await Promise.all([
+            axios.get(`/pets/${petId}`),
+            axios.get(`/historico/pet/${petId}`),
+            // Busca da nova tabela de observações
+            axios.get(`/observacoes/pet/${petId}`, {
+                headers: { Authorization: `Bearer ${token}` }
+            }).catch(() => ({ data: [] })) // Fallback se falhar
+        ]);
+
+        // Processar Histórico Médico (Consultas/Serviços)
+        const historicoMedico = histResponse.data.map(item => ({
+            ...item,
+            origem: 'medico',
+            sortDate: new Date(item.data_hora)
+        }));
+
+        // Processar Novas Observações
+        const observacoes = obsResponse.data.map(item => ({
+            id: item.id,
+            tipo_servico: 'Observação', // Identificador visual
+            resumo: item.titulo || 'Observação',
+            detalhes: item.descricao,
+            data_hora: item.data_criacao,
+            funcionario_nome: item.funcionario_nome,
+            valor: 0,
+            origem: 'observacao',
+            sortDate: new Date(item.data_criacao)
+        }));
+
+        // Mesclar tudo e ordenar
+        const timelineCompleta = [...historicoMedico, ...observacoes].sort((a, b) => b.sortDate - a.sortDate);
+
         setPetData({
             dados_pet: petResponse.data,
-            historico: response.data
+            historico: timelineCompleta
         });
-        
+
     } catch (err) {
         console.error('❌ Erro ao buscar perfil do pet:', err);
-        
+
         if (err.response?.status === 403) {
             setError('Você não tem permissão para acessar o histórico deste pet.');
         } else if (err.response?.status === 404) {
@@ -71,7 +123,6 @@ function PetProfileScreen({ petId, onBack }) {
     }
 };
 
-    // Mover funções auxiliares para fora do render
     const getIconForType = (type) => {
         switch (type) {
             case 'Consulta':
@@ -82,6 +133,8 @@ function PetProfileScreen({ petId, onBack }) {
                 return <IconSyringe />;
             case 'Compra':
                 return <IconShoppingCart />;
+            case 'Observação': // Novo tipo
+                return <IconStickyNote />;
             default:
                 return <IconInfo />;
         }
@@ -90,15 +143,17 @@ function PetProfileScreen({ petId, onBack }) {
     const getColorForType = (type) => {
         switch (type) {
             case 'Consulta':
-                return 'var(--color-primary-dark)';
+                return '#2c3e50'; // Dark Blue
             case 'Banho e Tosa':
-                return '#3498db';
+                return '#3498db'; // Blue
             case 'Vacinação':
-                return '#2ecc71';
+                return '#2ecc71'; // Green
+            case 'Observação':
+                return '#f1c40f'; // Yellow
             case 'Compra':
-                return '#f39c12';
+                return '#f39c12'; // Orange
             default:
-                return '#95a5a6';
+                return '#95a5a6'; // Grey
         }
     };
 
@@ -118,8 +173,8 @@ function PetProfileScreen({ petId, onBack }) {
                 <div className="login-card">
                     <div className="error-message">{error}</div>
                     <button className="btn-submit" onClick={onBack}>Voltar</button>
-                    <button 
-                        className="btn-submit" 
+                    <button
+                        className="btn-submit"
                         onClick={fetchPetProfile}
                         style={{ marginLeft: '10px', background: '#6c757d' }}
                     >
@@ -130,7 +185,6 @@ function PetProfileScreen({ petId, onBack }) {
         );
     }
 
-    // Verificar se petData existe antes de desestruturar
     if (!petData) {
         return (
             <div className="login-container">
@@ -147,12 +201,12 @@ function PetProfileScreen({ petId, onBack }) {
     return (
         <div className="pet-profile-screen">
             {selectedHistoricoId && (
-                <HistoricoDetalhesModal 
-                    historicoId={selectedHistoricoId} 
-                    onClose={() => setSelectedHistoricoId(null)} 
+                <HistoricoDetalhesModal
+                    historicoId={selectedHistoricoId}
+                    onClose={() => setSelectedHistoricoId(null)}
                 />
             )}
-            
+
             <style>
                 {`
                 .pet-profile-screen {
@@ -162,7 +216,7 @@ function PetProfileScreen({ petId, onBack }) {
                 }
 
                 .profile-header {
-                    background: var(--color-primary);
+                    background: #4a9b8e;
                     color: white;
                     padding: 2rem;
                     border-radius: 16px;
@@ -175,7 +229,7 @@ function PetProfileScreen({ petId, onBack }) {
 
                 .profile-avatar {
                     background: white;
-                    color: var(--color-primary);
+                    color: #4a9b8e;
                     width: 80px;
                     height: 80px;
                     border-radius: 50%;
@@ -213,11 +267,11 @@ function PetProfileScreen({ petId, onBack }) {
                     display: flex;
                     align-items: center;
                     gap: 0.75rem;
-                    border-left: 4px solid var(--color-primary-light);
+                    border-left: 4px solid #a2d2ca;
                 }
 
                 .detail-card-icon {
-                    color: var(--color-primary-dark);
+                    color: #2c7a6f;
                     flex-shrink: 0;
                 }
 
@@ -243,7 +297,7 @@ function PetProfileScreen({ petId, onBack }) {
 
                 .timeline-title {
                     font-size: 1.8rem;
-                    color: var(--color-primary-dark);
+                    color: #2c7a6f;
                     margin-bottom: 1.5rem;
                     border-bottom: 2px solid #ecf0f1;
                     padding-bottom: 0.5rem;
@@ -327,12 +381,12 @@ function PetProfileScreen({ petId, onBack }) {
                 `}
             </style>
 
-            <button 
+            <button
                 onClick={onBack}
                 style={{
                     background: 'none',
                     border: 'none',
-                    color: 'var(--color-primary-dark)',
+                    color: '#4a9b8e',
                     fontSize: '1rem',
                     cursor: 'pointer',
                     marginBottom: '1rem',
@@ -393,119 +447,110 @@ function PetProfileScreen({ petId, onBack }) {
             )}
 
             {/* TIMELINE */}
-<div className="timeline-container">
-    <h2 className="timeline-title">Histórico Médico</h2>
-    <div className="timeline">
-        {historico && historico.length > 0 ? (
-            historico.map((item, index) => {
-                const itemColor = getColorForType(item.tipo_servico);
-                const itemIcon = getIconForType(item.tipo_servico);
-                const dataFormatada = format(parseISO(item.data_hora), 'dd/MM/yyyy HH:mm', { locale: ptBR });
+            <div className="timeline-container">
+                <h2 className="timeline-title">Histórico Completo</h2>
+                <div className="timeline">
+                    {historico && historico.length > 0 ? (
+                        historico.map((item, index) => {
+                            const itemColor = getColorForType(item.tipo_servico);
+                            const itemIcon = getIconForType(item.tipo_servico);
+                            const dataFormatada = format(parseISO(item.data_hora), 'dd/MM/yyyy HH:mm', { locale: ptBR });
 
-                return (
-                    <div key={item.id || index} className="timeline-item">
-                        <div className="timeline-icon" style={{ borderColor: itemColor, background: itemColor }}>
-                            {itemIcon}
-                        </div>
-                        <div className="timeline-content" style={{ borderLeftColor: itemColor }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.5rem' }}>
-                                <h4 style={{ margin: 0, flex: 1 }}>{item.tipo_servico}</h4>
-                                <span style={{ 
-                                    background: itemColor, 
-                                    color: 'white', 
-                                    padding: '0.25rem 0.5rem', 
-                                    borderRadius: '12px', 
-                                    fontSize: '0.8rem',
-                                    fontWeight: 'bold'
-                                }}>
-                                    {item.valor ? `R$ ${item.valor.toFixed(2)}` : 'Grátis'}
-                                </span>
-                            </div>
-                            
-                            <p style={{ margin: '0.5rem 0', fontWeight: 'bold', color: '#2c3e50' }}>
-                                {item.resumo}
-                            </p>
-                            
-                            <p style={{ margin: '0.5rem 0', fontSize: '0.9rem', color: '#7f8c8d' }}>
-                                {item.detalhes ? item.detalhes.substring(0, 120) + '...' : 'Nenhum detalhe registrado.'}
-                            </p>
+                            return (
+                                <div key={`${item.origem}-${item.id || index}`} className="timeline-item">
+                                    <div className="timeline-icon" style={{ borderColor: itemColor, background: itemColor }}>
+                                        {itemIcon}
+                                    </div>
+                                    <div className="timeline-content" style={{ borderLeftColor: itemColor }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.5rem' }}>
+                                            <h4 style={{ margin: 0, flex: 1 }}>{item.tipo_servico}</h4>
+                                            {item.valor > 0 && (
+                                                <span style={{
+                                                    background: itemColor,
+                                                    color: 'white',
+                                                    padding: '0.25rem 0.5rem',
+                                                    borderRadius: '12px',
+                                                    fontSize: '0.8rem',
+                                                    fontWeight: 'bold'
+                                                }}>
+                                                    R$ {item.valor.toFixed(2)}
+                                                </span>
+                                            )}
+                                        </div>
 
-                            {/* 🔥 BOTÃO DESTACADO - SEM FALHAS */}
-                            <div style={{ 
-                                margin: '1rem 0', 
-                                display: 'flex', 
-                                justifyContent: 'center'
-                            }}>
-                                <button 
-                                    onClick={() => {
-                                        console.log('🎯 Clicando em Ver Detalhes - ID:', item.id);
-                                        setSelectedHistoricoId(item.id);
-                                    }}
-                                    style={{
-                                        background: itemColor,
-                                        color: 'white',
-                                        border: 'none',
-                                        padding: '0.75rem 1.5rem',
-                                        borderRadius: '8px',
-                                        cursor: 'pointer',
-                                        fontWeight: 'bold',
-                                        fontSize: '1rem',
-                                        width: '100%',
-                                        maxWidth: '200px',
-                                        transition: 'all 0.3s ease',
-                                        boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                        gap: '0.5rem'
-                                    }}
-                                    onMouseEnter={(e) => {
-                                        e.target.style.background = '#2c3e50';
-                                        e.target.style.transform = 'translateY(-2px)';
-                                        e.target.style.boxShadow = '0 4px 12px rgba(0,0,0,0.3)';
-                                    }}
-                                    onMouseLeave={(e) => {
-                                        e.target.style.background = itemColor;
-                                        e.target.style.transform = 'translateY(0)';
-                                        e.target.style.boxShadow = '0 2px 8px rgba(0,0,0,0.2)';
-                                    }}
-                                >
-                                    🔍 Ver Detalhes Completos
-                                </button>
-                            </div>
+                                        <p style={{ margin: '0.5rem 0', fontWeight: 'bold', color: '#2c3e50' }}>
+                                            {item.resumo}
+                                        </p>
 
-                            <div className="meta" style={{ 
-                                display: 'flex', 
-                                justifyContent: 'space-between', 
-                                alignItems: 'center',
-                                fontSize: '0.85rem',
-                                color: '#95a5a6',
-                                marginTop: '1rem',
-                                paddingTop: '0.75rem',
-                                borderTop: '1px dashed #ecf0f1',
-                                flexWrap: 'wrap',
-                                gap: '0.5rem'
-                            }}>
-                                <span style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-                                    <IconCalendar />
-                                    {dataFormatada}
-                                </span>
-                                <span style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-                                    <IconUser />
-                                    {item.funcionario_nome || 'Não Informado'}
-                                </span>
-                            </div>
-                        </div>
-                    </div>
-                );
-            })
-        ) : (
-            <p style={{ textAlign: 'center', color: '#7f8c8d', padding: '2rem' }}>
-                Nenhum registro no histórico médico para este pet.
-            </p>
-        )}
-    </div>
-</div>
+                                        <p style={{ margin: '0.5rem 0', fontSize: '0.9rem', color: '#7f8c8d', whiteSpace: 'pre-wrap' }}>
+                                            {item.detalhes ? item.detalhes.substring(0, 200) + (item.detalhes.length > 200 ? '...' : '') : 'Nenhum detalhe.'}
+                                        </p>
+
+                                        {/* Botão Ver Detalhes (apenas se for histórico médico real, não observação) */}
+                                        {item.origem === 'medico' && (
+                                            <div style={{
+                                                margin: '1rem 0',
+                                                display: 'flex',
+                                                justifyContent: 'center'
+                                            }}>
+                                                <button
+                                                    onClick={() => setSelectedHistoricoId(item.id)}
+                                                    style={{
+                                                        background: itemColor,
+                                                        color: 'white',
+                                                        border: 'none',
+                                                        padding: '0.75rem 1.5rem',
+                                                        borderRadius: '8px',
+                                                        cursor: 'pointer',
+                                                        fontWeight: 'bold',
+                                                        fontSize: '1rem',
+                                                        width: '100%',
+                                                        maxWidth: '200px',
+                                                        transition: 'all 0.3s ease',
+                                                        boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        justifyContent: 'center',
+                                                        gap: '0.5rem'
+                                                    }}
+                                                >
+                                                    🔍 Ver Detalhes
+                                                </button>
+                                            </div>
+                                        )}
+
+                                        <div className="meta" style={{
+                                            display: 'flex',
+                                            justifyContent: 'space-between',
+                                            alignItems: 'center',
+                                            fontSize: '0.85rem',
+                                            color: '#95a5a6',
+                                            marginTop: '1rem',
+                                            paddingTop: '0.75rem',
+                                            borderTop: '1px dashed #ecf0f1',
+                                            flexWrap: 'wrap',
+                                            gap: '0.5rem'
+                                        }}>
+                                            <span style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                                                <IconCalendar />
+                                                {dataFormatada}
+                                            </span>
+                                            <span style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                                                <IconUser />
+                                                {item.funcionario_nome || 'Sistema'}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                            );
+                        })
+                    ) : (
+                        <p style={{ textAlign: 'center', color: '#7f8c8d', padding: '2rem' }}>
+                            Nenhum registro no histórico médico para este pet.
+                        </p>
+                    )}
+                </div>
+            </div>
         </div>
     );
 }

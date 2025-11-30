@@ -29,7 +29,8 @@ from routers import (
     despesa_router,
     user_router,
     estoque_config_router,
-    notificacao_router
+    notificacao_router,
+    observacao_router
 )
 
 basedir = os.path.abspath(os.path.dirname(__file__))
@@ -109,6 +110,7 @@ app.include_router(despesa_router.router)
 app.include_router(config_router.router, prefix="/api")
 app.include_router(user_router.router)
 app.include_router(historico_medico_router.router, prefix="/api")
+app.include_router(observacao_router.router)
 app.include_router(vacina_router.router, prefix="/api")
 app.include_router(notificacao_router.router)
 app.include_router(estoque_config_router.router)

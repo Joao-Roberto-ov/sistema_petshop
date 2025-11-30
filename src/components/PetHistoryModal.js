@@ -6,7 +6,8 @@ function PetHistoryModal({ pet, onClose }) {
     const [history, setHistory] = useState({ 
         consultas: [], 
         vacinas: [], 
-        servicos: [] 
+        servicos: [],
+        observacoes: [] // Novo estado para observações separadas
     });
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
@@ -19,7 +20,7 @@ function PetHistoryModal({ pet, onClose }) {
         setExpandedItem(expandedItem === key ? null : key);
     };
 
-    // Função para parsear e organizar os detalhes médicos
+    // Função para parsear e organizar os detalhes médicos (MANTIDA COMPLETA)
     const parseMedicalDetails = (detalhes) => {
         if (!detalhes) return <p>Nenhum detalhe adicional</p>;
 
@@ -34,13 +35,13 @@ function PetHistoryModal({ pet, onClose }) {
         };
 
         const lines = detalhes.split('\n').filter(line => line.trim());
-        
+
         let currentSection = 'observacoes';
         let sectionContent = [];
 
         lines.forEach(line => {
             const trimmedLine = line.trim();
-            
+
             // Detectar seções por palavras-chave
             if (trimmedLine.match(/EXAMES? SOLICITADOS?|SOLICITAÇÕES?/i)) {
                 if (sectionContent.length > 0) {
@@ -180,7 +181,7 @@ function PetHistoryModal({ pet, onClose }) {
                 )}
 
                 {/* Observações Gerais (fallback) */}
-                {sections.observacoes.length > 0 && 
+                {sections.observacoes.length > 0 &&
                  sections.examesSolicitados.length === 0 &&
                  sections.resultados.length === 0 &&
                  sections.diagnostico.length === 0 &&
@@ -208,63 +209,34 @@ function PetHistoryModal({ pet, onClose }) {
             setError('');
             try {
                 const token = localStorage.getItem('token');
-                
-                // Tentar a rota consolidada primeiro
+
+                // Rota consolidada que agora deve retornar observacoes da nova tabela também
                 const response = await axios.get(`/historico/completo/${pet.id}`, {
                     headers: { 'Authorization': `Bearer ${token}` },
                 });
-                
+
                 if (response.data.success) {
                     const data = response.data;
-                    const historicoAdaptado = {
-                        consultas: data.historico.filter(item => 
-                            item.tipo_servico.includes('Consulta') || 
-                            item.tipo_servico.includes('Exame') ||
-                            item.tipo_servico === 'Consulta'
+                    setHistory({
+                        consultas: data.historico.filter(item =>
+                            item.tipo_servico.includes('Consulta') ||
+                            item.tipo_servico.includes('Exame')
                         ),
                         vacinas: data.vacinas || [],
-                        servicos: data.historico.filter(item => 
-                            item.tipo_servico.includes('Banho') || 
-                            item.tipo_servico.includes('Tosa') ||
-                            item.tipo_servico.includes('Serviço') ||
-                            (item.tipo_servico !== 'Consulta' && 
-                             !item.tipo_servico.includes('Consulta') && 
-                             !item.tipo_servico.includes('Exame'))
-                        )
-                    };
-                    setHistory(historicoAdaptado);
+                        // Filtra serviços que não são consulta
+                        servicos: data.historico.filter(item =>
+                            !item.tipo_servico.includes('Consulta') &&
+                            !item.tipo_servico.includes('Exame')
+                        ),
+                        // Nova lista de observações vinda da tabela separada
+                        observacoes: data.observacoes || []
+                    });
                 } else {
                     throw new Error(response.data.error || 'Erro ao carregar histórico');
                 }
             } catch (err) {
                 console.error('Erro ao carregar histórico:', err);
-                
-                // Tentar fallback para a rota antiga se a nova falhar
-                try {
-                    console.log('Tentando fallback para rota antiga...');
-                    const fallbackResponse = await fetch(`http://localhost:8000/teste-historico-direto/${pet.id}`);
-                    const fallbackData = await fallbackResponse.json();
-                    
-                    if (fallbackData.success) {
-                        const historicoAdaptado = {
-                            consultas: fallbackData.historico.filter(item => 
-                                item.tipo_servico.includes('Consulta') || 
-                                item.tipo_servico.includes('Exame')
-                            ),
-                            vacinas: [], // Sem vacinas no fallback
-                            servicos: fallbackData.historico.filter(item => 
-                                item.tipo_servico.includes('Banho') || 
-                                item.tipo_servico.includes('Tosa') ||
-                                item.tipo_servico.includes('Serviço')
-                            )
-                        };
-                        setHistory(historicoAdaptado);
-                    } else {
-                        setError('Não foi possível carregar o histórico. Tente novamente.');
-                    }
-                } catch (fallbackErr) {
-                    setError('Não foi possível carregar o histórico. Tente novamente.');
-                }
+                setError('Não foi possível carregar o histórico.');
             } finally {
                 setLoading(false);
             }
@@ -277,15 +249,15 @@ function PetHistoryModal({ pet, onClose }) {
         if (isFuncionario && pet.dono?.nome) {
             return pet.dono.nome;
         }
-        
+
         if (isFuncionario && !pet.dono?.nome) {
             return 'Cliente não identificado';
         }
-        
+
         if (userData?.nome) {
             return userData.nome;
         }
-        
+
         return 'Eu';
     };
 
@@ -294,8 +266,8 @@ function PetHistoryModal({ pet, onClose }) {
         try {
             const date = new Date(dateString);
             return date.toLocaleDateString('pt-BR', {
-                day: '2-digit', 
-                month: '2-digit', 
+                day: '2-digit',
+                month: '2-digit',
                 year: 'numeric',
                 hour: '2-digit',
                 minute: '2-digit'
@@ -330,14 +302,14 @@ function PetHistoryModal({ pet, onClose }) {
             <div className="modal-content" onClick={e => e.stopPropagation()}>
                 <button className="close-button" onClick={onClose}>&times;</button>
                 <h2>Histórico de {pet.nome}</h2>
-                
+
                 <div className="pet-info">
                     <p><strong>Dono:</strong> {getDonoNome()}</p>
                     <p><strong>Espécie:</strong> {pet.tipo || 'N/A'}</p>
                     <p><strong>Raça:</strong> {pet.raca || 'N/A'}</p>
                     {pet.observacoes && (
                         <p className="pet-observations-modal">
-                            <strong>Observações:</strong> {pet.observacoes}
+                            <strong>Observações Gerais:</strong> {pet.observacoes}
                         </p>
                     )}
                 </div>
@@ -347,6 +319,32 @@ function PetHistoryModal({ pet, onClose }) {
 
                 {!loading && !error && (
                     <div className="history-sections">
+
+                        {/* NOVA SEÇÃO: Observações Clínicas */}
+                        <div className="history-section">
+                            <h3>📝 Observações Clínicas</h3>
+                            {history.observacoes && history.observacoes.length > 0 ? (
+                                <div className="history-list">
+                                    {history.observacoes.map((obs, index) => (
+                                        <div key={`obs-${index}`} className="history-item observacao-item" style={{borderLeft: '4px solid #f1c40f', backgroundColor: '#fffdf0'}}>
+                                            <div className="service-header">
+                                                <strong className="service-name" style={{color: '#d35400'}}>{obs.titulo || 'Observação'}</strong>
+                                                <span className="service-value" style={{color: '#7f8c8d', fontSize: '0.9rem'}}>
+                                                    {formatDate(obs.data_criacao)}
+                                                </span>
+                                            </div>
+                                            <div className="service-details">
+                                                <p style={{margin: '0.5rem 0', whiteSpace: 'pre-wrap', color: '#333'}}>{obs.descricao}</p>
+                                                <small style={{color: '#95a5a6'}}>Registrado por: {obs.funcionario_nome || 'Sistema'}</small>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            ) : (
+                                <p className="no-data">Nenhuma observação registrada.</p>
+                            )}
+                        </div>
+
                         {/* Consultas Médicas */}
                         <div className="history-section">
                             <h3>📋 Consultas Médicas</h3>
@@ -384,7 +382,7 @@ function PetHistoryModal({ pet, onClose }) {
                                                                     <p>{item.resumo}</p>
                                                                 </div>
                                                             )}
-                                                            
+
                                                             {/* Detalhes Expandidos com parsing inteligente */}
                                                             {item.detalhes && (
                                                                 <div className="detail-section">
@@ -394,7 +392,7 @@ function PetHistoryModal({ pet, onClose }) {
                                                                     </div>
                                                                 </div>
                                                             )}
-                                                            
+
                                                             {/* Informações Financeiras */}
                                                             {item.valor && (
                                                                 <div className="detail-section">
@@ -402,7 +400,7 @@ function PetHistoryModal({ pet, onClose }) {
                                                                     <p><strong>Valor:</strong> {formatCurrency(item.valor)}</p>
                                                                 </div>
                                                             )}
-                                                            
+
                                                             {/* Informações do Profissional */}
                                                             <div className="detail-section">
                                                                 <h4>👨‍⚕️ Informações do Profissional</h4>

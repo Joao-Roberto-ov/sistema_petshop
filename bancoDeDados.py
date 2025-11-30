@@ -122,8 +122,19 @@ def criar_tabelas():
                             peso       FLOAT,
                             cliente_id INTEGER REFERENCES Clientes (id) ON DELETE CASCADE,
                             sexo_biologico VARCHAR(20) DEFAULT 'Não Informado',
-            observacoes TEXT
+                            observacoes TEXT
                         );""")
+
+        curs.execute("""CREATE TABLE IF NOT EXISTS observacoes_pet
+                        (
+                            id             SERIAL PRIMARY KEY,
+                            pet_id         INTEGER NOT NULL REFERENCES Pets (id) ON DELETE CASCADE,
+                            titulo         VARCHAR(150),
+                            descricao      TEXT NOT NULL,
+                            data_criacao   TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+                            funcionario_id INTEGER REFERENCES Funcionarios (id) ON DELETE SET NULL
+                        );""")
+
 
         curs.execute("""CREATE TABLE IF NOT EXISTS vacinas
                         (

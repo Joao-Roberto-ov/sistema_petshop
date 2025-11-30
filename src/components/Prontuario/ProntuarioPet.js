@@ -4,34 +4,58 @@ import './Prontuario.css';
 
 function ProntuarioPet({ pet, onBack }) {
     const [activeTab, setActiveTab] = useState('consultas');
-    const [historico, setHistorico] = useState({ consultas: [], vacinas: [], servicos: [], observacoes: [] });
+    // Separa observações do histórico geral
+    const [historico, setHistorico] = useState({ consultas: [], vacinas: [], servicos: [] });
+    const [observacoesList, setObservacoesList] = useState([]);
     const [loading, setLoading] = useState(true);
 
     const [formConsulta, setFormConsulta] = useState({ resumo: '', detalhes: '', valor: '' });
     const [formVacina, setFormVacina] = useState({ nome: '', data_aplicacao: '', tem_reforco: false, data_reforco: '' });
-    const [novaObservacao, setNovaObservacao] = useState('');
+
+    // State específico para nova observação
+    const [obsTitulo, setObsTitulo] = useState('');
+    const [obsDetalhes, setObsDetalhes] = useState('');
 
     useEffect(() => {
-        carregarDados();
-    }, [pet.id]);
+        if(pet && pet.id) {
+            carregarDadosCompletos();
+        }
+    }, [pet]);
 
-    const carregarDados = async () => {
+    const carregarDadosCompletos = async () => {
         setLoading(true);
         try {
             const token = localStorage.getItem('token');
-            const res = await axios.get(`/historico/completo/${pet.id}`, {
+
+            // 1. Carrega Histórico (Consultas, Vacinas, Serviços)
+            // Rota antiga/existente
+            const resHist = await axios.get(`/historico/completo/${pet.id}`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
 
-            if(res.data.success) {
-                const allData = res.data.historico;
+            // 2. Carrega Observações - NOVA ROTA (sem /api prefixado pois o axios já tem)
+            // Se der erro 404/500 na tabela nova, não quebra o resto
+            let resObsData = [];
+            try {
+                const resObs = await axios.get(`/observacoes/pet/${pet.id}`, {
+                    headers: { Authorization: `Bearer ${token}` }
+                });
+                resObsData = resObs.data;
+            } catch (e) {
+                console.warn("Não foi possível carregar observações dedicadas", e);
+            }
+
+            if(resHist.data.success) {
+                const allData = resHist.data.historico;
                 setHistorico({
                     consultas: allData.filter(i => i.tipo_servico === 'Consulta'),
-                    vacinas: res.data.vacinas,
+                    vacinas: resHist.data.vacinas,
                     servicos: allData.filter(i => i.tipo_servico !== 'Consulta' && i.tipo_servico !== 'Observação'),
-                    observacoes: allData.filter(i => i.tipo_servico === 'Observação')
                 });
             }
+
+            setObservacoesList(resObsData || []);
+
         } catch (err) {
             console.error("Erro ao carregar prontuário:", err);
         } finally {
@@ -53,7 +77,7 @@ function ProntuarioPet({ pet, onBack }) {
             }, { headers: { Authorization: `Bearer ${token}` } });
 
             setFormConsulta({ resumo: '', detalhes: '', valor: '' });
-            carregarDados();
+            carregarDadosCompletos();
             alert("Consulta registrada!");
         } catch(err) { alert("Erro ao salvar consulta."); }
     };
@@ -74,45 +98,64 @@ function ProntuarioPet({ pet, onBack }) {
 
             await axios.post('/vacinas/', payload, { headers: { Authorization: `Bearer ${token}` } });
             setFormVacina({ nome: '', data_aplicacao: '', tem_reforco: false, data_reforco: '' });
-            carregarDados();
+            carregarDadosCompletos();
             alert("Vacina registrada!");
         } catch(err) { alert("Erro ao salvar vacina."); }
     };
 
-    // Correção do erro 422: O backend agora aceita "Observação"
-    const handleSalvarObservacao = async () => {
-        if(!novaObservacao.trim()) return;
+    // --- NOVA LÓGICA CORRIGIDA ---
+    const handleSalvarObservacao = async (e) => {
+        e.preventDefault();
+
+        if(!obsDetalhes.trim()) {
+            alert("O conteúdo da observação é obrigatório.");
+            return;
+        }
+
         try {
             const token = localStorage.getItem('token');
-            await axios.post('/historico/', {
-                pet_id: pet.id,
-                tipo_servico: 'Observação',
-                data_hora: new Date().toISOString(),
-                resumo: 'Nova Observação',
-                detalhes: novaObservacao,
-                valor: 0
-            }, { headers: { Authorization: `Bearer ${token}` } });
-            setNovaObservacao('');
-            carregarDados();
+
+            // Payload estritamente igual ao modelo ObservacaoCreate
+            const payload = {
+                pet_id: parseInt(pet.id), // Garante inteiro
+                titulo: obsTitulo || 'Observação',
+                descricao: obsDetalhes
+                // funcionario_id é pego pelo token no backend
+            };
+
+            // ATENÇÃO: URL corrigida para /observacoes/ (sem /api extra)
+            await axios.post('/observacoes/', payload, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+
+            setObsTitulo('');
+            setObsDetalhes('');
+            carregarDadosCompletos();
+            alert("Observação salva com sucesso!");
+
         } catch(err) {
-            console.error(err);
-            alert("Erro ao salvar observação. Verifique se o backend foi atualizado.");
+            console.error("Erro ao salvar observação:", err);
+            const msg = err.response?.data?.detail
+                ? JSON.stringify(err.response.data.detail)
+                : "Erro ao salvar observação.";
+            alert(`Erro: ${msg}`);
         }
     };
 
-    const handleDeletarItem = async (id, tipo) => {
-        if(!window.confirm("Tem certeza?")) return;
+    const handleDeletarObservacao = async (id) => {
+        if(!window.confirm("Tem certeza que deseja excluir esta observação?")) return;
         try {
             const token = localStorage.getItem('token');
-            // Se for vacina usa rota de vacinas (se existir delete), senão usa histórico
-            const endpoint = tipo === 'vacina' ? `/vacinas/${id}` : `/historico/${id}`;
-
-            await axios.delete(endpoint, { headers: { Authorization: `Bearer ${token}` } });
-            carregarDados();
-
-        } catch(err) { alert("Erro ao deletar."); }
+            await axios.delete(`/observacoes/${id}`, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            carregarDadosCompletos();
+        } catch(err) {
+            alert("Erro ao deletar observação.");
+        }
     };
 
+    // Helper Tabs
     const TabButton = ({ name, label }) => (
         <button
             className={`tab-btn ${activeTab === name ? 'active' : ''}`}
@@ -122,13 +165,12 @@ function ProntuarioPet({ pet, onBack }) {
         </button>
     );
 
-    // Helper para definir a classe com base no tipo de serviço (caso venha do banco)
+    // Helper Classes
     const getServiceClass = (tipo) => {
         if (!tipo) return 'servico';
         const t = tipo.toLowerCase();
         if (t.includes('consulta')) return 'consulta';
         if (t.includes('vacina')) return 'vacina';
-        if (t.includes('observa')) return 'observacao';
         return 'servico';
     };
 
@@ -138,7 +180,7 @@ function ProntuarioPet({ pet, onBack }) {
         <div className="prontuario-container">
             <div className="prontuario-header">
                 <h2>Prontuário: {pet.nome}</h2>
-                <button className="btn-voltar" onClick={onBack}>Voltar</button>
+                <button className="btn-voltar-prontuario" onClick={onBack}>Voltar</button>
             </div>
 
             <div className="tabs-header">
@@ -149,8 +191,7 @@ function ProntuarioPet({ pet, onBack }) {
             </div>
 
             <div className="tab-content">
-
-                {/* --- ABA CONSULTAS --- */}
+                {/* ABA CONSULTAS */}
                 {activeTab === 'consultas' && (
                     <div className="fade-in">
                         <div className="form-section">
@@ -174,23 +215,20 @@ function ProntuarioPet({ pet, onBack }) {
 
                         <h4>Histórico de Consultas</h4>
                         {historico.consultas.map(c => (
-                            // Uso da classe 'consulta' para definir a cor verde
                             <div key={c.id} className="history-item consulta">
                                 <div className="history-header">
                                     <span className="history-title">{new Date(c.data_hora).toLocaleDateString()} - {c.resumo}</span>
                                     <span className="history-meta">{c.funcionario_nome}</span>
                                 </div>
                                 <div className="history-body">{c.detalhes}</div>
-                                <div className="history-footer">
-                                    <button className="btn-delete" onClick={() => handleDeletarItem(c.id, 'historico')}>🗑️</button>
-                                </div>
+                                {/* Botão deletar removido ou adaptado se necessário */}
                             </div>
                         ))}
                         {historico.consultas.length === 0 && <p className="empty-msg">Nenhuma consulta registrada.</p>}
                     </div>
                 )}
 
-                {/* --- ABA VACINAS --- */}
+                {/* ABA VACINAS */}
                 {activeTab === 'vacinas' && (
                     <div className="fade-in">
                         <div className="form-section">
@@ -211,23 +249,14 @@ function ProntuarioPet({ pet, onBack }) {
                                 {formVacina.tem_reforco && (
                                     <div className="form-group">
                                         <label>Data Reforço:</label>
-                                        <input
-                                            type="date"
-                                            className="form-input"
-                                            value={formVacina.data_reforco}
-                                            onChange={e => setFormVacina({...formVacina, data_reforco: e.target.value})}
-                                            min={formVacina.data_aplicacao}
-                                            required
-                                        />
+                                        <input type="date" className="form-input" value={formVacina.data_reforco} onChange={e => setFormVacina({...formVacina, data_reforco: e.target.value})} min={formVacina.data_aplicacao} required />
                                     </div>
                                 )}
                                 <button type="submit" className="btn-submit">Registrar Aplicação</button>
                             </form>
                         </div>
-
                         <h4>Carteira de Vacinação</h4>
                         {historico.vacinas.map(v => (
-                            // Uso da classe 'vacina' para definir a cor verde claro
                             <div key={v.id} className="history-item vacina">
                                 <div className="history-header">
                                     <span className="history-title">{v.nome_vacina}</span>
@@ -244,13 +273,12 @@ function ProntuarioPet({ pet, onBack }) {
                     </div>
                 )}
 
-                {/* --- ABA SERVIÇOS (Read-Only) --- */}
+                {/* ABA SERVIÇOS */}
                 {activeTab === 'servicos' && (
                     <div className="fade-in">
-                        <h4>Histórico de Serviços (Banho, Tosa, etc.)</h4>
+                        <h4>Histórico de Serviços</h4>
                         {historico.servicos.length === 0 ? <p className="empty-msg">Nenhum serviço concluído.</p> :
                          historico.servicos.map(s => (
-                            // Uso da função helper para definir a classe (geralmente 'servico' - roxo)
                             <div key={s.id} className={`history-item ${getServiceClass(s.tipo_servico)}`}>
                                 <div className="history-header">
                                     <span className="history-title">{s.tipo_servico}</span>
@@ -263,38 +291,56 @@ function ProntuarioPet({ pet, onBack }) {
                     </div>
                 )}
 
-                {/* --- ABA OBSERVAÇÕES --- */}
+                {/* ABA OBSERVAÇÕES - NOVA LÓGICA */}
                 {activeTab === 'observacoes' && (
                     <div className="fade-in">
                         <div className="form-section">
-                            <h4>Adicionar Observação</h4>
-                            <div style={{ display: 'flex', gap: '10px' }}>
-                                <input
-                                    type="text"
-                                    className="form-input"
-                                    placeholder="Escreva uma observação..."
-                                    value={novaObservacao}
-                                    onChange={e => setNovaObservacao(e.target.value)}
-                                />
-                                <button className="btn-submit" style={{ width: 'auto' }} onClick={handleSalvarObservacao}>Adicionar</button>
+                            <h4>Adicionar Nova Observação</h4>
+                            <div className="observation-form">
+                                <div className="form-group">
+                                    <label>Título:</label>
+                                    <input
+                                        type="text" className="form-input"
+                                        value={obsTitulo} onChange={e => setObsTitulo(e.target.value)}
+                                        placeholder="Ex: Comportamento, Alimentação..."
+                                    />
+                                </div>
+                                <div className="form-group">
+                                    <label>Descrição:</label>
+                                    <textarea
+                                        className="form-input" rows="4"
+                                        value={obsDetalhes} onChange={e => setObsDetalhes(e.target.value)}
+                                        placeholder="Detalhes da observação..."
+                                        style={{resize: 'vertical'}}
+                                    />
+                                </div>
+                                <button className="btn-submit" onClick={handleSalvarObservacao}>Salvar Observação</button>
                             </div>
                         </div>
 
                         <h4>Lista de Observações</h4>
-                        {historico.observacoes.map(obs => (
-                            // Uso da classe 'observacao' para definir a cor amarela
-                            <div key={obs.id} className="history-item observacao">
-                                <div className="history-body" style={{ flex: 1 }}>
-                                    <small className="history-meta">{new Date(obs.data_hora).toLocaleDateString()} - </small>
-                                    {obs.detalhes}
+                        {observacoesList.length === 0 ? (
+                            <p className="empty-msg">Nenhuma observação registrada.</p>
+                        ) : (
+                            observacoesList.map(obs => (
+                                <div key={obs.id} className="history-item observacao">
+                                    <div className="history-header">
+                                        <span className="history-title">{obs.titulo || 'Observação'}</span>
+                                        <span className="history-meta">
+                                            {new Date(obs.data_criacao).toLocaleString()} - {obs.funcionario_nome || 'Sistema'}
+                                        </span>
+                                    </div>
+                                    <div className="history-body" style={{whiteSpace: 'pre-wrap'}}>
+                                        {obs.descricao}
+                                    </div>
+                                    <div className="history-footer">
+                                        <button className="btn-delete" onClick={() => handleDeletarObservacao(obs.id)}>🗑️ Excluir</button>
+                                    </div>
                                 </div>
-                                <button className="btn-delete" onClick={() => handleDeletarItem(obs.id, 'historico')}>🗑️</button>
-                            </div>
-                        ))}
-                        {historico.observacoes.length === 0 && <p className="empty-msg">Nenhuma observação registrada.</p>}
+                            ))
+                        )}
                     </div>
                 )}
-
             </div>
         </div>
     );

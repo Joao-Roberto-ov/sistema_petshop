@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from typing import List
 from modelos import HistoricoMedico, HistoricoMedicoResponse
 from services import historico_medico_service, vacina_service
+from services.observacao_service import ServicosObservacao
 from services.pet_service import ServicosPet
 from seguranca import verifica_token, decodifica_token
 
@@ -124,35 +125,37 @@ def deletar_historico(historico_id: int, funcionario: dict = Depends(obter_funci
 @router.get("/completo/{pet_id}")
 async def historico_completo(pet_id: int):
     """
-    Rota consolidada para obter o histórico do pet (dados + histórico médico + vacinas).
-    Substitui a lógica antiga do main.py.
+    Rota consolidada para obter o histórico do pet (dados + histórico médico + vacinas + OBSERVAÇÕES).
     """
     try:
-        # 1. Buscar dados do Pet
+        # procura dados do Pet
         service_pet = ServicosPet()
         pet_data_raw = service_pet.buscar_pet_por_id(pet_id)
 
         if not pet_data_raw:
             return {"error": "Pet não encontrado"}
 
-        # Ajustar formato se necessário (o buscar_pet_por_id já retorna um dict no service atual)
+        # ajusta formato
         pet_dict = pet_data_raw
 
-        # 2. Buscar Histórico Médico
+        # procura histórico médico
         historico_lista = historico_medico_service.buscar_historico_pet(pet_id)
 
-        # 3. Buscar Vacinas
+        # procura vacinas
         vacinas_lista = vacina_service.obter_vacinas_por_pet_id(pet_id)
-
-        # Serialização de vacinas (caso sejam objetos Pydantic)
         vacinas_dict = [v.model_dump() if hasattr(v, 'model_dump') else v for v in vacinas_lista]
+
+        # procura observações
+        service_obs = ServicosObservacao()
+        observacoes_lista = service_obs.listar_por_pet(pet_id)
 
         return {
             "success": True,
             "dados_pet": pet_dict,
             "historico": historico_lista,
             "vacinas": vacinas_dict,
-            "total_registros": len(historico_lista) + len(vacinas_dict)
+            "observacoes": observacoes_lista,  # Retorna a lista da nova tabela
+            "total_registros": len(historico_lista) + len(vacinas_dict) + len(observacoes_lista)
         }
 
     except Exception as e:

@@ -21,7 +21,7 @@ class ClienteCadastro(BaseModel):
 
     @validator('cpf', pre=True, always=True)
     def validar_e_limpar_cpf(cls, validador: str) -> Optional[str]:
-        if not validador: 
+        if not validador:
             return None
         cpf_numeros = "".join(filter(str.isdigit, validador))
         if len(cpf_numeros) != 11:
@@ -39,7 +39,7 @@ class ClienteCadastroPorFuncionario(BaseModel):
 
     @validator('cpf', pre=True, always=True)
     def validar_e_limpar_cpf(cls, validador: str) -> Optional[str]:
-        if not validador: 
+        if not validador:
             return None
         cpf_numeros = "".join(filter(str.isdigit, validador))
         if len(cpf_numeros) != 11:
@@ -56,7 +56,7 @@ class ClienteUpdate(BaseModel):
 
     @validator('cpf', pre=True, always=True)
     def validar_e_limpar_cpf(cls, validador: str) -> Optional[str]:
-        if not validador: 
+        if not validador:
             return None
         cpf_numeros = "".join(filter(str.isdigit, validador))
         if len(cpf_numeros) != 11:
@@ -75,7 +75,7 @@ class FuncionarioModel(BaseModel):
 
     @validator('cpf', pre=True, always=True)
     def validar_e_limpar_cpf(cls, validador: str) -> Optional[str]:
-        if not validador: 
+        if not validador:
             return None
         cpf_numeros = "".join(filter(str.isdigit, validador))
         if len(cpf_numeros) != 11:
@@ -172,7 +172,7 @@ class FuncionarioCadastroPorAdmin(BaseModel):
 
     @validator("cpf", pre=True, always=True)
     def validar_e_limpar_cpf(cls, validador: str) -> Optional[str]:
-        if not validador: 
+        if not validador:
             return None
         cpf_numeros = "".join(filter(str.isdigit, validador))
         if len(cpf_numeros) != 11:
@@ -346,7 +346,7 @@ class VendaModel(BaseModel):
 
 class InfoAgendamento(BaseModel):
     pet_id: int
-    data_hora: str  
+    data_hora: str
     observacoes: Optional[str] = None
 
     def model_dump_json(self) -> str:
@@ -433,13 +433,12 @@ class VacinaResponse(VacinaBase):
 
 class HistoricoMedico(BaseModel):
     pet_id: int
-    tipo_servico: Literal["Consulta", "Cirurgia", "Exame", "Banho e Tosa", "Vacinação", "Observação", "Outro"]
+    tipo_servico: str
     data_hora: datetime
     resumo: str
     detalhes: Optional[str] = None
     funcionario_id: Optional[int] = None
     valor: Optional[float] = None
-
 
 class HistoricoMedicoResponse(HistoricoMedico):
     id: int
@@ -448,6 +447,22 @@ class HistoricoMedicoResponse(HistoricoMedico):
     class Config:
         from_attributes = True
 
+class ObservacaoBase(BaseModel):
+    pet_id: int
+    titulo: Optional[str] = "Observação"
+    descricao: str
+    funcionario_id: Optional[int] = None
+
+class ObservacaoCreate(ObservacaoBase):
+    pass
+
+class ObservacaoResponse(ObservacaoBase):
+    id: int
+    data_criacao: datetime
+    funcionario_nome: Optional[str] = None
+
+    class Config:
+        from_attributes = True
 
 class AgendamentoReagendar(BaseModel):
     nova_data_hora_inicio: datetime
