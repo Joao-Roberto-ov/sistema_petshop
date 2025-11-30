@@ -1,7 +1,8 @@
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, HTTPException, status, Depends
 from services.estoque_config_service import EstoqueConfigService
 from models.estoque_minimo import EstoqueMinimoConfig
-
+from seguranca import verificar_permissao_admin
+from typing import Annotated
 router = APIRouter(
     prefix="/api/admin/config/estoque-minimo",
     tags=["Configuração de Estoque"]
@@ -9,7 +10,8 @@ router = APIRouter(
 
 
 @router.post("/", status_code=status.HTTP_201_CREATED)
-def configurar_estoque_minimo(dados: EstoqueMinimoConfig):
+def configurar_estoque_minimo(dados: EstoqueMinimoConfig, 
+    funcionario_id: Annotated[int, Depends(verificar_permissao_admin)]):
     if dados.estoque_minimo < 0:
         raise HTTPException(status_code=400, detail="O estoque mínimo não pode ser negativo.")
 
@@ -26,7 +28,8 @@ def configurar_estoque_minimo(dados: EstoqueMinimoConfig):
 
 
 @router.put("/{produto_id}", status_code=status.HTTP_200_OK)
-def atualizar_estoque_minimo(produto_id: int, dados: EstoqueMinimoConfig):
+def atualizar_estoque_minimo(produto_id: int, dados: EstoqueMinimoConfig, 
+    funcionario_id: Annotated[int, Depends(verificar_permissao_admin)]):
     if dados.estoque_minimo < 0:
         raise HTTPException(status_code=400, detail="O estoque mínimo não pode ser negativo.")
 
@@ -39,7 +42,8 @@ def atualizar_estoque_minimo(produto_id: int, dados: EstoqueMinimoConfig):
 
 
 @router.get("/{produto_id}")
-def obter_estoque_minimo(produto_id: int):
+def obter_estoque_minimo(produto_id: int, 
+    funcionario_id: Annotated[int, Depends(verificar_permissao_admin)]):
     minimo = EstoqueConfigService.obter_estoque_minimo(produto_id)
 
     if minimo is None:
@@ -52,5 +56,6 @@ def obter_estoque_minimo(produto_id: int):
 
 
 @router.get("/")
-def listar_todos_estoques_minimos():
+def listar_todos_estoques_minimos(
+    funcionario_id: Annotated[int, Depends(verificar_permissao_admin)]):
     return EstoqueConfigService.listar_todos()
