@@ -57,10 +57,26 @@ function ProntuarioPet({ pet, onBack }) {
 
             if(resHist.data.success) {
                 const allData = resHist.data.historico;
+
+                // --- ALTERAÇÃO: Lógica de filtragem mais robusta (case-insensitive) ---
+                const consultas = allData.filter(i => {
+                    const tipo = (i.tipo_servico || '').toLowerCase();
+                    return tipo.includes('consulta') || tipo.includes('exame');
+                });
+
+                const servicos = allData.filter(i => {
+                    const tipo = (i.tipo_servico || '').toLowerCase();
+                    // Inclui tudo que NÃO for consulta, exame ou observação
+                    return !tipo.includes('consulta') &&
+                           !tipo.includes('exame') &&
+                           tipo !== 'observação' &&
+                           tipo !== 'observacao';
+                });
+
                 setHistorico({
-                    consultas: allData.filter(i => i.tipo_servico === 'Consulta'),
+                    consultas: consultas,
                     vacinas: resHist.data.vacinas,
-                    servicos: allData.filter(i => i.tipo_servico !== 'Consulta' && i.tipo_servico !== 'Observação'),
+                    servicos: servicos,
                 });
             }
 
@@ -300,9 +316,16 @@ function ProntuarioPet({ pet, onBack }) {
                             <div key={s.id} className={`history-item ${getServiceClass(s.tipo_servico)}`}>
                                 <div className="history-header">
                                     <span className="history-title">{s.tipo_servico}</span>
-                                    <span className="history-price">R$ {s.valor}</span>
+                                    <span className="history-price">
+                                        {s.valor !== null && s.valor !== undefined
+                                            ? `R$ ${Number(s.valor).toFixed(2)}`
+                                            : 'Valor N/A'}
+                                    </span>
                                 </div>
-                                <div className="history-meta">{new Date(s.data_hora).toLocaleString()}</div>
+                                <div className="history-meta">
+                                    {new Date(s.data_hora).toLocaleString()}
+                                    {s.funcionario_nome ? ` - ${s.funcionario_nome}` : ''}
+                                </div>
                                 <div className="history-body">{s.resumo}</div>
                             </div>
                         ))}
