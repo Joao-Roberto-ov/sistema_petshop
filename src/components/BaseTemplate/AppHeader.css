@@ -1,0 +1,11 @@
+/* Container correto para alinhar o badge */
+.notification-wrapper {
+    position: absolute;
+    top: -6px;
+    right: -6px;
+}
+
+/* O botão vira referência para alinhamento */
+.user-menu-button {
+    position: relative;
+}

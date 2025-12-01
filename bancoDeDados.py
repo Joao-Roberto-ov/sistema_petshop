@@ -57,8 +57,12 @@ def criar_tabelas():
                             Nome VARCHAR(50) UNIQUE NOT NULL
                         );""")
 
+        # (Req 5) Adicionados cargos de Atendente e Veterinário
         curs.execute("INSERT INTO Cargos (Nome) VALUES ('gestor') ON CONFLICT (Nome) DO NOTHING;")
         curs.execute("INSERT INTO Cargos (Nome) VALUES ('funcionario') ON CONFLICT (Nome) DO NOTHING;")
+        curs.execute("INSERT INTO Cargos (Nome) VALUES ('veterinario') ON CONFLICT (Nome) DO NOTHING;")
+        curs.execute("INSERT INTO Cargos (Nome) VALUES ('atendente') ON CONFLICT (Nome) DO NOTHING;")
+
 
         curs.execute("""CREATE TABLE IF NOT EXISTS produtos_externos
                         (
@@ -116,18 +120,31 @@ def criar_tabelas():
                             raca       VARCHAR(50) NOT NULL,
                             idade      SMALLINT    NOT NULL,
                             peso       FLOAT,
-                            cliente_id INTEGER REFERENCES Clientes (id) ON DELETE CASCADE
+                            cliente_id INTEGER REFERENCES Clientes (id) ON DELETE CASCADE,
+                            sexo_biologico VARCHAR(20) DEFAULT 'Não Informado',
+                            observacoes TEXT
                         );""")
+
+        curs.execute("""CREATE TABLE IF NOT EXISTS observacoes_pet
+                        (
+                            id             SERIAL PRIMARY KEY,
+                            pet_id         INTEGER NOT NULL REFERENCES Pets (id) ON DELETE CASCADE,
+                            titulo         VARCHAR(150),
+                            descricao      TEXT NOT NULL,
+                            data_criacao   TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+                            funcionario_id INTEGER REFERENCES Funcionarios (id) ON DELETE SET NULL
+                        );""")
+
 
         curs.execute("""CREATE TABLE IF NOT EXISTS vacinas
                         (
-                            id                   SERIAL PRIMARY KEY,
-                            pet_id               INTEGER                  NOT NULL REFERENCES Pets (id) ON DELETE CASCADE,
-                            nome_vacina          VARCHAR(100)             NOT NULL,
-                            data_aplicacao       DATE                     NOT NULL,
-                            data_proxima_dose    DATE,
-                            funcionario_id       INTEGER REFERENCES Funcionarios (id) ON DELETE SET NULL,
-                            criado_em            TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+                            id                SERIAL PRIMARY KEY,
+                            pet_id            INTEGER      NOT NULL REFERENCES Pets (id) ON DELETE CASCADE,
+                            nome_vacina       VARCHAR(100) NOT NULL,
+                            data_aplicacao    DATE         NOT NULL,
+                            data_proxima_dose DATE,
+                            funcionario_id    INTEGER      REFERENCES Funcionarios (id) ON DELETE SET NULL,
+                            criado_em         TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
                         );""")
 
         curs.execute("""CREATE TABLE IF NOT EXISTS historico_medico
@@ -138,7 +155,7 @@ def criar_tabelas():
                             data_hora      TIMESTAMP WITH TIME ZONE NOT NULL,
                             resumo         TEXT                     NOT NULL,
                             detalhes       TEXT,
-                            funcionario_id INTEGER REFERENCES Funcionarios (id) ON DELETE SET NULL,
+                            funcionario_id INTEGER                  REFERENCES Funcionarios (id) ON DELETE SET NULL,
                             valor          NUMERIC(10, 2)
                         );""")
 
@@ -200,6 +217,8 @@ def criar_tabelas():
                             status           VARCHAR(50)              DEFAULT 'Agendado',
                             observacoes      TEXT,
                             criado_em        TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+                            status_motivo    TEXT,
+                            lembrete_enviado BOOLEAN                  DEFAULT FALSE,
                             UNIQUE (funcionario_id, data_hora_inicio),
                             UNIQUE (pet_id, data_hora_inicio)
                         );""")
@@ -224,7 +243,7 @@ def criar_tabelas():
                             cliente_id       INTEGER REFERENCES Clientes (id),
                             total            NUMERIC(10, 2) NOT NULL,
                             forma_pagamento  VARCHAR(50)    NOT NULL,
-                            status_pagamento VARCHAR(20) DEFAULT 'pendente',
+                            status_pagamento VARCHAR(20) DEFAULT 'Pendente',
                             criado_em        TIMESTAMP   DEFAULT CURRENT_TIMESTAMP
                         );""")
 
@@ -236,7 +255,8 @@ def criar_tabelas():
                             id_item        INTEGER        NOT NULL,
                             nome           VARCHAR(255)   NOT NULL,
                             quantidade     INTEGER        NOT NULL,
-                            preco_unitario NUMERIC(10, 2) NOT NULL
+                            preco_unitario NUMERIC(10, 2) NOT NULL,
+                            info_agendamento TEXT
                         );""")
 
         curs.execute("""
@@ -279,37 +299,77 @@ def criar_tabelas():
                          preco_unitario NUMERIC(10, 2) NOT NULL
                      );
                      """)
-        
-        curs.execute("""
-                    CREATE TABLE IF NOT EXISTS despesas
-                    (
-                        id SERIAL PRIMARY KEY,
-                        descricao VARCHAR(255) NOT NULL,
-                        valor NUMERIC(10, 2) NOT NULL,
-                        data DATE NOT NULL
-                    );
-                    """)
 
         curs.execute("""
-                    CREATE TABLE IF NOT EXISTS horarios_funcionamento
-                    (
-                        id SERIAL PRIMARY KEY,
-                        dia_semana VARCHAR(20) NOT NULL,
-                        abre TIME,
-                        fecha TIME,
-                        fechado BOOLEAN DEFAULT FALSE
-                    );
-                    """)
+                     CREATE TABLE IF NOT EXISTS despesas
+                     (
+                         id        SERIAL PRIMARY KEY,
+                         descricao VARCHAR(255)   NOT NULL,
+                         valor     NUMERIC(10, 2) NOT NULL,
+                         data      DATE           NOT NULL
+                     );
+                     """)
 
-        try:
+        curs.execute("""CREATE TABLE IF NOT EXISTS configuracao_empresa
+                        (
+                            id       SERIAL PRIMARY KEY,
+                            endereco VARCHAR(255),
+                            telefone VARCHAR(50),
+                            email    VARCHAR(150)
+                        );""")
+
+        # garante que existe pelo menos uma linha (id 1) com valores padrão
+        curs.execute("""
+                     INSERT INTO configuracao_empresa (id, endereco, telefone, email)
+                     SELECT 1, '', '', 'contato@petlife.com'
+                     WHERE NOT EXISTS (SELECT 1 FROM configuracao_empresa WHERE id = 1);
+                     """)
+
+        curs.execute("""
+                     SELECT column_name
+                     FROM information_schema.columns
+                     WHERE table_name = 'horarios_funcionamento'
+                       AND column_name = 'inicio_manha';
+                     """)
+        if not curs.fetchone():
+            print("Atualizando estrutura da tabela de horários (migração)...")
+            curs.execute("DROP TABLE IF EXISTS horarios_funcionamento;")
+
+        # Cria a tabela com suporte a Manhã/Tarde e Ativo/Inativo
+        curs.execute("""
+                     CREATE TABLE IF NOT EXISTS horarios_funcionamento
+                     (
+                         id           SERIAL PRIMARY KEY,
+                         dia_semana   VARCHAR(20) UNIQUE NOT NULL,
+                         inicio_manha TIME    DEFAULT '08:00',
+                         fim_manha    TIME    DEFAULT '12:00',
+                         manha_ativa  BOOLEAN DEFAULT TRUE,
+                         inicio_tarde TIME    DEFAULT '13:00',
+                         fim_tarde    TIME    DEFAULT '18:00',
+                         tarde_ativa  BOOLEAN DEFAULT TRUE
+                     );
+                     """)
+
+        curs.execute("""CREATE TABLE IF NOT EXISTS notificacoes
+                        (
+                            id        SERIAL PRIMARY KEY,
+                            mensagem  TEXT NOT NULL,
+                            lida      BOOLEAN                  DEFAULT FALSE,
+                            criado_em TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+                            tipo      VARCHAR(50)              DEFAULT 'info' -- 'info', 'cancelamento', etc.
+                        );""")
+
+        dias = [
+            'Segunda-feira', 'Terça-feira', 'Quarta-feira',
+            'Quinta-feira', 'Sexta-feira', 'Sábado', 'Domingo'
+        ]
+
+        for dia in dias:
             curs.execute("""
-                         ALTER TABLE Agendamentos
-                             ADD COLUMN IF NOT EXISTS status_motivo TEXT;
-                         """)
-
-        except pg.Error as e:
-            print(f"Ignorando erro ao adicionar coluna (provavelmente já existe): {e}")
-            conectado.rollback()
+                         INSERT INTO horarios_funcionamento (dia_semana)
+                         VALUES (%s)
+                         ON CONFLICT (dia_semana) DO NOTHING;
+                         """, (dia,))
 
         conectado.commit()
         print("Verificação e criação de tabelas concluída com sucesso.")

@@ -1,0 +1,254 @@
+/* src/components/Prontuario/Prontuario.css */
+
+.prontuario-container {
+    padding: 2rem;
+    max-width: 1000px;
+    margin: 0 auto;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+/* --- Cabeçalho --- */
+.prontuario-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+    border-bottom: 1px solid #e0e0e0;
+    padding-bottom: 1rem;
+}
+
+.prontuario-header h2 {
+    color: #2c3e50;
+    margin: 0;
+    font-size: 1.8rem;
+}
+
+.prontuario-header .btn-voltar {
+    background-color: #6c757d;
+    color: white;
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.prontuario-header .btn-voltar:hover {
+    background-color: #5a6268;
+}
+
+/* --- Sistema de Abas --- */
+.tabs-header {
+    display: flex;
+    gap: 0.5rem;
+    border-bottom: 3px solid #4a9b8e;
+    margin-bottom: 0;
+    overflow-x: auto; /* Para telas pequenas */
+}
+
+.tab-btn {
+    padding: 1rem 1.5rem;
+    background: #f1f1f1;
+    color: #555;
+    border: none;
+    border-radius: 8px 8px 0 0;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 0.95rem;
+    transition: all 0.3s ease;
+    white-space: nowrap;
+}
+
+.tab-btn:hover {
+    background: #e2e6ea;
+    color: #4a9b8e;
+}
+
+.tab-btn.active {
+    background: #4a9b8e;
+    color: white;
+    transform: translateY(2px); /* Efeito de conexão com a borda */
+}
+
+/* --- Conteúdo da Aba --- */
+.tab-content {
+    background: white;
+    padding: 2rem;
+    border-radius: 0 0 8px 8px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+    min-height: 400px;
+    border: 1px solid #e0e0e0;
+    border-top: none;
+}
+
+.tab-content h4 {
+    color: #4a9b8e;
+    margin-top: 0;
+    margin-bottom: 1.5rem;
+    font-size: 1.3rem;
+    border-left: 4px solid #4a9b8e;
+    padding-left: 10px;
+}
+
+/* --- Formulários --- */
+.form-section {
+    background-color: #f8f9fa;
+    padding: 1.5rem;
+    border-radius: 8px;
+    border: 1px solid #eee;
+    margin-bottom: 2rem;
+}
+
+.form-group {
+    margin-bottom: 1rem;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+    color: #333;
+}
+
+.form-input {
+    width: 100%;
+    padding: 0.75rem;
+    border: 1px solid #ced4da;
+    border-radius: 6px;
+    font-size: 1rem;
+    transition: border-color 0.2s;
+}
+
+.form-input:focus {
+    outline: none;
+    border-color: #4a9b8e;
+    box-shadow: 0 0 0 3px rgba(74, 155, 142, 0.1);
+}
+
+textarea.form-input {
+    resize: vertical;
+}
+
+
+/* --- Lista de Histórico (Cards) --- */
+.history-item {
+    background: #fff;
+    border: 1px solid #e9ecef;
+    padding: 1.25rem;
+    margin-bottom: 1rem;
+    border-radius: 8px;
+    position: relative;
+    transition: transform 0.2s, box-shadow 0.2s;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+
+.history-item:hover {
+    transform: translateX(5px);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+}
+
+.history-item.consulta { border-left: 5px solid #4a9b8e; }
+.history-item.vacina { border-left: 5px solid #2ecc71; }
+.history-item.servico { border-left: 5px solid #9b59b6; }
+.history-item.observacao { border-left: 5px solid #f1c40f; }
+
+.history-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+}
+
+.history-title {
+    font-weight: 700;
+    color: #2c3e50;
+    font-size: 1.05rem;
+}
+
+.history-meta {
+    font-size: 0.85rem;
+    color: #888;
+    font-style: italic;
+}
+
+.history-body {
+    color: #555;
+    line-height: 1.5;
+    white-space: pre-wrap;
+}
+
+.history-footer {
+    margin-top: 0.5rem;
+    padding-top: 0.5rem;
+    border-top: 1px dashed #eee;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.9rem;
+}
+
+.history-price {
+    font-weight: bold;
+    color: #2c3e50;
+    background: #e9ecef;
+    padding: 2px 8px;
+    border-radius: 4px;
+}
+
+
+.btn-voltar-prontuario {
+    padding: 0.5rem 1.5rem;
+    background: #4A9B8E;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 600;
+    color: white;
+    transition: all 0.2s;
+}
+
+.btn-voltar-prontuario:hover {
+    background-color: #3d8b7e; /*cor mais escura no hover*/
+    transform: translateY(-2px);
+    box-shadow: 0 4px 10px rgba(74, 155, 142, 0.3);
+}
+
+.btn-delete {
+    background: none;
+    border: none;
+    color: #e74c3c;
+    cursor: pointer;
+    padding: 5px;
+    font-size: 1.1rem;
+    transition: color 0.2s;
+}
+
+.btn-delete:hover {
+    color: #c0392b;
+    background-color: #fee2e2;
+    border-radius: 50%;
+}
+
+/* Responsividade */
+@media (max-width: 768px) {
+    .prontuario-container {
+        padding: 1rem;
+    }
+
+    .tabs-header {
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        padding-bottom: 5px;
+    }
+
+    .tab-btn {
+        padding: 0.8rem 1rem;
+        font-size: 0.9rem;
+    }
+
+    .history-header {
+        flex-direction: column;
+    }
+}

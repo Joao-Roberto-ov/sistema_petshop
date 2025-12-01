@@ -1,7 +1,13 @@
 from fastapi import APIRouter, Depends, HTTPException
 from modelos import PetCadastro, PetUpdate
 from services.pet_service import ServicosPet
-from seguranca import pegar_id_do_usuario_logado, verificar_permissao_veterinario, verificar_permissao_gestor, pegar_payload_do_usuario_logado
+from seguranca import (
+    pegar_id_do_usuario_logado,
+    verificar_permissao_veterinario,
+    verificar_permissao_gestor,
+    pegar_payload_do_usuario_logado,
+    verificar_permissao_funcionario # Importante: adicionei essa importação
+)
 
 router = APIRouter(prefix="/api", tags=["Pets"])
 
@@ -29,6 +35,23 @@ async def rota_listar_pets_do_usuario(
 ):
     return service.listar_pets_do_cliente(current_user_id)
 
+# --- NOVA ROTA PARA O FUNCIONÁRIO/SISTEMA BUSCAR PETS DE UM CLIENTE ---
+@router.get("/pets/cliente/{cliente_id}")
+async def rota_listar_pets_de_cliente_especifico(
+    cliente_id: int,
+    service: ServicosPet = Depends(pegar_servicos_pet),
+    # Apenas funcionários podem ver pets de outros clientes dessa forma
+    funcionario_id: int = Depends(verificar_permissao_funcionario)
+):
+    """
+    Lista os pets de um cliente específico (Usado na tela de Vendas/Agendamento)
+    """
+    try:
+        return service.listar_pets_do_cliente(cliente_id)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail="Erro ao buscar pets do cliente.")
+# -----------------------------------------------------------------------
+
 @router.get("/pets/{pet_id}/history")
 async def rota_buscar_historico_do_pet(
         pet_id: int,
@@ -49,14 +72,11 @@ async def rota_atualizar_pet(
     try:
         current_user_id = user_payload.get("sub")
         user_type = user_payload.get("tipo")
-        print(f"🔄 Rota PUT /pets/{pet_id} - user_id: {current_user_id}, user_type: {user_type}")
         pet_atualizado = service.atualizar_pet(pet_id, pet_dados, current_user_id, user_type)
         return pet_atualizado
     except HTTPException as e:
-        print(f"❌ Erro HTTP na rota: {e.detail}")
         raise e
     except Exception as e:
-        print(f"❌ Erro interno na rota: {str(e)}")
         raise HTTPException(status_code=500, detail="Ocorreu um erro interno ao atualizar o pet.")
 
 @router.delete("/pets/{pet_id}")

@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from typing import Annotated
 from seguranca import decodifica_token
-from modelos import PetUpdate
+from modelos import PetUpdate, PetTransferencia  # Adicione PetTransferencia aqui
 from services.pet_service import ServicosPet
 
 router = APIRouter(prefix="/admin", tags=["Admin - Pets"])
@@ -54,6 +54,51 @@ async def listar_todos_pets(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, 
             detail=f"Erro ao buscar pets: {str(e)}"
+        )
+
+@router.post("/pets/transferir", status_code=status.HTTP_200_OK)
+async def transferir_pet(
+    transferencia_dados: PetTransferencia,
+    token: Annotated[str, Depends(oauth2_scheme)],
+    service: ServicosPet = Depends(pegar_servicos_pet)
+):
+    """
+    Endpoint para gestores transferirem a posse de um pet para outro cliente.
+    """
+    token_data = decodifica_token(token)
+    
+    if not token_data:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Token inválido ou expirado"
+        )
+    
+    user_type = token_data.get("tipo")
+    cargo_id = token_data.get("cargo_id")
+    
+    # Verificar se é funcionário
+    if user_type != "funcionario":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN, 
+            detail="Apenas funcionários podem acessar esta funcionalidade."
+        )
+    
+    # Verificar se tem permissão de gestor (APENAS gestor pode transferir)
+    if cargo_id != 1:  # Apenas Gestor (cargo_id = 1)
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN, 
+            detail="Apenas gestores podem transferir pets entre clientes."
+        )
+    
+    try:
+        service.transferir_pet(transferencia_dados.pet_id, transferencia_dados.novo_cliente_id)
+        return {"Aviso": f"Pet ID {transferencia_dados.pet_id} transferido com sucesso para o Cliente ID {transferencia_dados.novo_cliente_id}."}
+    except HTTPException as e:
+        raise e
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, 
+            detail=f"Erro ao transferir pet: {str(e)}"
         )
 
 @router.put("/pets/{pet_id}", status_code=status.HTTP_200_OK)

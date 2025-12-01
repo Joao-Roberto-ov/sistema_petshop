@@ -8,3 +8,6 @@ def buscar_historico_pet(pet_id):
 
 def buscar_detalhes_historico(historico_id):
     return historico_medico_repository.obter_detalhes_historico(historico_id)
+
+def deletar_historico(historico_id):
+    return historico_medico_repository.deletar_historico(historico_id)

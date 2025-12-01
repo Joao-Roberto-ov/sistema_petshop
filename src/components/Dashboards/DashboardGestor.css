@@ -1,0 +1,411 @@
+.dashboard-gestor-header {
+    background: linear-gradient(135deg, #4a9b8e 0%, #3d8b7e 100%);
+    color: white;
+    padding: 2rem;
+    border-radius: 12px;
+    margin-bottom: 2rem;
+    text-align: center;
+    box-shadow: 0 4px 15px rgba(74, 155, 142, 0.3);
+}
+
+.dashboard-gestor-header h1 {
+    margin: 0 0 0.5rem 0;
+    font-size: 2.2rem;
+    font-weight: 700;
+}
+
+.dashboard-gestor-header p {
+    margin: 0;
+    font-size: 1.1rem;
+    opacity: 0.9;
+}
+
+.summary-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.summary-cards .card {
+    background-color: white;
+    border-radius: 12px;
+    padding: 1.5rem;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+    border: 1px solid #eee;
+    text-align: center;
+    border-left: 5px solid;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.summary-cards .card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
+}
+
+.summary-cards .card h3 {
+    margin: 0 0 0.5rem 0;
+    font-size: 0.9rem;
+    color: #555;
+    text-transform: uppercase;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+}
+
+.summary-cards .card p {
+    margin: 0 0 0.5rem 0;
+    font-size: 1.8rem;
+    font-weight: 700;
+    color: #333;
+}
+
+.summary-cards .card span {
+    font-size: 0.85rem;
+    color: #888;
+}
+
+/* Cores das bordas dos cards */
+.card-previsto { border-color: #ffc107; /* Amarelo */ }
+.card-realizado { border-color: #28a745; /* Verde */ }
+.card-total-agendamentos { border-color: #17a2b8; /* Azul claro */ }
+
+/* Botões de Ação Principais */
+.btn-action-primary {
+    background: linear-gradient(135deg, #4a9b8e 0%, #3d8b7e 100%);
+    color: white;
+    border: none;
+    padding: 0.75rem 1.5rem;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 0.95rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 8px rgba(74, 155, 142, 0.3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    text-decoration: none;
+    min-height: 44px;
+}
+
+.btn-action-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(74, 155, 142, 0.4);
+    background: linear-gradient(135deg, #3d8b7e 0%, #2d7a6d 100%);
+}
+
+.btn-action-primary:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 5px rgba(74, 155, 142, 0.3);
+}
+
+.btn-action-primary:disabled {
+    background: #cccccc;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+}
+
+/* Botão de Fluxo de Caixa */
+.btn-fluxo-caixa {
+    background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+    color: white;
+    font-weight: 600;
+    font-size: 1rem;
+    padding: 0.75rem 1.5rem;
+    border-radius: 8px;
+    border: none;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 8px rgba(37, 99, 235, 0.3);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    min-height: 44px;
+}
+
+.btn-fluxo-caixa:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(37, 99, 235, 0.4);
+    background: linear-gradient(135deg, #1d4ed8 0%, #1e40af 100%);
+}
+
+.btn-fluxo-caixa:focus {
+    outline: 2px solid #93c5fd;
+    outline-offset: 2px;
+}
+
+/* Botão de Relatório de Produtos */
+.btn-relatorio-produtos {
+    background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%);
+    color: white;
+    font-weight: 600;
+    font-size: 1rem;
+    padding: 0.75rem 1.5rem;
+    border-radius: 8px;
+    border: none;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 8px rgba(124, 58, 237, 0.3);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    min-height: 44px;
+}
+
+.btn-relatorio-produtos:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(124, 58, 237, 0.4);
+    background: linear-gradient(135deg, #6d28d9 0%, #5b21b6 100%);
+}
+
+/* Botão de Relatório de Serviços */
+.btn-relatorio-servicos {
+    background: linear-gradient(135deg, #d97706 0%, #b45309 100%);
+    color: white;
+    font-weight: 600;
+    font-size: 1rem;
+    padding: 0.75rem 1.5rem;
+    border-radius: 8px;
+    border: none;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 8px rgba(217, 119, 6, 0.3);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    min-height: 44px;
+}
+
+.btn-relatorio-servicos:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(217, 119, 6, 0.4);
+    background: linear-gradient(135deg, #b45309 0%, #92400e 100%);
+}
+
+/* Botão de Exportação */
+.btn-export {
+    background: linear-gradient(135deg, #059669 0%, #047857 100%);
+    color: white;
+    border: none;
+    padding: 0.6rem 1.2rem;
+    border-radius: 6px;
+    font-weight: 600;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 6px rgba(5, 150, 105, 0.3);
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    min-height: 40px;
+}
+
+.btn-export:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(5, 150, 105, 0.4);
+    background: linear-gradient(135deg, #047857 0%, #065f46 100%);
+}
+
+.btn-export:disabled {
+    background: #9ca3af;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+}
+
+/* Botão Secundário */
+.btn-secondary {
+    background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%);
+    color: white;
+    border: none;
+    padding: 0.6rem 1.2rem;
+    border-radius: 6px;
+    font-weight: 600;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 6px rgba(107, 114, 128, 0.3);
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    min-height: 40px;
+}
+
+.btn-secondary:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(107, 114, 128, 0.4);
+    background: linear-gradient(135deg, #4b5563 0%, #374151 100%);
+}
+
+/* Botões de Filtro */
+.btn-filter {
+    background: white;
+    color: #4a9b8e;
+    border: 2px solid #4a9b8e;
+    padding: 0.5rem 1rem;
+    border-radius: 6px;
+    font-weight: 600;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.btn-filter:hover {
+    background: #4a9b8e;
+    color: white;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(74, 155, 142, 0.3);
+}
+
+/* Container de Botões */
+.buttons-container {
+    display: flex;
+    gap: 1rem;
+    margin: 1rem 0;
+    flex-wrap: wrap;
+    align-items: center;
+}
+
+.export-buttons {
+    display: flex;
+    gap: 0.75rem;
+    margin: 1rem 0;
+    flex-wrap: wrap;
+}
+
+/* Ajustes na tabela reutilizada */
+.table-filters {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+    padding: 1rem;
+    background-color: #fff;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.table-filters label {
+    font-weight: 600;
+    margin-right: 0.5rem;
+    color: #555;
+}
+
+.table-filters select,
+.table-filters input {
+    padding: 0.5rem 0.75rem;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    transition: border-color 0.3s ease;
+}
+
+.table-filters select:focus,
+.table-filters input:focus {
+    outline: none;
+    border-color: #4a9b8e;
+    box-shadow: 0 0 0 3px rgba(74, 155, 142, 0.1);
+}
+
+/* Ajustes na tabela */
+.gestor-table td, .gestor-table th {
+    white-space: nowrap;
+    padding: 0.75rem;
+}
+
+.gestor-table .agendamento-valor {
+    font-weight: bold;
+    text-align: right;
+}
+
+/* Colore linhas baseadas no status */
+.gestor-table tr.status-cancelado {
+    background-color: #fff5f5;
+    color: #999;
+    text-decoration: line-through;
+}
+
+.gestor-table tr.status-realizado {
+    background-color: #f8f9fa;
+}
+
+/* Botão de ação na tabela */
+.action-btn {
+    background: #f3f4f6;
+    color: #555;
+    border: none;
+    border-radius: 4px;
+    padding: 0.4rem 0.6rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.action-btn:hover {
+    background: #4a9b8e;
+    color: white;
+    transform: scale(1.05);
+}
+
+/* Loading e Estados */
+.loading-message {
+    text-align: center;
+    padding: 2rem;
+    color: #4a9b8e;
+    font-size: 1.1rem;
+}
+
+.error-message {
+    background: #fee2e2;
+    color: #dc2626;
+    padding: 1rem;
+    border-radius: 6px;
+    border-left: 4px solid #dc2626;
+    margin: 1rem 0;
+}
+
+.no-agendamentos {
+    text-align: center;
+    padding: 2rem;
+    color: #6b7280;
+    background: #f9fafb;
+    border-radius: 8px;
+    border: 2px dashed #d1d5db;
+}
+
+/* Responsividade */
+@media (max-width: 768px) {
+    .summary-cards {
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: 1rem;
+    }
+    
+    .buttons-container {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .btn-action-primary,
+    .btn-fluxo-caixa,
+    .btn-relatorio-produtos {
+        width: 100%;
+        justify-content: center;
+    }
+    
+    .export-buttons {
+        justify-content: center;
+    }
+    
+    .table-filters {
+        flex-direction: column;
+        align-items: stretch;
+    }
+}
